@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Lightbulb, Search, BookOpen } from "lucide-react";
+import { Lightbulb, Search } from "lucide-react";
 
 export default function Header() {
   return (
