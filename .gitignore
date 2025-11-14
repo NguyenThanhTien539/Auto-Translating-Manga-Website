@@ -7,9 +7,9 @@
 **/out
 **/coverage
 
-# environment files
-**/.env*
-!**/.env.example  
+# # environment files
+# **/.env*
+# !**/.env.example  
 
 # misc
 .DS_Store

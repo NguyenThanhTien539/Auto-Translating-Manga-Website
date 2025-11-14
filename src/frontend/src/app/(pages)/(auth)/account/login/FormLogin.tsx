@@ -3,6 +3,9 @@
 import JustValidate from "just-validate";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { toast } from "sonner";
+
+
 
 export default function FormLogin() {
   const router = useRouter();
@@ -37,24 +40,23 @@ export default function FormLogin() {
 
         console.log(dataFinal);
 
-        // fetch(`${import.meta.env.VITE_API_URL}/accounts/login`, {
-        //   method: "POST",
-        //   headers: { "Content-Type": "application/json" },
-        //   body: JSON.stringify(dataFinal),
-        //   credentials: "include",
-        // })
-        //   .then((res) => res.json())
-        //   .then((data) => {
-        //     if (data.code == "error") {
-        //       console.log(data.message);
-        //       toast.error("Đăng nhập thất bại");
-        //     }
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/account/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(dataFinal),
+          credentials: "include",
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.code == "error") {
+              toast.error("Đăng nhập thất bại");
+            }
 
-        //     if (data.code == "success") {
-        //       navigate(`/`);
-        //       toast.success("Đăng nhập thành công!");
-        //     }
-        //   });
+            if (data.code == "success") {
+              router.push(`/`);
+              toast.success("Đăng nhập thành công!");
+            }
+          });
       });
   }, []);
 

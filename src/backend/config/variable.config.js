@@ -1,1 +1,1 @@
-module.exports.pathAdmin = "pathAdmin";
+module.exports.pathAdmin = "admin";

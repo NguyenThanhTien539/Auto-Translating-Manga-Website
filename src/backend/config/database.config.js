@@ -1,6 +1,4 @@
-// const { Pool } = require("pg");
 const knex = require("knex");
-
 let db;
 try {
   db = knex({
