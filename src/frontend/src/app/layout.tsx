@@ -7,7 +7,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="vi">
-      <body>
+      <body className="min-h-screen">
         <Toaster
           richColors
           closeButton

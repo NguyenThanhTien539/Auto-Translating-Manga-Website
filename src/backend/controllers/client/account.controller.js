@@ -25,7 +25,6 @@ function generateAccessToken(finalData, rememberMe = "") {
 }
 
 module.exports.register = async (req, res) => {
-  console.log(req.body);
   const existedEmail = await AccountModel.findEmail(req.body.email);
   if (existedEmail) {
     res.json({
@@ -41,11 +40,10 @@ module.exports.register = async (req, res) => {
   if (existedOTP) {
     res.json({
       code: "existedOTP",
-      message: "OTP đã được gửi và có hạn trong vòng 5 phút!",
+      message: "OTP đã được gửi và có hạn trong vòng 2 phút!",
     });
     return;
   }
-
   const length = 6;
   const otp = generateHelper.generateOTP(length);
 
@@ -53,6 +51,7 @@ module.exports.register = async (req, res) => {
 
   const verified_otp_token = jwt.sign(
     {
+      otp: otp,
       email: req.body.email,
       fullName: req.body.fullName,
       address: req.body.address,
@@ -82,19 +81,9 @@ module.exports.register = async (req, res) => {
 };
 
 module.exports.registerVerify = async (req, res) => {
-  const verified_otp_token = req.cookies.verified_otp_token;
-  if (!verified_otp_token) {
-    res.clearCookie("verified_otp_token");
-    res.json({ code: "error", message: "Có lỗi xảy ra ở đây1" });
-    return;
-  }
-  console.log(verified_otp_token);
-
   try {
-    const decodedData = jwt.verify(verified_otp_token, process.env.JWT_SECRET);
-    await VerifyModel.deleteExpiredOTP();
     const existedRecord = await VerifyModel.findEmailAndOtp(
-      decodedData.email,
+      req.infoUser.email,
       req.body.otp
     );
     if (!existedRecord) {
@@ -105,17 +94,17 @@ module.exports.registerVerify = async (req, res) => {
       return;
     }
 
-    decodedData.password = await hashPassword(decodedData.password);
-
-    decodedData.username = decodedData.fullName;
-
+    req.infoUser.password = await hashPassword(req.infoUser.password);
+    const countAccounts = await AccountModel.countAccounts();
+    const username = req.infoUser.fullName + `@${countAccounts + 1}`;
     const userData = {
-      email: decodedData.email,
-      fullname: decodedData.fullName,
-      password: decodedData.password,
-      username: decodedData.username,
+      email: req.infoUser.email,
+      full_name: req.infoUser.fullName,
+      password: req.infoUser.password,
+      username: username,
     };
     await AccountModel.insertAccount(userData);
+    await VerifyModel.deleteOtpByEmail(req.infoUser.email);
 
     res.clearCookie("verified_otp_token");
     res.json({
@@ -124,7 +113,8 @@ module.exports.registerVerify = async (req, res) => {
     });
   } catch (error) {
     res.clearCookie("verified_otp_token");
-    res.json({ code: "error", message: "Có lỗi xảy ra ở đây1" });
+    await VerifyModel.deleteOtpByEmail(req.infoUser.email);
+    res.json({ code: "error", message: "Có lỗi xảy ra ở đây" });
   }
 };
 
@@ -163,5 +153,88 @@ module.exports.login = async (req, res) => {
   res.json({
     code: "success",
     message: "Chúc mừng bạn đã đến website của chúng tôi!",
+  });
+};
+
+module.exports.forgotPassword = async (req, res) => {
+  const existedEmail = await AccountModel.findEmail(req.body.email);
+  if (!existedEmail) {
+    res.json({ code: "error", message: "Email không tồn tại trong hệ thống" });
+    return;
+  }
+
+  await VerifyModel.deleteExpiredOTP();
+  const existedOTP = await VerifyModel.findEmail(req.body.email);
+
+  if (existedOTP) {
+    res.json({
+      code: "existedOTP",
+      message: "OTP đã được gửi và có hạn trong vòng 5 phút!",
+    });
+    return;
+  }
+
+  const length = 6;
+  const otp = generateHelper.generateOTP(length);
+
+  await VerifyModel.insertOtpAndEmail(req.body.email, otp);
+
+  const verified_otp_token = jwt.sign(
+    {
+      otp: otp,
+      email: req.body.email,
+    },
+    `${process.env.JWT_SECRET}`,
+    {
+      expiresIn: "1m",
+    }
+  );
+
+  const title = "Mã OTP để lấy lại mật khẩu";
+  const content = `Mã OTP của bạn là <b>${otp}</b>. Mã OTP có hiệu lực trong 5 phút, vui lòng không cung cấp cho bất kỳ ai`;
+  mailHelper.sendMail(req.body.email, title, content);
+
+  res.cookie("verified_otp_token", verified_otp_token, {
+    maxAge: 1 * 60 * 1000,
+    httpOnly: true,
+    secure: false, //https sets true and http sets false
+    sameSite: "lax", //allow send cookie between domains
+  });
+  res.json({
+    code: "success",
+    message: "Vui lòng nhập mã OTP",
+  });
+};
+
+module.exports.forgotPasswordVerify = async (req, res) => {
+  const existedRecord = await VerifyModel.findEmailAndOtp(
+    req.email,
+    req.body.otp
+  );
+
+  if (!existedRecord) {
+    res.json({
+      code: "otp error",
+      message: "OTP không hợp lệ!",
+    });
+    return;
+  }
+  res.json({
+    code: "success",
+    message: "Vui lòng nhập lại mật khẩu",
+  });
+};
+
+module.exports.resetPassword = async (req, res) => {
+  const { password } = req.body;
+  const email = req.email;
+  const newPassword = await hashPassword(password);
+  await AccountModel.updatePassword(email, newPassword);
+  await VerifyModel.deleteOtpByEmail(email);
+
+  res.clearCookie("verified_otp_token");
+  res.json({
+    code: "success",
+    message: "Đã đặt lại mật khẩu thành công",
   });
 };

@@ -38,7 +38,6 @@ export default function FormLogin() {
           rememberPassword: rememberPassword,
         };
 
-        console.log(dataFinal);
 
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/account/login`, {
           method: "POST",
@@ -103,7 +102,7 @@ export default function FormLogin() {
             <span
               className="text-blue-500 cursor-pointer"
               onClick={() => {
-                router.push("/accounts/forgot-password");
+                router.push("/account/forgot-password");
               }}
             >
               Quên mật khẩu

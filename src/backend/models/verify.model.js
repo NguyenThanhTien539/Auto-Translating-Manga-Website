@@ -13,7 +13,9 @@ module.exports.findEmailAndOtp = async (email, otp) => {
 };
 
 module.exports.deleteExpiredOTP = async () => {
-  return db("otp_codes")
-    .whereRaw("otp_expiry + interval '2 minutes' < now()")
-    .del();
+  return db("otp_codes").where("otp_expiry", "<", db.fn.now()).del();
+};
+
+module.exports.deleteOtpByEmail = async (email) => {
+  return db("otp_codes").where({ email }).del();
 };

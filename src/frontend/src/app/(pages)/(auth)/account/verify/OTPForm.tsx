@@ -9,7 +9,7 @@ import {
 } from "./input-otp"
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 import { cn } from "@/lib/utils";
-import { useState } from "react"; // ❌ không cần useEffect nữa
+import { useState } from "react";
 
 type OTPFormProps = {
   className?: string;
