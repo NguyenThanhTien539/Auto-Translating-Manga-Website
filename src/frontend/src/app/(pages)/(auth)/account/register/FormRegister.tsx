@@ -82,7 +82,6 @@ export default function FormRegister() {
           email: email,
           password: password,
         };
-        console.log(finalData);
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/account/register`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -91,7 +90,6 @@ export default function FormRegister() {
         })
           .then((res) => res.json())
           .then((data) => {
-            console.log(data);
             if (data.code == "error") {
               toast.error(data.message);
             }

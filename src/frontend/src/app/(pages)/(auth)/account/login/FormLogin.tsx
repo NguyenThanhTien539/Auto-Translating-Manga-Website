@@ -38,7 +38,6 @@ export default function FormLogin() {
           rememberPassword: rememberPassword,
         };
 
-        console.log(dataFinal);
 
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/account/login`, {
           method: "POST",

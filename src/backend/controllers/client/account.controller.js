@@ -51,6 +51,7 @@ module.exports.register = async (req, res) => {
 
   const verified_otp_token = jwt.sign(
     {
+      otp: otp,
       email: req.body.email,
       fullName: req.body.fullName,
       address: req.body.address,
@@ -80,18 +81,9 @@ module.exports.register = async (req, res) => {
 };
 
 module.exports.registerVerify = async (req, res) => {
-  const verified_otp_token = req.cookies.verified_otp_token;
-  if (!verified_otp_token) {
-    res.clearCookie("verified_otp_token");
-    res.json({ code: "error", message: "Có lỗi xảy ra ở đây" });
-    return;
-  }
-  let email;
   try {
-    const decodedData = jwt.verify(verified_otp_token, process.env.JWT_SECRET);
-    email = decodedData.email;
     const existedRecord = await VerifyModel.findEmailAndOtp(
-      decodedData.email,
+      req.infoUser.email,
       req.body.otp
     );
     if (!existedRecord) {
@@ -101,18 +93,18 @@ module.exports.registerVerify = async (req, res) => {
       });
       return;
     }
-    decodedData.password = await hashPassword(decodedData.password);
 
+    req.infoUser.password = await hashPassword(req.infoUser.password);
     const countAccounts = await AccountModel.countAccounts();
-    const username = decodedData.fullName + `@${countAccounts + 1}`;
+    const username = req.infoUser.fullName + `@${countAccounts + 1}`;
     const userData = {
-      email: decodedData.email,
-      full_name: decodedData.fullName,
-      password: decodedData.password,
+      email: req.infoUser.email,
+      full_name: req.infoUser.fullName,
+      password: req.infoUser.password,
       username: username,
     };
     await AccountModel.insertAccount(userData);
-    await VerifyModel.deleteOtpByEmail(decodedData.email);
+    await VerifyModel.deleteOtpByEmail(req.infoUser.email);
 
     res.clearCookie("verified_otp_token");
     res.json({
@@ -121,7 +113,7 @@ module.exports.registerVerify = async (req, res) => {
     });
   } catch (error) {
     res.clearCookie("verified_otp_token");
-    await VerifyModel.deleteOtpByEmail(email);
+    await VerifyModel.deleteOtpByEmail(req.infoUser.email);
     res.json({ code: "error", message: "Có lỗi xảy ra ở đây" });
   }
 };
@@ -215,17 +207,8 @@ module.exports.forgotPassword = async (req, res) => {
 };
 
 module.exports.forgotPasswordVerify = async (req, res) => {
-  await VerifyModel.deleteExpiredOTP();
-  const verified_otp_token = req.cookies.verified_otp_token;
-  if (!verified_otp_token) {
-    res.json({ code: "error", message: "Có lỗi xảy ra ở đây" });
-    res.clearCookie("verified_otp_token");
-    return;
-  }
-  const decoded = jwt.verify(verified_otp_token, process.env.JWT_SECRET);
-
   const existedRecord = await VerifyModel.findEmailAndOtp(
-    `${decoded.email}`,
+    req.email,
     req.body.otp
   );
 
@@ -243,9 +226,8 @@ module.exports.forgotPasswordVerify = async (req, res) => {
 };
 
 module.exports.resetPassword = async (req, res) => {
-  console.log(req.body);
-  const { email, password } = req.body;
-
+  const { password } = req.body;
+  const email = req.email;
   const newPassword = await hashPassword(password);
   await AccountModel.updatePassword(email, newPassword);
   await VerifyModel.deleteOtpByEmail(email);

@@ -9,9 +9,6 @@ import { toast } from "sonner";
 
 export default function FormResetPassword() {
   const router = useRouter();
-  const params = new URLSearchParams(window.location.search);
-  const email = params.get("email");
-  console.log(email);
   useEffect(() => {
     const validation = new JustValidate("#resetPasswordForm");
 
@@ -64,7 +61,6 @@ export default function FormResetPassword() {
         const password = event.target.password.value;
 
         const finalData = {
-          email: email,
           password: password,
         };
 
