@@ -12,3 +12,11 @@ module.exports.findPassword = async (password) => {
   return db("users").select("*").where({ password }).first();
 };
 
+module.exports.countAccounts = async () => {
+  const result = await db("users").count("user_id as count").first();
+  return result.count;
+};
+
+module.exports.updatePassword = async (email, newPassword) => {
+  return db("users").where({ email: email }).update({ password: newPassword });
+};

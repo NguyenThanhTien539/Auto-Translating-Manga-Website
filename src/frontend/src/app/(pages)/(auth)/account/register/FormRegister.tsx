@@ -91,6 +91,7 @@ export default function FormRegister() {
         })
           .then((res) => res.json())
           .then((data) => {
+            console.log(data);
             if (data.code == "error") {
               toast.error(data.message);
             }

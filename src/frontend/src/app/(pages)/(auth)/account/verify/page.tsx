@@ -1,17 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // import JustValidate from "just-validate";
-"use client"
+"use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import OTPForm from "./OTPForm";
 import { toast } from "sonner";
 import Image from "next/image";
-// const params = new URLSearchParams(window.location.search);
-// const verifyType = params.get("type");
 
 function AccountVerify() {
   const router = useRouter();
-
+  const params = new URLSearchParams(window.location.search);
+  const verifyType = params.get("type");
 
   const [otpValue, setOtp] = useState("");
   const [error, setError] = useState("");
@@ -24,26 +23,54 @@ function AccountVerify() {
       return;
     }
     const finalData = { otp: otpValue };
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/account/verify-register`, {
-      method: "post",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(finalData),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.code == "success") {
-          toast.success(data.message);
-          router.push("/account/login");
+
+    if (verifyType == "forgot-password") {
+      fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/account/verify-forgot-password`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(finalData),
         }
-        if (data.code == "error") {
-          toast.error(data.message);
-          router.push("/account/register");
-        }
-        if (data.code == "otp error") {
-          toast.error(data.message);
-        }
-      });
+      )
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.code == "success") {
+            toast.success(data.message);
+            const email = params.get("email");
+            router.push(`/account/reset-password?email=${email}`);
+          }
+          if (data.code == "error") {
+            toast.error(data.message);
+            router.push("/account/forgot-password");
+          }
+          if (data.code == "otp error") {
+            toast.error(data.message);
+          }
+        });
+    } else {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/account/verify-register`, {
+        method: "post",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(finalData),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.code == "success") {
+            toast.success(data.message);
+            router.push("/account/login");
+          }
+          if (data.code == "error") {
+            toast.error(data.message);
+            router.push("/account/register");
+          }
+          if (data.code == "otp error") {
+            toast.error(data.message);
+          }
+        });
+    }
   };
 
   return (

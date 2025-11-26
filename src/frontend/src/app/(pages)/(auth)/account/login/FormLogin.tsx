@@ -103,7 +103,7 @@ export default function FormLogin() {
             <span
               className="text-blue-500 cursor-pointer"
               onClick={() => {
-                router.push("/accounts/forgot-password");
+                router.push("/account/forgot-password");
               }}
             >
               Quên mật khẩu
