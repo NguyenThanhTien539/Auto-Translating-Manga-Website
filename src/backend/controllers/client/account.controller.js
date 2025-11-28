@@ -139,7 +139,11 @@ module.exports.login = async (req, res) => {
   }
 
   const accessToken = generateAccessToken(
-    { id: existedAccount.id_user, role: existedAccount.role },
+    {
+      id: existedAccount.user_id,
+      role: existedAccount.role,
+      email: existedAccount.email,
+    },
     req.body.rememberMe
   );
 

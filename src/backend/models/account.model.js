@@ -8,6 +8,10 @@ module.exports.findEmail = async (email) => {
   return db("users").select("*").where({ email }).first();
 };
 
+module.exports.findEmailAndId = async (email, id) => {
+  return db("users").select("*").where({ email, id }).first();
+};
+
 module.exports.findPassword = async (password) => {
   return db("users").select("*").where({ password }).first();
 };

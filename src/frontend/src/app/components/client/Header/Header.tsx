@@ -1,6 +1,9 @@
 "use client";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { useAuth } from "@/app/hooks/useAuth";
 export default function Header() {
+  const { infoUser, isLogin } = useAuth();
   const route = useRouter();
   return (
     <header className="w-full border-b border-black-800 mt-2  bg-white px-4 py-1 flex items-center justify-between gap-4">
@@ -45,26 +48,53 @@ export default function Header() {
       </div>
 
       {/* Bên phải: Log in + Sign up */}
-      <div className=" mr-[50px] flex items-center gap-3">
-        <button
-          type="button"
-          className="h-8 px-4 rounded-md bg-sky-700 text-white text-[15px] font-semibold hover:bg-sky-800 cursor-pointer"
-          onClick={() => {
-            route.push("/account/login");
-          }}
-        >
-          Log in
-        </button>
-        <button
-          type="button"
-          className="text-[15px] text-gray-700 hover:text-gray-900 cursor-pointer"
-          onClick={() => {
-            route.push("/account/register");
-          }}
-        >
-          Sign up
-        </button>
-      </div>
+      {isLogin ? (
+        <>
+          <div className="mr-[50px] flex items-center gap-3">
+            <div className="relative h-10 w-10">
+              <Image
+                src={infoUser?.avatar || "/image/avatar.jpg"}
+                alt={infoUser?.username || "Avatar"}
+                width={40}
+                height={40}
+                className="h-10 w-10 rounded-full object-cover border border-gray-200 cursor-pointer"
+              />
+
+            </div>
+
+            {/* Tên user */}
+            <div className="flex flex-col leading-tight">
+              <span className="text-sm font-semibold text-gray-900">
+                {infoUser?.username || "Thanh Tiến"}
+              </span>
+              {/* Bỏ chữ Verified, để trống hoặc thêm gì đó khác cũng được */}
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className=" mr-[50px] flex items-center gap-3">
+            <button
+              type="button"
+              className="h-8 px-4 rounded-md bg-sky-700 text-white text-[15px] font-semibold hover:bg-sky-800 cursor-pointer"
+              onClick={() => {
+                route.push("/account/login");
+              }}
+            >
+              Đăng nhập
+            </button>
+            <button
+              type="button"
+              className="text-[15 px] text-gray-700 font-bold  hover:text-gray-900 cursor-pointer"
+              onClick={() => {
+                route.push("/account/register");
+              }}
+            >
+              Đăng ký
+            </button>
+          </div>
+        </>
+      )}
     </header>
   );
 }
