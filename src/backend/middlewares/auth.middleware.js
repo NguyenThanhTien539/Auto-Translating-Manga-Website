@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const VerifyModel = require("../models/verify.model");
+const accountModel = require("../models/account.model");
 
 module.exports.verifyOTPToken = async (req, res, next) => {
   let email;
@@ -35,6 +36,32 @@ module.exports.verifyOTPToken = async (req, res, next) => {
     }
 
     res.clearCookie("verified_otp_token");
+    res.json({ code: "error", message: "Có lỗi xảy ra ở đây" });
+  }
+};
+
+module.exports.adminAuth = async (req, res, next) => {
+  try {
+    const authToken = req.cookies.accessToken;
+    const decodedData = jwt.verify(authToken, process.env.JWT_SECRET);
+    email = decodedData.email;
+
+    const existedRecord = await acc.findAdminAuthToken(
+      decodedData.email,
+      decodedData.id,
+      decodedData.role
+    );
+
+    if (!existedRecord) {
+      res.clearCookie("accessToken");
+      res.json({ code: "error", message: "Có lỗi xảy ra ở đây" });
+    }
+
+    req.infoStaff = existedRecord;
+
+    next();
+  } catch (error) {
+    res.clearCookie("accessToken");
     res.json({ code: "error", message: "Có lỗi xảy ra ở đây" });
   }
 };

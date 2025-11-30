@@ -5,7 +5,11 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
 
-
+const roleRedirectMap: Record<string, string> = {
+  0: "/admin/dashboard",
+  1: "/", // tuỳ bạn đặt
+  2: "/uploader", // có thể là "/explore"
+};
 
 export default function FormLogin() {
   const router = useRouter();
@@ -38,7 +42,6 @@ export default function FormLogin() {
           rememberPassword: rememberPassword,
         };
 
-
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/account/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -52,8 +55,13 @@ export default function FormLogin() {
             }
 
             if (data.code == "success") {
-              router.push(`/`);
               toast.success("Đăng nhập thành công!");
+
+              const role = data.role as string; 
+              console.log(role)
+              const target = roleRedirectMap[role] ?? "/";
+
+              router.push(target);
             }
           });
       });

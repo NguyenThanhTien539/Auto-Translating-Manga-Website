@@ -24,6 +24,16 @@ function generateAccessToken(finalData, rememberMe = "") {
   });
 }
 
+function cleanVietnameseName(name) {
+  return name
+    .normalize("NFD") // tách dấu
+    .replace(/[\u0300-\u036f]/g, "") // xoá dấu
+    .replace(/đ/g, "d") // chuyển đ → d
+    .replace(/Đ/g, "D") // chuyển Đ → D
+    .replace(/\s+/g, "") // xoá toàn bộ khoảng trắng
+    .toLowerCase(); // về chữ thường
+}
+
 module.exports.register = async (req, res) => {
   const existedEmail = await AccountModel.findEmail(req.body.email);
   if (existedEmail) {
@@ -95,8 +105,10 @@ module.exports.registerVerify = async (req, res) => {
     }
 
     req.infoUser.password = await hashPassword(req.infoUser.password);
-    const countAccounts = await AccountModel.countAccounts();
-    const username = req.infoUser.fullName + `@${countAccounts + 1}`;
+    const countAccounts = (await AccountModel.countAccounts()) + 1;
+    const username =
+      cleanVietnameseName(req.infoUser.fullName) + `@${countAccounts}`;
+
     const userData = {
       email: req.infoUser.email,
       full_name: req.infoUser.fullName,
@@ -141,7 +153,7 @@ module.exports.login = async (req, res) => {
   const accessToken = generateAccessToken(
     {
       id: existedAccount.user_id,
-      role: existedAccount.role,
+      role: existedAccount.role_id,
       email: existedAccount.email,
     },
     req.body.rememberMe
@@ -153,8 +165,8 @@ module.exports.login = async (req, res) => {
     secure: false, //https sets true and http sets false
     sameSite: "lax", //allow send cookie between domains
   });
-
   res.json({
+    role: existedAccount.role_id,
     code: "success",
     message: "Chúc mừng bạn đã đến website của chúng tôi!",
   });

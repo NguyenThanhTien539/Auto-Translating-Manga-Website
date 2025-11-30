@@ -59,7 +59,7 @@ export default function Header() {
           <div className="mr-[50px] flex items-center gap-3">
             <div className="relative h-10 w-10">
               <Image
-                src={infoUser?.avatar || "/image/avatar.jpg"}
+                src={infoUser?.avatar || "/image/logo.jpg"}
                 alt={infoUser?.username || "Avatar"}
                 width={40}
                 height={40}

@@ -11,6 +11,9 @@ module.exports.findEmail = async (email) => {
 module.exports.findEmailAndId = async (email, id) => {
   return db("users").select("*").where({ email, id }).first();
 };
+module.exports.findAminAuthToken = async (id, email, role_id) => {
+  return db("users").select("*").where({ id, email, role_id }).first();
+};
 
 module.exports.findPassword = async (password) => {
   return db("users").select("*").where({ password }).first();
