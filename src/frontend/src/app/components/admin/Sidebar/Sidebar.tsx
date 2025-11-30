@@ -25,7 +25,7 @@ export default function Sidebar() {
   const isCategoryActive = pathname.startsWith("/admin/category");
 
   return (
-    <nav className="p-3 space-y-3 min-w-[230px] border-r">
+    <nav className="p-3 space-y-3 min-w-[230px]  border-r border-gray-300">
       <Link
         href="/admin/dashboard"
         className={`${baseClass} ${
@@ -77,7 +77,7 @@ export default function Sidebar() {
       </Link>
 
       {/* Bottom section */}
-      <div className="my-3 -mx-3 border-b " />
+      <div className="my-3 -mx-3 border-b border-gray-300 " />
 
       {/* nhóm dưới */}
       <div className="space-y-1">

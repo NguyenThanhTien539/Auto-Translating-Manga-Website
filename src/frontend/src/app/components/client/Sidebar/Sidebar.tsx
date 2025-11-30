@@ -2,7 +2,6 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useAuth } from "@/app/hooks/useAuth";
 import {
   User,
@@ -35,7 +34,7 @@ export default function Sidebar() {
         {/* Menu chính */}
         <div className="px-4 space-y-4">
           <div className="text-xs uppercase tracking-wide text-sky-200 mb-2">
-            MENU -
+            MENU
           </div>
           <nav className="flex flex-col gap-2">
             {MAIN_MENU.map((item) => {

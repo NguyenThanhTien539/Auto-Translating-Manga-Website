@@ -2,6 +2,7 @@
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useAuth } from "@/app/hooks/useAuth";
+import { BookOpen } from "lucide-react";
 export default function Header() {
   const { infoUser, isLogin } = useAuth();
   const route = useRouter();
@@ -18,7 +19,12 @@ export default function Header() {
         </span>
         {/* Icon nhỏ cạnh logo (demo) */}
         <div className="flex h-6 w-6 items-center justify-center rounded-md border border-sky-300 bg-sky-50 text-[15px] text-sky-700">
-          🖥️
+          <BookOpen
+            className="w-4 h-4 cursor-pointer"
+            onClick={() => {
+              route.push("/");
+            }}
+          />
         </div>
       </div>
 
@@ -59,7 +65,6 @@ export default function Header() {
                 height={40}
                 className="h-10 w-10 rounded-full object-cover border border-gray-200 cursor-pointer"
               />
-
             </div>
 
             {/* Tên user */}

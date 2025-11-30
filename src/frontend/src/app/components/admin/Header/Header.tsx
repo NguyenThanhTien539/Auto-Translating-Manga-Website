@@ -4,7 +4,7 @@ import Image from "next/image";
 
 export default function Header() {
   return (
-    <header className="flex h-16 items-center justify-between px-10 border-b bg-white shadow-sm">
+    <header className="flex h-16 items-center justify-between px-10 border-b border-gray-300 bg-white shadow-sm">
       <a
         href="/admin/dashboard"
         className="text-2xl font-semibold text-blue-600"

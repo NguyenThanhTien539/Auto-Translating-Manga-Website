@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Trash2 } from "lucide-react";
+import CategoryFilterBar from "@/app/components/admin/Filter";
 
 type CategoryItem = {
   id: number;
@@ -37,8 +38,8 @@ export default function CategoryListPage() {
       id: 1,
       name: "Thức ăn cho chó",
       status: "active",
-      created_by: "Admin",
-      updated_by: "Admin",
+      created_by: "thanhtien",
+      updated_by: "thanhtien",
       created_at: "2025-11-25T08:30:00Z",
       updated_at: "2025-11-26T10:15:00Z",
     },
@@ -46,7 +47,7 @@ export default function CategoryListPage() {
       id: 2,
       name: "Thức ăn cho mèo",
       status: "active",
-      created_by: "Admin",
+      created_by: "Le Van A",
       updated_by: "Staff A",
       created_at: "2025-11-20T09:00:00Z",
       updated_at: "2025-11-24T14:45:00Z",
@@ -55,8 +56,8 @@ export default function CategoryListPage() {
       id: 3,
       name: "Phụ kiện thú cưng",
       status: "inactive",
-      created_by: "Staff B",
-      updated_by: "Staff B",
+      created_by: "Le Van B",
+      updated_by: "Le Van B",
       created_at: "2025-11-10T07:20:00Z",
       updated_at: "2025-11-18T16:10:00Z",
     },
@@ -64,7 +65,7 @@ export default function CategoryListPage() {
       id: 4,
       name: "Dịch vụ khám bệnh",
       status: "active",
-      created_by: "Admin",
+      created_by: "thanhtienne",
       updated_by: "Bác sĩ An",
       created_at: "2025-11-01T06:00:00Z",
       updated_at: "2025-11-22T11:30:00Z",
@@ -73,24 +74,75 @@ export default function CategoryListPage() {
       id: 5,
       name: "Vaccine & tiêm phòng",
       status: "active",
-      created_by: "Bác sĩ Bình",
-      updated_by: "Bác sĩ Bình",
+      created_by: "Le Van A",
+      updated_by: "Le Van A",
       created_at: "2025-10-28T13:40:00Z",
       updated_at: "2025-11-21T09:05:00Z",
     },
   ]);
 
+  // ========= FILTER STATE =========
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "inactive"
+  >("all");
+  const [creatorFilter, setCreatorFilter] = useState<string>("");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
+  const [search, setSearch] = useState<string>("");
+
+  // danh sách người tạo (loại trùng, bỏ null)
+  const creatorOptions: string[] = Array.from(
+    new Set(
+      items
+        .map((i) => i.created_by)
+        .filter((v): v is string => !!v && v.trim() !== "")
+    )
+  );
+
+  // Áp dụng lọc
+  const filteredItems = items.filter((item) => {
+    if (statusFilter !== "all" && item.status !== statusFilter) return false;
+    if (creatorFilter && item.created_by !== creatorFilter) return false;
+
+    if (dateFrom) {
+      const from = new Date(dateFrom);
+      if (new Date(item.created_at) < from) return false;
+    }
+    if (dateTo) {
+      const to = new Date(dateTo);
+      if (new Date(item.created_at) > to) return false;
+    }
+
+    if (search.trim()) {
+      const key = search.toLowerCase();
+      if (!item.name.toLowerCase().includes(key)) return false;
+    }
+
+    return true;
+  });
+
+  const resetFilters = () => {
+    setStatusFilter("all");
+    setCreatorFilter("");
+    setDateFrom("");
+    setDateTo("");
+    setSearch("");
+  };
+
   // ========= CHECKBOX SELECTION =========
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
-  const allChecked = items.length > 0 && selectedIds.length === items.length;
+  const allChecked =
+    filteredItems.length > 0 &&
+    filteredItems.every((i) => selectedIds.includes(i.id));
 
   const toggleAll = () => {
-    if (allChecked) {
-      setSelectedIds([]);
-    } else {
-      setSelectedIds(items.map((i) => i.id));
-    }
+    const filteredIds = filteredItems.map((i) => i.id);
+    setSelectedIds((prev) => {
+      if (allChecked) return prev.filter((id) => !filteredIds.includes(id));
+      const newSet = new Set([...prev, ...filteredIds]);
+      return Array.from(newSet);
+    });
   };
 
   const toggleOne = (id: number) => {
@@ -101,10 +153,29 @@ export default function CategoryListPage() {
 
   return (
     <>
-      <h2 className="font-[600] text-3xl mb-5">Quản lý thể loại Manga</h2>
+      <h2 className="font-[600] text-3xl mb-10">Quản lý thể loại Manga</h2>
+
+      {/* FILTER BAR TÁCH RIÊNG */}
+      <CategoryFilterBar
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        creatorFilter={creatorFilter}
+        setCreatorFilter={setCreatorFilter}
+        dateFrom={dateFrom}
+        setDateFrom={setDateFrom}
+        dateTo={dateTo}
+        setDateTo={setDateTo}
+        search={search}
+        setSearch={setSearch}
+        creatorOptions={creatorOptions}
+        selectedIds={selectedIds}
+        onResetFilters={resetFilters}
+        onApplyBulkAction={() => console.log("Áp dụng cho:", selectedIds)}
+        onCreateNew={() => router.push("/admin/category/create")}
+      />
 
       {/* ===== TABLE GRID ===== */}
-      <div className="mt-5 bg-white rounded-2xl border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
         <div className="w-full overflow-x-auto">
           <div className="min-w-[900px]">
             {/* Header */}
@@ -138,7 +209,7 @@ export default function CategoryListPage() {
 
             {/* Body */}
             <div className="divide-y divide-gray-100">
-              {items.map((item) => {
+              {filteredItems.map((item) => {
                 const checked = selectedIds.includes(item.id);
 
                 return (
@@ -211,9 +282,9 @@ export default function CategoryListPage() {
                 );
               })}
 
-              {items.length === 0 && (
+              {filteredItems.length === 0 && (
                 <div className="py-10 text-center text-gray-500">
-                  Không có danh mục nào
+                  Không có danh mục nào phù hợp bộ lọc
                 </div>
               )}
             </div>
