@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+"use client";
+
 import { Editor } from "@tinymce/tinymce-react";
 
 export default function TinyMCEEditor(props: {

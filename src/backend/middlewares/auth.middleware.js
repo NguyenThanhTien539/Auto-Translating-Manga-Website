@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const VerifyModel = require("../models/verify.model");
 const accountModel = require("../models/account.model");
+const RoleModel = require("../models/role.model");
 
 module.exports.verifyOTPToken = async (req, res, next) => {
   let email;
@@ -44,15 +45,19 @@ module.exports.adminAuth = async (req, res, next) => {
   try {
     const authToken = req.cookies.accessToken;
     const decodedData = jwt.verify(authToken, process.env.JWT_SECRET);
-    email = decodedData.email;
-
-    const existedRecord = await acc.findAdminAuthToken(
-      decodedData.email,
+    const existedRecord = await accountModel.findAminAuthToken(
       decodedData.id,
+      decodedData.email,
       decodedData.role
     );
 
     if (!existedRecord) {
+      res.clearCookie("accessToken");
+      res.json({ code: "error", message: "Có lỗi xảy ra ở đây" });
+    }
+
+    const detailedRole = await RoleModel.findRole(decodedData.role);
+    if (detailedRole.role_code !== "ADM") {
       res.clearCookie("accessToken");
       res.json({ code: "error", message: "Có lỗi xảy ra ở đây" });
     }

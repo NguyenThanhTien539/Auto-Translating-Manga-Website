@@ -1,5 +1,5 @@
 const route = require("express").Router();
-
-// route.use("/", homeRoute);
+const genreRoutes = require("./genre.route");
+route.use("/genre", genreRoutes);
 
 module.exports = route;
