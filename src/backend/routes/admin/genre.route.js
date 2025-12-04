@@ -5,4 +5,6 @@ const authMiddleware = require("../../middlewares/auth.middleware");
 
 route.post("/create", authMiddleware.adminAuth, genreController.create);
 
+route.get("/list", authMiddleware.adminAuth, genreController.list);
+
 module.exports = route;
