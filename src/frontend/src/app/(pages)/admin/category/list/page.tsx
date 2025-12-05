@@ -1,13 +1,12 @@
 "use client";
-
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Trash2 } from "lucide-react";
-import CategoryFilterBar from "@/app/components/admin/Filter";
+import FilterBar from "@/app/components/admin/Filter";
 
-type CategoryItem = {
-  id: number;
-  name: string;
+type GenreItem = {
+  genre_id: number;
+  genre_name: string;
   status: "active" | "inactive";
   created_by?: string | null;
   updated_by?: string | null;
@@ -32,54 +31,8 @@ const formatDate = (d: string) =>
 export default function CategoryListPage() {
   const router = useRouter();
 
-  // ========= DỮ LIỆU GIẢ =========
-  const [items] = useState<CategoryItem[]>([
-    {
-      id: 1,
-      name: "Thức ăn cho chó",
-      status: "active",
-      created_by: "thanhtien",
-      updated_by: "thanhtien",
-      created_at: "2025-11-25T08:30:00Z",
-      updated_at: "2025-11-26T10:15:00Z",
-    },
-    {
-      id: 2,
-      name: "Thức ăn cho mèo",
-      status: "active",
-      created_by: "Le Van A",
-      updated_by: "Staff A",
-      created_at: "2025-11-20T09:00:00Z",
-      updated_at: "2025-11-24T14:45:00Z",
-    },
-    {
-      id: 3,
-      name: "Phụ kiện thú cưng",
-      status: "inactive",
-      created_by: "Le Van B",
-      updated_by: "Le Van B",
-      created_at: "2025-11-10T07:20:00Z",
-      updated_at: "2025-11-18T16:10:00Z",
-    },
-    {
-      id: 4,
-      name: "Dịch vụ khám bệnh",
-      status: "active",
-      created_by: "thanhtienne",
-      updated_by: "Bác sĩ An",
-      created_at: "2025-11-01T06:00:00Z",
-      updated_at: "2025-11-22T11:30:00Z",
-    },
-    {
-      id: 5,
-      name: "Vaccine & tiêm phòng",
-      status: "active",
-      created_by: "Le Van A",
-      updated_by: "Le Van A",
-      created_at: "2025-10-28T13:40:00Z",
-      updated_at: "2025-11-21T09:05:00Z",
-    },
-  ]);
+  // ========= STATE =========
+  const [items, setItems] = useState<GenreItem[]>([]);
 
   // ========= FILTER STATE =========
   const [statusFilter, setStatusFilter] = useState<
@@ -90,16 +43,32 @@ export default function CategoryListPage() {
   const [dateTo, setDateTo] = useState<string>("");
   const [search, setSearch] = useState<string>("");
 
+  // ========= SELECTION =========
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
+  useEffect(() => {
+    fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/genre/list`,
+      { credentials: "include" }
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.code === "success") setItems(data.list);
+      });
+  }, []);
+
   // danh sách người tạo (loại trùng, bỏ null)
   const creatorOptions: string[] = Array.from(
     new Set(
       items
         .map((i) => i.created_by)
-        .filter((v): v is string => !!v && v.trim() !== "")
+        .filter((v) => v != null)
+        .map(String)
+        .filter((v) => v.trim() !== "")
     )
   );
 
-  // Áp dụng lọc
+  // ========= FILTER =========
   const filteredItems = items.filter((item) => {
     if (statusFilter !== "all" && item.status !== statusFilter) return false;
     if (creatorFilter && item.created_by !== creatorFilter) return false;
@@ -115,7 +84,7 @@ export default function CategoryListPage() {
 
     if (search.trim()) {
       const key = search.toLowerCase();
-      if (!item.name.toLowerCase().includes(key)) return false;
+      if (!item.genre_name.toLowerCase().includes(key)) return false;
     }
 
     return true;
@@ -129,15 +98,13 @@ export default function CategoryListPage() {
     setSearch("");
   };
 
-  // ========= CHECKBOX SELECTION =========
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
-
+  // ========= CHECKBOX =========
   const allChecked =
     filteredItems.length > 0 &&
-    filteredItems.every((i) => selectedIds.includes(i.id));
+    filteredItems.every((i) => selectedIds.includes(i.genre_id));
 
   const toggleAll = () => {
-    const filteredIds = filteredItems.map((i) => i.id);
+    const filteredIds = filteredItems.map((i) => i.genre_id);
     setSelectedIds((prev) => {
       if (allChecked) return prev.filter((id) => !filteredIds.includes(id));
       const newSet = new Set([...prev, ...filteredIds]);
@@ -151,30 +118,40 @@ export default function CategoryListPage() {
     );
   };
 
+  // handler để truyền cho FilterBar (vì FilterBar dùng string)
+  const handleStatusFilterChange = (v: string) => {
+    setStatusFilter(v as "all" | "active" | "inactive");
+  };
+
   return (
     <>
       <h2 className="font-[600] text-3xl mb-10">Quản lý thể loại Manga</h2>
 
-      {/* FILTER BAR TÁCH RIÊNG */}
-      <CategoryFilterBar
+      <FilterBar
+        // cấu hình trạng thái linh hoạt
         statusFilter={statusFilter}
-        setStatusFilter={setStatusFilter}
+        setStatusFilter={handleStatusFilterChange}
+        statusOptions={[
+          { value: "all", label: "Trạng thái" },
+          { value: "active", label: "Hoạt động" },
+          { value: "inactive", label: "Dừng" },
+        ]}
+        // các filter khác
         creatorFilter={creatorFilter}
         setCreatorFilter={setCreatorFilter}
+        creatorOptions={creatorOptions}
         dateFrom={dateFrom}
         setDateFrom={setDateFrom}
         dateTo={dateTo}
         setDateTo={setDateTo}
         search={search}
         setSearch={setSearch}
-        creatorOptions={creatorOptions}
-        selectedIds={selectedIds}
+        // actions
         onResetFilters={resetFilters}
         onApplyBulkAction={() => console.log("Áp dụng cho:", selectedIds)}
         onCreateNew={() => router.push("/admin/category/create")}
       />
 
-      {/* ===== TABLE GRID ===== */}
       <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
         <div className="w-full overflow-x-auto">
           <div className="min-w-[900px]">
@@ -210,11 +187,11 @@ export default function CategoryListPage() {
             {/* Body */}
             <div className="divide-y divide-gray-100">
               {filteredItems.map((item) => {
-                const checked = selectedIds.includes(item.id);
+                const checked = selectedIds.includes(item.genre_id);
 
                 return (
                   <div
-                    key={item.id}
+                    key={item.genre_id}
                     className={`${rowClass} hover:bg-gray-50 transition-colors`}
                     style={{ gridTemplateColumns: gridCols }}
                   >
@@ -222,13 +199,13 @@ export default function CategoryListPage() {
                       <input
                         type="checkbox"
                         checked={checked}
-                        onChange={() => toggleOne(item.id)}
+                        onChange={() => toggleOne(item.genre_id)}
                         className="w-4 h-4"
                       />
                     </div>
 
                     <div className="px-4 py-4 font-medium text-gray-900 text-center">
-                      {item.name}
+                      {item.genre_name}
                     </div>
 
                     <div className="px-4 py-4 flex items-center justify-center">
@@ -268,12 +245,28 @@ export default function CategoryListPage() {
                         <button
                           className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
                           onClick={() =>
-                            router.push(`/admin/category/edit/${item.id}`)
+                            router.push(`/admin/category/edit/${item.genre_id}`)
                           }
                         >
                           <Pencil size={18} />
                         </button>
-                        <button className="px-3 py-2 hover:bg-red-50 text-red-500">
+                        <button
+                          className="px-3 py-2 hover:bg-red-50 text-red-500"
+                          onClick={async () => {
+                            if (
+                              confirm(
+                                `Bạn có chắc muốn xóa thể loại "${item.genre_name}"?`
+                              )
+                            ) {
+                              await fetch(
+                                `/api/admin/categories/${item.genre_id}`,
+                                {
+                                  method: "DELETE",
+                                }
+                              );
+                            }
+                          }}
+                        >
                           <Trash2 size={18} />
                         </button>
                       </div>

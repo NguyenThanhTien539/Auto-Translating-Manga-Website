@@ -3,43 +3,51 @@
 
 import { Editor } from "@tinymce/tinymce-react";
 
-export default function TinyMCEEditor(props: {
+type TinyMCEEditorProps = {
   editorRef: any;
   value: string;
-}) {
-  const { editorRef, value } = props;
+  isReadOnly?: boolean;
+};
+
+export default function TinyMCEEditor({
+  editorRef,
+  value,
+  isReadOnly = false,
+}: TinyMCEEditorProps) {
   return (
-    <>
-      <Editor
-        apiKey={`${process.env.NEXT_PUBLIC_TINY_MCE }`}
-        onInit={(_evt, editor) => (editorRef.current = editor)}
-        initialValue={value}
-        init={{
-          height: 400,
-          menubar: true,
-          plugins: [
-            "advlist",
-            "autolink",
-            "lists",
-            "link",
-            "image",
-            "charmap",
-            "preview",
-            "anchor",
-            "searchreplace",
-            "visualblocks",
-            "code",
-            "fullscreen",
-            "insertdatetime",
-            "media",
-            "table",
-            "code",
-            "help",
-            "wordcount",
-          ],
-          toolbar: `undo redo | blocks | bold italic forecolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | help`,
-        }}
-      />
-    </>
+    <Editor
+      apiKey={process.env.NEXT_PUBLIC_TINY_MCE}
+      onInit={(_evt, editor) => (editorRef.current = editor)}
+      initialValue={value}
+      disabled={isReadOnly} // 👈 chỉ cần dòng này để không cho thao tác
+      init={{
+        height: 400,
+        menubar: true,
+        plugins: [
+          "advlist",
+          "autolink",
+          "lists",
+          "link",
+          "image",
+          "charmap",
+          "preview",
+          "anchor",
+          "searchreplace",
+          "visualblocks",
+          "code",
+          "fullscreen",
+          "insertdatetime",
+          "media",
+          "table",
+          "code",
+          "help",
+          "wordcount",
+        ],
+        toolbar:
+          "undo redo | blocks | bold italic forecolor | " +
+          "alignleft aligncenter alignright alignjustify | " +
+          "bullist numlist outdent indent | removeformat | help",
+      }}
+    />
   );
 }

@@ -126,7 +126,7 @@ export default function Home() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className=" px-3 space-y-6">
       {/* ---- OUT NOW + HIGHLIGHT SLIDER ---- */}
       <section className="space-y-2">
         <div className="flex items-center gap-2">
@@ -137,7 +137,7 @@ export default function Home() {
           {/* Ảnh nền */}
           <div className="relative h-60 w-full">
             <Image
-              src={current.image}
+              src={"/image/logo.jpg"}
               alt={current.title}
               fill
               className="object-cover"
@@ -246,7 +246,7 @@ export default function Home() {
               >
                 <div className="relative h-44 w-full">
                   <Image
-                    src={item.image}
+                    src={"/image/logo.jpg"}
                     alt={item.title}
                     fill
                     className="object-cover"

@@ -57,8 +57,8 @@ export default function FormLogin() {
             if (data.code == "success") {
               toast.success("Đăng nhập thành công!");
 
-              const role = data.role as string; 
-              console.log(role)
+              const role = data.role as string;
+              console.log(role);
               const target = roleRedirectMap[role] ?? "/";
 
               router.push(target);

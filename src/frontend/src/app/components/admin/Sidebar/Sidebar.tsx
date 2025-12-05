@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   Clock,
   Grid3X3,
@@ -21,9 +22,21 @@ const normalClass = "text-gray-800 hover:bg-gray-100";
 
 export default function Sidebar() {
   const pathname = usePathname();
-
+  const route = useRouter();
   const isCategoryActive = pathname.startsWith("/admin/category");
-
+  const handleLogout = (url: string) => {
+    // Xử lý đăng xuất ở đây
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, {
+      credentials: "include",
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.code == "success") {
+          route.push(url);
+          toast.success(data.message || "Đăng xuất thành công");
+        }
+      });
+  };
   return (
     <nav className="p-3 space-y-3 min-w-[230px]  border-r border-gray-300">
       <Link
@@ -53,17 +66,17 @@ export default function Sidebar() {
         }`}
       >
         <Box className="w-4 h-4" />
-        <span>Quản lý sản phẩm</span>
+        <span>Quản lý Manga</span>
       </Link>
 
       <Link
-        href="/admin/user/list"
+        href="/admin/registration/list"
         className={`${baseClass} ${
-          pathname === "/admin/user/list" ? activeClass : normalClass
+          pathname === "/admin/registration/list" ? activeClass : normalClass
         }`}
       >
         <Users className="w-4 h-4" />
-        <span>Quản lý người dùng</span>
+        <span>Quản lý form đăng ký </span>
       </Link>
 
       <Link
@@ -106,7 +119,7 @@ export default function Sidebar() {
           className="flex items-center gap-3 text-red-600 hover:bg-red-50 px-3 py-2 rounded-lg"
         >
           <LogOut className="w-4 h-4" />
-          <span>Đăng xuất</span>
+          <span onClick={() => handleLogout("/")}>Đăng xuất</span>
         </Link>
       </div>
     </nav>
