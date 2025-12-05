@@ -80,13 +80,13 @@ export default function Sidebar() {
       </Link>
 
       <Link
-        href="/admin/contacts"
+        href="/admin/manage-users"
         className={`${baseClass} ${
-          pathname === "/admin/contacts" ? activeClass : normalClass
+          pathname === "/admin/manage-users" ? activeClass : normalClass
         }`}
       >
         <User className="w-4 h-4" />
-        <span>Thông tin liên hệ</span>
+        <span>Thông tin người dùng</span>
       </Link>
 
       {/* Bottom section */}

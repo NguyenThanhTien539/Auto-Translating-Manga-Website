@@ -14,7 +14,7 @@ import {
   Calendar,
 } from "lucide-react";
 import TinyMCEEditor from "@/app/components/TinyMCEEditor";
-import { formatDate } from "@/lib/formatDate";
+import { formatDate } from "@/utils/format";
 
 type RegistrationDetail = {
   id: number;
@@ -35,7 +35,6 @@ export default function RegistrationDetailPage() {
   const editorRef = useRef(null);
   const [registrationDetail, setRegistrationDetail] =
     useState<RegistrationDetail | null>(null);
-
   useEffect(() => {
     fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/registration-uploader/detail/${slug}`,
@@ -49,6 +48,32 @@ export default function RegistrationDetailPage() {
       });
   }, []);
 
+  const handleStatusUpdate = (newStatus: "accepted" | "rejected") => {
+    fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/registration-uploader/update-status/${slug}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ request_status: newStatus }),
+      }
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.code === "success") {
+          toast.success(data.message);
+          setRegistrationDetail((prev) => {
+            if (prev) {
+              return { ...prev, request_status: newStatus };
+            } else {
+              return prev;
+            }
+          });
+        } else {
+          toast.error(data.message || "Cập nhật trạng thái thất bại.");
+        }
+      });
+  };
   return (
     registrationDetail && (
       <div className="w-full min-h-screen px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
@@ -196,11 +221,17 @@ export default function RegistrationDetailPage() {
               <div className="flex flex-col items-center gap-3">
                 {registrationDetail?.request_status === "pending" && (
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-                    <button className="flex items-center justify-center gap-2 h-12 px-6 rounded-lg bg-emerald-500 text-white text-sm sm:text-base font-semibold hover:bg-emerald-600 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                    <button
+                      className="cursor-pointer flex items-center justify-center gap-2 h-12 px-6 rounded-lg bg-emerald-500 text-white text-sm sm:text-base font-semibold hover:bg-emerald-600 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                      onClick={() => handleStatusUpdate("accepted")}
+                    >
                       <Check size={20} />
                       Chấp nhận đơn
                     </button>
-                    <button className="flex items-center justify-center gap-2 h-12 px-6 rounded-lg bg-red-500 text-white text-sm sm:text-base font-semibold hover:bg-red-600 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                    <button
+                      className=" cursor-pointer flex items-center justify-center gap-2 h-12 px-6 rounded-lg bg-red-500 text-white text-sm sm:text-base font-semibold hover:bg-red-600 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                      onClick={() => handleStatusUpdate("rejected")}
+                    >
                       <X size={20} />
                       Từ chối đơn
                     </button>
@@ -209,7 +240,7 @@ export default function RegistrationDetailPage() {
 
                 <button
                   onClick={() => router.push("/admin/registration/list")}
-                  className="flex items-center justify-center gap-2 h-10 px-5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                  className="cursor-pointer flex items-center justify-center gap-2 h-10 px-5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
                 >
                   <ArrowLeft size={18} />
                   Quay lại trang danh sách

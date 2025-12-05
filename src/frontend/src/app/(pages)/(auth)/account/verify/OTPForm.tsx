@@ -6,9 +6,9 @@ import {
   InputOTPGroup,
   InputOTPSeparator,
   InputOTPSlot,
-} from "./input-otp"
+} from "./input-otp";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { useState } from "react";
 
 type OTPFormProps = {

@@ -17,3 +17,9 @@ module.exports.findRequestDetailById = async (request_id) => {
     .where("uploader_requests.request_id", request_id)
     .first();
 };
+
+module.exports.updateRequestStatus = async (request_id, request_status) => {
+  return db("uploader_requests")
+    .where("request_id", request_id)
+    .update({ request_status });
+};

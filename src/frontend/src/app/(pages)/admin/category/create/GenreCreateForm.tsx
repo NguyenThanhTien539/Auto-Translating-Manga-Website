@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import JustValidate from "just-validate";
 import dynamic from "next/dynamic";
-import { slugify } from "@/lib/make_slug";
+import { slugify } from "@/utils/make_slug";
 import { toast } from "sonner";
 
 const TinyMCEEditor = dynamic(() => import("@/app/components/TinyMCEEditor"), {

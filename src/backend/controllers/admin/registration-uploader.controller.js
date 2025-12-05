@@ -28,3 +28,17 @@ module.exports.detail = async (req, res) => {
     res.json({ code: "error", message: "Request not found" });
   }
 };
+
+module.exports.updateStatus = async (req, res) => {
+  const { id } = req.params;
+  const { request_status } = req.body;
+  try {
+    await registerUploader.updateRequestStatus(id, request_status);
+    res.json({
+      code: "success",
+      message: "Cập nhật trạng thái thành công",
+    });
+  } catch (error) {
+    res.json({ code: "error", message: "Cập nhật trạng thái thất bại" });
+  }
+};

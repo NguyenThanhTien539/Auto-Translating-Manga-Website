@@ -5,8 +5,8 @@ import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, Check, X, Calendar, Mail } from "lucide-react";
 import FilterBar from "@/app/components/admin/Filter";
-import { formatDate } from "@/lib/formatDate";
-
+import { formatDate } from "@/utils/format";
+import { ViewDetailButton } from "@/app/components/admin/Button";
 interface RequestItem {
   request_id: number;
   full_name: string;
@@ -225,17 +225,10 @@ export default function UserListPage() {
                       {/* Hành động */}
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-center gap-2">
-                          <button
-                            className="p-2 hover:bg-blue-50 text-blue-600 rounded-lg transition-colors border border-blue-200 cursor-pointer"
-                            onClick={() =>
-                              router.push(
-                                `/admin/registration/detail/${request.request_id}`
-                              )
-                            }
+                          <ViewDetailButton
+                            href={`/admin/registration/detail/${request.request_id}`}
                             title="Xem chi tiết"
-                          >
-                            <Eye size={18} />
-                          </button>
+                          />
                           {isPending && (
                             <>
                               <button
