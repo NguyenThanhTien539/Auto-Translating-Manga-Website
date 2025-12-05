@@ -29,7 +29,6 @@ module.exports.check = async (req, res) => {
       address: existedEmail.address,
       avatar: existedEmail.avatar,
     };
-    console.log(infoUser);
 
     res.json({
       code: "success",

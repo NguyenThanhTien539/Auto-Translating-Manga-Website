@@ -126,7 +126,7 @@ export default function Home() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className=" px-3 space-y-6">
       {/* ---- OUT NOW + HIGHLIGHT SLIDER ---- */}
       <section className="space-y-2">
         <div className="flex items-center gap-2">

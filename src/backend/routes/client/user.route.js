@@ -14,4 +14,10 @@ route.patch(
   userController.profile
 );
 
+route.post("/register-uploader",
+  authMiddleware.clientAuth,
+  userController.registerUploader
+);
+
+
 module.exports = route;

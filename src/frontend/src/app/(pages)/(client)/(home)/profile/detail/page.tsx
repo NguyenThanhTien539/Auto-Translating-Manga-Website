@@ -77,8 +77,13 @@ export default function ProfileDetailPage() {
     const full_name = event.target.full_name.value;
     const phone = event.target.phone.value;
     const address = event.target.address.value;
-    let avt = null;
-    if (avatar.length > 0) {
+
+    let avt: File | null = null;
+    if (
+      avatar.length > 0 &&
+      avatar[0].file &&
+      avatar[0].source !== infoUser?.avatar
+    ) {
       avt = avatar[0].file;
     }
 
@@ -87,7 +92,12 @@ export default function ProfileDetailPage() {
     formData.append("full_name", full_name);
     formData.append("phone", phone);
     formData.append("address", address);
-    formData.append("avatar", avt);
+
+    if (avt) {
+      console.log("Appending avatar to formData:", avt);
+      formData.append("avatar", avt);
+    }
+
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/profile`, {
       method: "PATCH",
       credentials: "include",
@@ -118,14 +128,13 @@ export default function ProfileDetailPage() {
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 sm:p-8 border-b border-gray-200">
                 <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
                   <div className="relative group">
-                    <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl overflow-hidden border-4 border-white shadow-lg flex-shrink-0">
+                    <div className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-2xl overflow-hidden border-4 border-white shadow-lg flex-shrink-0">
                       {infoUser.avatar ? (
                         <Image
                           src={infoUser.avatar}
                           alt={infoUser.username}
-                          width={128} // 👈 bắt buộc
-                          height={128}
-                          className="w-full h-full object-cover"
+                          fill
+                          className="object-cover"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-3xl sm:text-5xl font-bold text-white bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500">

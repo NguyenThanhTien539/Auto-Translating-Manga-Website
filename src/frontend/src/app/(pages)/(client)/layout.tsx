@@ -8,13 +8,21 @@ export default function ClientLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen flex flex-col bg-[#f5f7fb]">
-      <Header />
+    <div className="min-h-screen bg-[#f5f7fb]">
+      {/* Header */}
+      <div className="sticky top-0 z-50 bg-white shadow-sm">
+        <Header />
+      </div>
 
-      <div className="flex flex-1">
-        <Sidebar />
+      <div className="flex min-h-screen ">
+        <aside className="bg-[#0c4a6e] w-[220px]">
+          <div className="sticky top-[80px]">
+            <Sidebar />
+          </div>
+        </aside>
 
-        <main className="flex-1 overflow-auto">{children}</main>
+        {/* Main content */}
+        <main className="flex-1">{children}</main>
       </div>
     </div>
   );

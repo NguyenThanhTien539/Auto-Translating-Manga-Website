@@ -31,11 +31,11 @@ module.exports.updatePassword = async (email, newPassword) => {
   return db("users").where({ email: email }).update({ password: newPassword });
 };
 
-
 module.exports.updateProfile = async (user_id, data) => {
   return db("users").where({ user_id: user_id }).update(data);
-}
+};
 
 module.exports.checkUsernameExists = async (username) => {
   return db("users").select("*").where({ username }).first();
-}
+};
+

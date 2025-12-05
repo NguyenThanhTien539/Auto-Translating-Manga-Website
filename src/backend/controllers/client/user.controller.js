@@ -1,9 +1,6 @@
 const accountModel = require("../../models/account.model");
-
+const uploaderRequestModel = require("../../models/uploader-request.model");
 module.exports.profile = async (req, res) => {
-  console.log(req.file);
-  console.log(req.infoUser);
-
   if (req.file) {
     req.body.avatar = req.file.path;
   } else {
@@ -13,11 +10,28 @@ module.exports.profile = async (req, res) => {
   const existingUser = await accountModel.checkUsernameExists(
     req.body.username
   );
+  console.log(req.body);
   if (existingUser && existingUser.user_id !== req.infoUser.user_id) {
     return res.json({ code: "error", message: "Tên đăng nhập đã tồn tại" });
   }
 
-  await accountModel.updateProfile(req.infoUser.user_id, req.body);
+  try {
+    await accountModel.updateProfile(req.infoUser.user_id, req.body);
+    res.json({ code: "success", message: "Cập nhật thông tin thành công" });
+  } catch (error) {
+    res.json({ code: "error", message: "Cập nhật thông tin thất bại" });
+  }
+};
 
-  res.json({ code: "success", message: "Cập nhật thông tin thành công" });
+module.exports.registerUploader = async (req, res) => {
+  const { reason } = req.body;
+  try {
+    await uploaderRequestModel.insertReason(req.infoUser.user_id, reason);
+    res.json({
+      code: "success",
+      message: "Đăng ký thành công! Vui lòng chờ admin duyệt.",
+    });
+  } catch (error) {
+    res.json({ code: "error", message: "Đăng ký thất bại" });
+  }
 };
