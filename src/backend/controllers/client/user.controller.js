@@ -1,5 +1,6 @@
 const accountModel = require("../../models/account.model");
-const uploaderRequestModel = require("../../models/uploader-request.model");
+const uploaderRequestModel = require("../../models/registration-uploader");
+
 module.exports.profile = async (req, res) => {
   if (req.file) {
     req.body.avatar = req.file.path;

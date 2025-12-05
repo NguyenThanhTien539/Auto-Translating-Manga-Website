@@ -162,7 +162,7 @@ export default function ProfilePage() {
                 </>
               ) : infoUser?.role === "Reader" ? (
                 <button
-                  className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-lg font-medium text-sm shadow-md hover:shadow-lg transition-all"
+                  className=" cursor-pointer flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-lg font-medium text-sm shadow-md hover:shadow-lg transition-all"
                   onClick={() => router.push("/profile/register-uploader")}
                 >
                   <FileText size={16} />

@@ -1,74 +1,24 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, Check, X, Calendar } from "lucide-react";
+import { Eye, Check, X, Calendar, Mail } from "lucide-react";
 import FilterBar from "@/app/components/admin/Filter";
+import { formatDate } from "@/lib/formatDate";
 
-type UserItem = {
-  id: number;
+interface RequestItem {
+  request_id: number;
   full_name: string;
   email: string;
-  status: "pending" | "accepted" | "rejected";
-  created_at: string;
-};
-
-function formatDate(dateStr: string) {
-  if (!dateStr) return "";
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return "";
-
-  const day = String(d.getDate()).padStart(2, "0");
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const year = d.getFullYear();
-  const hours = String(d.getHours()).padStart(2, "0");
-  const minutes = String(d.getMinutes()).padStart(2, "0");
-
-  return `${hours}:${minutes} - ${day}/${month}/${year}`;
+  request_status: "pending" | "accepted" | "rejected";
+  request_created_at: string;
 }
 
 export default function UserListPage() {
   const router = useRouter();
 
-  const [users] = useState<UserItem[]>([
-    {
-      id: 1,
-      full_name: "Nguyễn Văn An",
-      email: "nguyenvanan@gmail.com",
-      status: "pending",
-      created_at: "2024-12-04T10:30:00",
-    },
-    {
-      id: 2,
-      full_name: "Trần Thị Bích Ngọc",
-      email: "bichngoc.tran@outlook.com",
-      status: "accepted",
-      created_at: "2024-12-03T14:20:00",
-    },
-    {
-      id: 3,
-      full_name: "Lê Minh Tuấn",
-      email: "minhtuan.le99@yahoo.com",
-      status: "rejected",
-      created_at: "2024-12-02T09:15:00",
-    },
-    {
-      id: 4,
-      full_name: "Phạm Thu Hà",
-      email: "thuha.pham@gmail.com",
-      status: "pending",
-      created_at: "2024-12-01T16:45:00",
-    },
-    {
-      id: 5,
-      full_name: "Hoàng Đức Minh",
-      email: "ducminh.hoang@proton.me",
-      status: "accepted",
-      created_at: "2024-11-30T11:00:00",
-    },
-  ]);
-
+  const [requestList, setRequestList] = useState<RequestItem[]>([]);
   const [statusFilter, setStatusFilter] = useState<
     "all" | "pending" | "accepted" | "rejected"
   >("all");
@@ -80,24 +30,25 @@ export default function UserListPage() {
     setSearch("");
   };
 
-  const filteredUsers = useMemo(() => {
-    return users.filter((u) => {
+  const filteredRequests = useMemo(() => {
+    return requestList.filter((req) => {
       // Filter by status
-      if (statusFilter !== "all" && u.status !== statusFilter) return false;
+      if (statusFilter !== "all" && req.request_status !== statusFilter)
+        return false;
 
       // Filter by search
       if (search.trim()) {
         const key = search.toLowerCase();
         if (
-          !u.full_name.toLowerCase().includes(key) &&
-          !u.email.toLowerCase().includes(key)
+          !req.full_name.toLowerCase().includes(key) &&
+          !req.email.toLowerCase().includes(key)
         ) {
           return false;
         }
       }
       return true;
     });
-  }, [users, statusFilter, search]);
+  }, [requestList, statusFilter, search]);
 
   const toggleOne = (id: number) => {
     setSelectedIds((prev) =>
@@ -106,11 +57,11 @@ export default function UserListPage() {
   };
 
   const allChecked =
-    filteredUsers.length > 0 &&
-    filteredUsers.every((u) => selectedIds.includes(u.id));
+    filteredRequests.length > 0 &&
+    filteredRequests.every((req) => selectedIds.includes(req.request_id));
 
   const toggleAll = () => {
-    const filteredIds = filteredUsers.map((u) => u.id);
+    const filteredIds = filteredRequests.map((req) => req.request_id);
     setSelectedIds((prev) => {
       if (allChecked) return prev.filter((id) => !filteredIds.includes(id));
       const newSet = new Set([...prev, ...filteredIds]);
@@ -118,14 +69,14 @@ export default function UserListPage() {
     });
   };
 
-  const getStatusBadge = (status: UserItem["status"]) => {
-    const styles = {
+  const getStatusBadge = (status: RequestItem["request_status"]) => {
+    const styles: Record<RequestItem["request_status"], string> = {
       pending: "bg-yellow-100 text-yellow-700 border-yellow-200",
       accepted: "bg-emerald-100 text-emerald-700 border-emerald-200",
       rejected: "bg-red-100 text-red-600 border-red-200",
     };
 
-    const labels = {
+    const labels: Record<RequestItem["request_status"], string> = {
       pending: "⏳ Chờ duyệt",
       accepted: "✓ Đã chấp nhận",
       rejected: "✗ Đã từ chối",
@@ -139,6 +90,21 @@ export default function UserListPage() {
       </span>
     );
   };
+
+  useEffect(() => {
+    fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/registration-uploader/list`,
+      { credentials: "include" }
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.code === "success" && Array.isArray(data.list)) {
+          setRequestList(data.list);
+        } else {
+          setRequestList([]);
+        }
+      });
+  }, []);
 
   return (
     <div className="w-full min-h-screen px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
@@ -204,41 +170,43 @@ export default function UserListPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filteredUsers.map((user) => {
-                  const checked = selectedIds.includes(user.id);
+                {filteredRequests.map((request) => {
+                  const checked = selectedIds.includes(request.request_id);
+                  const isPending = request.request_status === "pending";
+
                   return (
                     <tr
-                      key={user.id}
+                      key={request.request_id}
                       className="hover:bg-blue-50/50 transition-colors"
                     >
                       <td className="px-4 py-4">
                         <input
                           type="checkbox"
                           checked={checked}
-                          onChange={() => toggleOne(user.id)}
+                          onChange={() => toggleOne(request.request_id)}
                           className="w-4 h-4 cursor-pointer"
                         />
                       </td>
 
                       {/* Họ và tên */}
                       <td className="px-6 py-4">
-                        <div className="flex items-center justify-center  gap-2">
+                        <div className="flex items-center justify-center gap-2">
                           <div className="font-medium text-gray-600">
-                            {user.full_name}
+                            {request.full_name}
                           </div>
                         </div>
                       </td>
 
                       {/* Email */}
                       <td className="px-6 py-4">
-                        <div className="font-medium text-gray-600 text-center ">
-                          {user.email}
+                        <div className="font-medium text-gray-600 text-center">
+                          {request.email}
                         </div>
                       </td>
 
                       {/* Trạng thái */}
                       <td className="px-6 py-4 text-center">
-                        {getStatusBadge(user.status)}
+                        {getStatusBadge(request.request_status)}
                       </td>
 
                       {/* Ngày gửi */}
@@ -249,7 +217,7 @@ export default function UserListPage() {
                             className="font-medium text-gray-700 flex-shrink-0"
                           />
                           <span className="whitespace-nowrap">
-                            {formatDate(user.created_at)}
+                            {formatDate(request.request_created_at)}
                           </span>
                         </div>
                       </td>
@@ -261,14 +229,14 @@ export default function UserListPage() {
                             className="p-2 hover:bg-blue-50 text-blue-600 rounded-lg transition-colors border border-blue-200 cursor-pointer"
                             onClick={() =>
                               router.push(
-                                `/admin/registration/detail/${user.id}`
+                                `/admin/registration/detail/${request.request_id}`
                               )
                             }
                             title="Xem chi tiết"
                           >
                             <Eye size={18} />
                           </button>
-                          {user.status === "pending" && (
+                          {isPending && (
                             <>
                               <button
                                 className="p-2 hover:bg-emerald-50 text-emerald-600 rounded-lg transition-colors border border-emerald-200 cursor-pointer"
@@ -290,7 +258,7 @@ export default function UserListPage() {
                   );
                 })}
 
-                {filteredUsers.length === 0 && (
+                {filteredRequests.length === 0 && (
                   <tr>
                     <td colSpan={6} className="py-10 text-center text-gray-500">
                       Không có đơn đăng ký nào
@@ -304,11 +272,13 @@ export default function UserListPage() {
 
         {/* Mobile/Tablet Cards */}
         <div className="mt-4 sm:mt-5 grid grid-cols-1 gap-3 sm:gap-4 lg:hidden">
-          {filteredUsers.map((user) => {
-            const checked = selectedIds.includes(user.id);
+          {filteredRequests.map((request) => {
+            const checked = selectedIds.includes(request.request_id);
+            const isPending = request.request_status === "pending";
+
             return (
               <div
-                key={user.id}
+                key={request.request_id}
                 className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all"
               >
                 {/* Card Header */}
@@ -318,57 +288,75 @@ export default function UserListPage() {
                       <input
                         type="checkbox"
                         checked={checked}
-                        onChange={() => toggleOne(user.id)}
+                        onChange={() => toggleOne(request.request_id)}
                         className="w-4 h-4 cursor-pointer flex-shrink-0"
                       />
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-gray-900 truncate text-base">
-                          {user.full_name}
+                          {request.full_name}
                         </h3>
-                        <p className="text-xs text-gray-500">#{user.id}</p>
+                        <p className="text-xs text-gray-500">
+                          ID: #{request.request_id}
+                        </p>
                       </div>
                     </div>
-                    {getStatusBadge(user.status)}
+                    {getStatusBadge(request.request_status)}
                   </div>
                 </div>
 
                 {/* Card Body */}
                 <div className="px-4 py-3 space-y-3">
-                  <div className="text-sm text-gray-700">
-                    <span className="text-gray-500 text-xs block mb-1">
-                      Email
-                    </span>
-                    <span className="break-all">{user.email}</span>
+                  {/* Email */}
+                  <div className="flex items-start gap-2">
+                    <Mail
+                      size={16}
+                      className="text-blue-500 mt-0.5 flex-shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-gray-500 mb-0.5">Email</p>
+                      <p className="text-sm text-gray-700 break-all">
+                        {request.email}
+                      </p>
+                    </div>
                   </div>
 
+                  {/* Ngày gửi */}
                   <div className="flex items-center gap-2 text-sm text-gray-600 pt-2 border-t border-gray-100">
                     <Calendar
                       size={14}
                       className="text-gray-400 flex-shrink-0"
                     />
                     <span className="text-xs">
-                      {formatDate(user.created_at)}
+                      {formatDate(request.request_created_at)}
                     </span>
                   </div>
                 </div>
 
-                {/* Card Footer */}
+                {/* Card Footer - Actions */}
                 <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
                   <div className="flex gap-2">
                     <button
                       className="flex-1 px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors shadow-sm cursor-pointer"
                       onClick={() =>
-                        router.push(`/admin/registration/detail/${user.id}`)
+                        router.push(
+                          `/admin/registration/detail/${request.request_id}`
+                        )
                       }
                     >
                       <Eye size={16} /> Xem chi tiết
                     </button>
-                    {user.status === "pending" && (
+                    {isPending && (
                       <>
-                        <button className="px-3 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm font-medium flex items-center justify-center cursor-pointer gap-1.5 transition-colors shadow-sm">
+                        <button
+                          className="px-3 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm font-medium flex items-center justify-center cursor-pointer gap-1.5 transition-colors shadow-sm"
+                          title="Chấp nhận"
+                        >
                           <Check size={16} />
                         </button>
-                        <button className=" cursor-pointer px-3 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-1.5 transition-colors shadow-sm">
+                        <button
+                          className="cursor-pointer px-3 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+                          title="Từ chối"
+                        >
                           <X size={16} />
                         </button>
                       </>
@@ -379,7 +367,7 @@ export default function UserListPage() {
             );
           })}
 
-          {filteredUsers.length === 0 && (
+          {filteredRequests.length === 0 && (
             <div className="col-span-full bg-white rounded-xl border border-gray-200 py-10 text-center text-gray-500">
               Không có đơn đăng ký nào
             </div>

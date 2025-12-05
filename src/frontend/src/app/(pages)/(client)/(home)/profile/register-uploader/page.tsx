@@ -327,11 +327,11 @@ export default function RegisterUploaderPage() {
                         </span>
                         <span>
                           Vui lòng cập nhật đầy đủ thông tin cá nhân trước khi
-                          đăng ký.{" "}
+                          đăng ký.
                           <button
                             type="button"
                             onClick={() => router.push("/profile/detail")}
-                            className="underline font-semibold hover:text-yellow-900"
+                            className="cursor-pointer underline font-semibold hover:text-yellow-900"
                           >
                             Cập nhật ngay
                           </button>
@@ -367,6 +367,11 @@ export default function RegisterUploaderPage() {
                   <button
                     type="submit"
                     className="cursor-pointer flex items-center justify-center gap-2 h-12 px-6 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white text-base font-semibold transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-blue-500 disabled:hover:to-indigo-500"
+                    disabled={
+                      !infoUser.fullName ||
+                      !infoUser.phone ||
+                      !infoUser.address
+                    }
                   >
                     <Save size={20} />
                     Gửi đơn đăng ký
