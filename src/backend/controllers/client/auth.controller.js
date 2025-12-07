@@ -28,6 +28,7 @@ module.exports.check = async (req, res) => {
       phone: existedEmail.phone,
       address: existedEmail.address,
       avatar: existedEmail.avatar,
+      coin_balance: existedEmail.coin_balance,
     };
 
     res.json({
