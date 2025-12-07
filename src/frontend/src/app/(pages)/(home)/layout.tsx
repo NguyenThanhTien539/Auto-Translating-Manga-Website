@@ -1,6 +1,6 @@
 // src/app/(site)/layout.tsx
-import Header from "@/app/components/client/Header/Header";
-import Sidebar from "@/app/components/client/Sidebar/Sidebar";
+import Header from "@/app/components/client/Header";
+import Sidebar from "@/app/components/client/Sidebar";
 
 export default function ClientLayout({
   children,

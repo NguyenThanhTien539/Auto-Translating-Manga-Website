@@ -20,3 +20,8 @@ export function getInitials(name: string) {
   }
   return (words[0][0] + words[words.length - 1][0]).toUpperCase();
 }
+
+
+export function formatPrice(price: number) {
+  return `${Number(price).toLocaleString("vi-VN")} VND`;
+}

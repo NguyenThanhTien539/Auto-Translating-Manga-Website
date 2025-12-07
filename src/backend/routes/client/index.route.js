@@ -4,6 +4,7 @@ const accountRoute = require("./account.route");
 const authRoute = require("./auth.route");
 const userRoute = require("./user.route");
 const mangaRoute = require("./manga.route");
+const orderRoute = require("./order.route");
 
 
 route.use("/", homeRoute);
@@ -15,5 +16,6 @@ route.use("/auth", authRoute);
 route.use("/user", userRoute);
 
 route.use("/manga", mangaRoute);
+route.use("/order", orderRoute);
 
 module.exports = route;

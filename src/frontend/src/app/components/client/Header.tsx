@@ -2,10 +2,12 @@
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useAuth } from "@/app/hooks/useAuth";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Plus } from "lucide-react";
+
 export default function Header() {
   const { infoUser, isLogin } = useAuth();
   const route = useRouter();
+
   return (
     <header className="w-full border-b border-black-800 mt-2  bg-white px-4 py-1 flex items-center justify-between gap-4">
       <div className="ml-[50px] flex items-center gap-2">
@@ -70,10 +72,27 @@ export default function Header() {
             {/* Tên user */}
             <div className="flex flex-col leading-tight">
               <span className="text-sm font-semibold text-gray-900">
-                {infoUser?.username || "Thanh Tiến"}
+                {infoUser.username }
               </span>
-              {/* Bỏ chữ Verified, để trống hoặc thêm gì đó khác cũng được */}
             </div>
+          </div>
+
+          {/* Phần hiển thị coin với dấu cộng ngoài border */}
+          <div className="flex items-center gap-2 mr-[50px]">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200">
+              <span className="text-xl">🪙</span>
+              <span className="text-sm font-semibold text-gray-900">
+                {infoUser.coin_balance }
+              </span>
+            </div>
+            <button
+              type="button"
+              className="cursor-pointer flex items-center justify-center w-6 h-6 rounded-full bg-amber-400 hover:bg-amber-500 transition-colors shadow-sm"
+              onClick={() => {
+                route.push("/order/list");}}
+            >
+              <Plus className="w-4 h-4 text-white" />
+            </button>
           </div>
         </>
       ) : (
