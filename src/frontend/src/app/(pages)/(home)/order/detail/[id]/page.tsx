@@ -2,6 +2,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { formatPrice } from "@/utils/format";
 import {
   ArrowLeft,
   CreditCard,
@@ -52,10 +53,6 @@ export default function OrderDetailPage() {
         else setOrderDetail(null);
       });
   }, []);
-
-  const formatPrice = (price: number) => {
-    return `${Number(price).toLocaleString("vi-VN")} VND`;
-  };
 
   return (
     orderDetail && (

@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-
+import { formatPrice } from "@/utils/format";
 interface CoinPackage {
   id: number;
   coins: number;
@@ -22,9 +22,7 @@ export default function OrderListPage() {
       });
   }, []);
 
-  const formatPrice = (price: number) => {
-    return `${Number(price).toLocaleString("vi-VN")} VND`;
-  };
+
 
   const selectedPrice = selectedPackage
     ? coinPackages.find((p) => p.id === selectedPackage)?.price
