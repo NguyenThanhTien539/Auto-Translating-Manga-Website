@@ -29,7 +29,8 @@ export default function UploadMangaPage() {
     genres: "", // Có thể nâng cấp thành Multi-select sau
     mangaId: "", // Dùng cho tab đăng chương mới
     chapterNumber: "",
-    chapterTitle: ""
+    chapterTitle: "",
+    language: "original"
   });
 
   const [myMangas, setMyMangas] = useState<{id: string, title: string}[]>([]);
@@ -99,6 +100,7 @@ export default function UploadMangaPage() {
       // Append dữ liệu chung
       data.append("type", activeTab); // Để backend biết đang xử lý loại nào
       data.append("file_content", contentFile as Blob);
+      data.append("language", formData.language);
 
       if (activeTab === "new-manga") {
         if (!coverFile) throw new Error("Thiếu ảnh bìa truyện");
@@ -266,6 +268,22 @@ export default function UploadMangaPage() {
                       onChange={(e) => setFormData({...formData, description: e.target.value})}
                     />
                   </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Ngôn ngữ gốc</label>
+                    <select
+                      className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                      value={formData.language}
+                      onChange={(e) => setFormData({...formData, language: e.target.value})}
+                    >
+                      <option value="original">Gốc (Original)</option>
+                      <option value="vi">Tiếng Việt</option>
+                      <option value="en">Tiếng Anh</option>
+                      <option value="jp">Tiếng Nhật</option>
+                      <option value="cn">Tiếng Trung</option>
+                      <option value="kr">Tiếng Hàn</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             )}
@@ -310,6 +328,22 @@ export default function UploadMangaPage() {
                       onChange={(e) => setFormData({...formData, chapterTitle: e.target.value})}
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Ngôn ngữ</label>
+                  <select
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 outline-none"
+                    value={formData.language}
+                    onChange={(e) => setFormData({...formData, language: e.target.value})}
+                  >
+                    <option value="original">Gốc (Original)</option>
+                    <option value="vi">Tiếng Việt</option>
+                    <option value="en">Tiếng Anh</option>
+                    <option value="jp">Tiếng Nhật</option>
+                    <option value="cn">Tiếng Trung</option>
+                    <option value="kr">Tiếng Hàn</option>
+                  </select>
                 </div>
               </div>
             )}
