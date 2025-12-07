@@ -2,11 +2,16 @@
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useAuth } from "@/app/hooks/useAuth";
-import { BookOpen, Plus } from "lucide-react";
+import { BookOpen, Plus, Search } from "lucide-react";
+import { SearchBar } from "./SearchBar";
 
 export default function Header() {
   const { infoUser, isLogin } = useAuth();
   const route = useRouter();
+  
+  const handleSearch = (keyword: string) => {
+    route.push(`/search?keyword=${encodeURIComponent(keyword)}`);
+  };
 
   return (
     <header className="w-full border-b border-black-800 mt-2  bg-white px-4 py-1 flex items-center justify-between gap-4">
@@ -30,8 +35,11 @@ export default function Header() {
         </div>
       </div>
 
+      
       {/* Thanh search ở giữa */}
-      <div className="flex-1 flex justify-center">
+      <SearchBar onSearch={handleSearch} />
+      
+      {false && (<div className="flex-1 flex justify-center">
         <div className="flex items-center h-9 max-w-xl w-full rounded-full border border-gray-300 border-b-2 border-b-amber-400 bg-white px-2 shadow-sm">
           {/* Icon search */}
           <span className="mx-2 text-gray-400 text-[15px]">🔍</span>
@@ -53,7 +61,9 @@ export default function Header() {
             </button>
           </div>
         </div>
-      </div>
+      
+      </div>)}
+      
 
       {/* Bên phải: Log in + Sign up */}
       {isLogin ? (
