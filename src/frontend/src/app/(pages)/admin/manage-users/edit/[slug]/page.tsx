@@ -241,8 +241,8 @@ export default function EditUserPage() {
                       defaultValue={userDetail.role_id}
                       className="w-full h-11 rounded-lg border border-gray-200 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
                     >
-                      <option value="1">Độc giả</option>
-                      <option value="2">Người đăng</option>
+                      <option value={1}>Độc giả</option>
+                      <option value={2}>Người đăng</option>
                     </select>
                   </div>
 

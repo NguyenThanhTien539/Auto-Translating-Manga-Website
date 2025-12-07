@@ -158,7 +158,7 @@ export default function ProfilePage() {
                   >
                     <Settings size={16} />
                     Quản lý truyện
-                  </button>
+                  </button> 
                 </>
               ) : infoUser?.role === "Reader" ? (
                 <button
