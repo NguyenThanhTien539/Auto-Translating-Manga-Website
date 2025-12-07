@@ -4,6 +4,8 @@ import Image from "next/image";
 import { useAuth } from "@/app/hooks/useAuth";
 import { BookOpen, Plus, Search } from "lucide-react";
 import { SearchBar } from "./SearchBar";
+import  Filter, {MangaFilterValues}  from "./Filter";
+import { useState } from "react";
 
 export default function Header() {
   const { infoUser, isLogin } = useAuth();
@@ -11,6 +13,16 @@ export default function Header() {
   
   const handleSearch = (keyword: string) => {
     route.push(`/search?keyword=${encodeURIComponent(keyword)}`);
+  };
+
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const handleOpenFilter = () => setIsFilterOpen(true);
+  const handleCloseFilter = () => setIsFilterOpen(false);
+
+  const handleApplyFilter = (values: MangaFilterValues) => {
+    // handle filter logic here
+    // code di 
+    setIsFilterOpen(false);
   };
 
   return (
@@ -37,7 +49,7 @@ export default function Header() {
 
       
       {/* Thanh search ở giữa */}
-      <SearchBar onSearch={handleSearch} />
+      <SearchBar onSearch={handleSearch} onOpenFilter={handleOpenFilter}/>
       
       {false && (<div className="flex-1 flex justify-center">
         <div className="flex items-center h-9 max-w-xl w-full rounded-full border border-gray-300 border-b-2 border-b-amber-400 bg-white px-2 shadow-sm">
@@ -127,6 +139,18 @@ export default function Header() {
               Đăng ký
             </button>
           </div>
+
+          {/* Filter panel dạng overlay */}
+          {isFilterOpen && (
+            <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40">
+              <div className="max-h-[90vh] w-full max-w-5xl px-4 mt-4">
+                <Filter
+                  onApply={handleApplyFilter}
+                  onCancel={handleCloseFilter}
+                />
+              </div>
+            </div>
+          )}
         </>
       )}
     </header>

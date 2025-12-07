@@ -3,16 +3,17 @@
 import { useState, KeyboardEvent } from "react";
 
 type SearchBarProps = {
-  onSearch: (keyword: string) => void; // Header truyền logic vào
+  onSearch: (keyword: string) => void;  // Header truyền logic search
+  onOpenFilter: () => void;            // Header truyền hàm mở filter panel
 };
 
-export function SearchBar({ onSearch }: SearchBarProps) {
+export function SearchBar({ onSearch, onOpenFilter }: SearchBarProps) {
   const [keyword, setKeyword] = useState("");
 
   const handleSearch = () => {
     const q = keyword.trim();
     if (!q) return;
-    onSearch(q); // gọi cho cha xử lý
+    onSearch(q);
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -49,6 +50,7 @@ export function SearchBar({ onSearch }: SearchBarProps) {
           <button
             type="button"
             className="flex h-6 w-6 items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 text-xs"
+            onClick={onOpenFilter}       
           >
             ⏷
           </button>
