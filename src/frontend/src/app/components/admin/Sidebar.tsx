@@ -60,9 +60,9 @@ export default function Sidebar() {
       </Link>
 
       <Link
-        href="/admin/product/list"
+        href="/admin/manage-manga"
         className={`${baseClass} ${
-          pathname === "/admin/product/list" ? activeClass : normalClass
+          pathname === "/admin/manage-manga" ? activeClass : normalClass
         }`}
       >
         <Box className="w-4 h-4" />
