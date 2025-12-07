@@ -100,3 +100,34 @@ module.exports.clientAuth = async (req, res, next) => {
     res.json({ code: "error", message: "Có lỗi xảy ra ở đây" });
   }
 };
+
+module.exports.uploaderAuth = async (req, res, next) => {
+  try {
+    const authToken = req.cookies.accessToken;
+    const decodedData = jwt.verify(authToken, process.env.JWT_SECRET);
+    const existedRecord = await accountModel.findAminAuthToken(
+      decodedData.id,
+      decodedData.email,
+      decodedData.role
+    );
+
+    if (!existedRecord) {
+      res.clearCookie("accessToken");
+      res.json({ code: "error", message: "Có lỗi xảy ra ở đây" });
+      return;
+    }
+
+    const detailedRole = await RoleModel.findById(decodedData.role);
+    if (detailedRole.role_code !== "UPL") {
+      res.json({ code: "error", message: "Bạn không có quyền truy cập" });
+      return;
+    }
+
+    req.infoUser = existedRecord;
+
+    next();
+  } catch (error) {
+    res.clearCookie("accessToken");
+    res.json({ code: "error", message: "Có lỗi xảy ra ở đây" });
+  }
+};

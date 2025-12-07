@@ -147,14 +147,14 @@ export default function ProfilePage() {
                 <>
                   <button
                     className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white rounded-lg font-medium text-sm shadow-md hover:shadow-lg transition-all"
-                    onClick={() => router.push("/uploader/upload")}
+                    onClick={() => router.push("/profile/upload-manga")}
                   >
                     <Upload size={16} />
                     Đăng truyện mới
                   </button>
                   <button
                     className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white rounded-lg font-medium text-sm shadow-md hover:shadow-lg transition-all"
-                    onClick={() => router.push("/uploader/manage")}
+                    onClick={() => router.push("/profile/manage")}
                   >
                     <Settings size={16} />
                     Quản lý truyện

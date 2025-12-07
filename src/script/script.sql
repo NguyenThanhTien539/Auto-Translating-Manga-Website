@@ -34,3 +34,29 @@ VALUES
 ('0', 'Admin', 'ADM', 'Toàn quyền hệ thống'),
 ('1', 'Reader', 'RED', 'Người dùng đọc nội dung'),
 ('2', 'Uploader', 'UPL', 'Người tải và quản lý truyện');
+CREATE TABLE mangas (
+  manga_id SERIAL PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  author VARCHAR(255),
+  description TEXT,
+  cover_image VARCHAR(255),
+  uploader_id INTEGER REFERENCES users(user_id),
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE chapters (
+  chapter_id SERIAL PRIMARY KEY,
+  manga_id INTEGER REFERENCES mangas(manga_id) ON DELETE CASCADE,
+  chapter_number INTEGER NOT NULL,
+  title VARCHAR(255),
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE pages (
+  page_id SERIAL PRIMARY KEY,
+  chapter_id INTEGER REFERENCES chapters(chapter_id) ON DELETE CASCADE,
+  image_url VARCHAR(255) NOT NULL,
+  page_number INTEGER NOT NULL
+);
+
