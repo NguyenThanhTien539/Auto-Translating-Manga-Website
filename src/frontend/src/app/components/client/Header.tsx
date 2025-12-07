@@ -89,7 +89,7 @@ export default function Header() {
               type="button"
               className="cursor-pointer flex items-center justify-center w-6 h-6 rounded-full bg-amber-400 hover:bg-amber-500 transition-colors shadow-sm"
               onClick={() => {
-                route.push("/order/list");}}
+                route.push("/order-coin/list");}}
             >
               <Plus className="w-4 h-4 text-white" />
             </button>

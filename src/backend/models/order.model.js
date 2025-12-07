@@ -7,3 +7,7 @@ module.exports.getAllCoinPackages = async () => {
 module.exports.getOrderDetailById = async (id) => {
   return db("coin_packages").select("*").where({ id: id }).first();
 };
+
+module.exports.createOrder = async (orderData) => {
+  return db("deposit_transactions").insert(orderData);
+};

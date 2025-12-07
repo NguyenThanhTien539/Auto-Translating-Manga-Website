@@ -14,7 +14,7 @@ export default function OrderListPage() {
   const [coinPackages, setCoinPackages] = useState<CoinPackage[]>([]);
   const navigate = useRouter();
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/order/list`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/order-coin/list`)
       .then((response) => response.json())
       .then((data) => {
         if (data.code == "success") setCoinPackages(data.coinPackages);
@@ -71,7 +71,7 @@ export default function OrderListPage() {
                 `}
                 onClick={() => {
                   if (selectedPackage) {
-                    navigate.push(`/order/detail/${selectedPackage}`);
+                    navigate.push(`/order-coin/detail/${selectedPackage}`);
                   }
                 }}
               >

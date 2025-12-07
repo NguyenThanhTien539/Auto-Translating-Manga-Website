@@ -15,7 +15,8 @@ route.use("/auth", authRoute);
 
 route.use("/user", userRoute);
 
+route.use("/order-coin", orderRoute);
+
 route.use("/manga", mangaRoute);
-route.use("/order", orderRoute);
 
 module.exports = route;

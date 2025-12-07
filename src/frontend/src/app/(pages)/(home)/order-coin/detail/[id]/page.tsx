@@ -46,13 +46,34 @@ export default function OrderDetailPage() {
   const [orderDetail, setOrderDetail] = useState<any>(null);
   const params = useParams();
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/order/detail/${params.id}`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/order-coin/detail/${params.id}`)
       .then((response) => response.json())
       .then((data) => {
         if (data.code == "success") setOrderDetail(data.orderDetail);
         else setOrderDetail(null);
       });
   }, []);
+
+  const handlePayment = async () => {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/order-coin/payment-${selectedPayment}?orderCode=${orderDetail.id}`,
+        {
+          credentials: "include",
+        }
+      );
+
+      const data = await res.json();
+
+      if (data.code == "success") {
+        router.push(data.paymentUrl);
+      } else {
+        console.error("Lỗi từ server:");
+      }
+    } catch (error) {
+      console.error("Lỗi thanh toán:", error);
+    }
+  };
 
   return (
     orderDetail && (
@@ -204,11 +225,13 @@ export default function OrderDetailPage() {
 
                 {/* Payment button */}
                 <button
+                  disabled={!selectedPayment}
                   className={`w-full py-4 rounded-xl font-bold text-lg transition-all duration-300 ${
                     !selectedPayment
                       ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                       : "bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 text-gray-900 hover:from-amber-600 hover:via-yellow-600 hover:to-amber-600 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
                   }`}
+                  onClick={handlePayment}
                 >
                   <span className="flex items-center justify-center gap-2"></span>
                   {selectedPayment

@@ -86,12 +86,6 @@ module.exports.clientAuth = async (req, res, next) => {
       res.json({ code: "error", message: "Có lỗi xảy ra ở đây" });
     }
 
-    // const detailedRole = await RoleModel.findById(decodedData.role);
-    // if (detailedRole.role_code !== "ADM") {
-    //   res.clearCookie("accessToken");
-    //   res.json({ code: "error", message: "Có lỗi xảy ra ở đây" });
-    // }
-
     req.infoUser = existedRecord;
 
     next();
