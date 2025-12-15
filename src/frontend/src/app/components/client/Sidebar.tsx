@@ -2,6 +2,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/app/hooks/useAuth";
 import {
   User,
@@ -27,6 +28,7 @@ const SECOND_MENU = [
 
 export default function Sidebar() {
   const { infoUser, isLogin } = useAuth();
+  const pathname = usePathname();
 
   return (
     <aside className="w-[210px] bg-sky-900 text-white flex-shrink-0">
@@ -39,11 +41,16 @@ export default function Sidebar() {
           <nav className="flex flex-col gap-2">
             {MAIN_MENU.map((item) => {
               const Icon = item.icon;
+              const isActive = pathname === item.href;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="flex items-center gap-2 px-3 py-2 rounded-md hover:text-blue-400"
+                  className={`flex items-center gap-2 px-3 py-2 rounded-md ${
+                    isActive
+                      ? "bg-[#F4B333] text-black" //F4B333
+                      : "hover:text-blue-400"
+                  }`}
                 >
                   <Icon className="h-4 w-4" />
                   <span className="text-sm font-medium">{item.label}</span>
@@ -63,11 +70,16 @@ export default function Sidebar() {
               <nav className="flex flex-col gap-2">
                 {SECOND_MENU.map((item) => {
                   const Icon = item.icon;
+                  const isActive = pathname === item.href;
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
-                      className="flex items-center gap-2 px-3 py-2 rounded-md hover:text-blue-400"
+                      className={`flex items-center gap-2 px-3 py-2 rounded-md ${
+                        isActive
+                          ? "bg-[#F4B333] text-black"
+                          : "hover:text-blue-400"
+                      }`}
                     >
                       <Icon className="h-4 w-4" />
                       <span className="text-sm font-medium">{item.label}</span>

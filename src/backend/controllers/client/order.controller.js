@@ -22,6 +22,7 @@ module.exports.detail = async (req, res) => {
 
 module.exports.paymentZaloPay = async (req, res) => {
   const { orderCode } = req.query;
+  console.log("Order Code:", orderCode);
   try {
     const orderDetail = await orderModel.getOrderDetailById(orderCode);
     const config = {
@@ -32,7 +33,7 @@ module.exports.paymentZaloPay = async (req, res) => {
     };
 
     const embed_data = {
-      // redirecturl: `http://localhost:3000/order/success?depositeId=${orderCode}`,
+      redirecturl: `https://debora-dizziest-unpliably.ngrok-free.dev/order/success?depositeId=${orderCode}`,
     };
     const items = [{}];
     const transID = Math.floor(Math.random() * 1000000);

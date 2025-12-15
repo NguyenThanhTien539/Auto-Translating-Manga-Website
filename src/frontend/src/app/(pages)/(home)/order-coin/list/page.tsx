@@ -22,8 +22,6 @@ export default function OrderListPage() {
       });
   }, []);
 
-
-
   const selectedPrice = selectedPackage
     ? coinPackages.find((p) => p.id === selectedPackage)?.price
     : 0;
@@ -38,73 +36,85 @@ export default function OrderListPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white py-12 px-4">
-      <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
-          {/* ================= LEFT SIDE (Đã sửa) ================= */}
-          <div className="lg:col-span-1 flex flex-col items-center sticky top-8">
-            <div className="relative w-full max-w-xs flex flex-col gap-6">
-              {/* Character/Manga image */}
-              <div className="relative aspect-[3/4] bg-gray-100 rounded-2xl overflow-hidden border-4 border-amber-500 shadow-2xl group">
-                <Image
-                  src="/image/logo.jpg"
-                  alt="Manga Character"
-                  fill
-                  className="object-cover transition-transform duration-700 group-hover:scale-110"
-                  priority
-                />
-                {/* Overlay gradient */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-              </div>
+    <div className="min-h-screen bg-white flex items-center justify-center py-8 sm:py-12 px-4">
+      <div className="w-full max-w-7xl">
+        {/* Title Section */}
+        <div className="text-center mb-8 sm:mb-12">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-2">
+            Nạp Coin
+          </h1>
+          <p className="text-gray-600 text-sm sm:text-base">
+            Chọn gói coin phù hợp với bạn
+          </p>
+        </div>
 
-              {/* NÚT THANH TOÁN MỚI (Đưa ra ngoài ảnh để dễ bấm và rõ ràng hơn) */}
-              <button
-                disabled={!selectedPackage}
-                className={`
-                  relative w-full group overflow-hidden rounded-xl p-4 transition-all duration-300
-                  ${
-                    !selectedPackage
-                      ? "bg-gray-200 cursor-not-allowed opacity-70 grayscale"
-                      : "cursor-pointer bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 shadow-xl shadow-amber-500/40 hover:scale-[1.02] hover:shadow-amber-500/60 active:scale-[0.98]"
-                  }
-                
-                `}
-                onClick={() => {
-                  if (selectedPackage) {
-                    navigate.push(`/order-coin/detail/${selectedPackage}`);
-                  }
-                }}
-              >
-                {/* Hiệu ứng bóng loáng (Shine effect) */}
-                {selectedPackage && (
-                  <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/25 to-transparent z-10"></div>
-                )}
-
-                <div className="relative z-20 flex flex-col items-center justify-center text-white">
-                  <span className="text-sm font-medium uppercase tracking-widest opacity-90 mb-1">
-                    {selectedPackage ? "Tổng thanh toán" : "Vui lòng chọn gói"}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl font-black tracking-tight">
-                      {selectedPackage && selectedPrice
-                        ? formatPrice(selectedPrice)
-                        : "---"}
-                    </span>
-                  </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+          {/* ================= LEFT SIDE - Payment Summary ================= */}
+          <div className="lg:col-span-4 xl:col-span-3">
+            <div className="lg:sticky lg:top-8">
+              <div className="w-full max-w-sm mx-auto flex flex-col gap-4 sm:gap-6">
+                {/* Character/Manga image */}
+                <div className="relative aspect-[3/4] bg-gray-100 rounded-2xl overflow-hidden border-4 border-amber-500 shadow-2xl group">
+                  <Image
+                    src="/image/logo.jpg"
+                    alt="Manga Character"
+                    fill
+                    className="object-cover transition-transform duration-700 group-hover:scale-110"
+                    priority
+                  />
+                  {/* Overlay gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
                 </div>
-              </button>
 
-              {/* Note nhỏ bên dưới */}
-              <p className="text-center text-xs text-gray-400">
-                Thanh toán an toàn & nhận xu ngay lập tức
-              </p>
+                {/* Payment Button */}
+                <button
+                  disabled={!selectedPackage}
+                  className={`
+                    relative w-full group overflow-hidden rounded-xl p-3 sm:p-4 transition-all duration-300
+                    ${
+                      !selectedPackage
+                        ? "bg-gray-200 cursor-not-allowed opacity-70 grayscale"
+                        : "cursor-pointer bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 shadow-xl shadow-amber-500/40 hover:scale-[1.02] hover:shadow-amber-500/60 active:scale-[0.98]"
+                    }
+                  `}
+                  onClick={() => {
+                    if (selectedPackage) {
+                      navigate.push(`/order-coin/detail/${selectedPackage}`);
+                    }
+                  }}
+                >
+                  {/* Shine effect */}
+                  {selectedPackage && (
+                    <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/25 to-transparent z-10"></div>
+                  )}
+
+                  <div className="relative z-20 flex flex-col items-center justify-center text-white">
+                    <span className="text-xs sm:text-sm font-medium uppercase tracking-widest opacity-90 mb-1">
+                      {selectedPackage
+                        ? "Tổng thanh toán"
+                        : "Vui lòng chọn gói"}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl sm:text-2xl font-black tracking-tight">
+                        {selectedPackage && selectedPrice
+                          ? formatPrice(selectedPrice)
+                          : "---"}
+                      </span>
+                    </div>
+                  </div>
+                </button>
+
+                {/* Note */}
+                <p className="text-center text-xs text-gray-400">
+                  Thanh toán an toàn & nhận xu ngay lập tức
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* Right side - Coin packages grid (GIỮ NGUYÊN) */}
-          <div className="lg:col-span-3">
-            {/* ... Code cũ của phần danh sách gói coin ... */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+          {/* ================= RIGHT SIDE - Coin Packages Grid ================= */}
+          <div className="lg:col-span-8 xl:col-span-9">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
               {coinPackages.map((pkg) => (
                 <div
                   key={pkg.id}

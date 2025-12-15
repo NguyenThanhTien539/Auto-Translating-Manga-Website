@@ -1,32 +1,212 @@
 import MangaCard from "@/app/components/client/MangaCard";
 
+// Dữ liệu giả phong phú cho trang explore
+const EXPLORE_MANGA_DATA = [
+  {
+    manga_id: "1",
+    manga_name: "One Piece",
+    author: "Eiichiro Oda",
+    original_language: "Japan",
+    genre: "Adventure - Action - Comedy - Fantasy",
+    status: "Ongoing",
+    coverUrl: "/image/logo.jpg",
+    rating: 9.26,
+    totalChapters: 1100,
+  },
+  {
+    manga_id: "2",
+    manga_name: "Solo Leveling",
+    author: "Chugong",
+    original_language: "Korea",
+    genre: "Action - Fantasy - Adventure",
+    status: "Completed",
+    coverUrl: "/image/logo.jpg",
+    rating: 9.15,
+    totalChapters: 179,
+  },
+  {
+    manga_id: "3",
+    manga_name: "Versatile Mage",
+    author: "Chaos",
+    original_language: "China",
+    genre: "Action - Fantasy - School Life",
+    status: "Ongoing",
+    coverUrl: "/image/logo.jpg",
+    rating: 8.78,
+    totalChapters: 810,
+  },
+  {
+    manga_id: "4",
+    manga_name: "Berserk",
+    author: "Kentaro Miura",
+    original_language: "Japan",
+    genre: "Dark Fantasy - Drama - Horror - Action",
+    status: "Continuous",
+    coverUrl: "/image/logo.jpg",
+    rating: 9.32,
+    totalChapters: 374,
+  },
+  {
+    manga_id: "5",
+    manga_name: "The Beginning After The End",
+    author: "TurtleMe",
+    original_language: "Korea",
+    genre: "Action - Fantasy - Adventure - Drama",
+    status: "Ongoing",
+    coverUrl: "/image/logo.jpg",
+    rating: 9.05,
+    totalChapters: 178,
+  },
+  {
+    manga_id: "6",
+    manga_name: "Chainsaw Man",
+    author: "Tatsuki Fujimoto",
+    original_language: "Japan",
+    genre: "Action - Horror - Dark Fantasy",
+    status: "Ongoing",
+    coverUrl: "/image/logo.jpg",
+    rating: 8.92,
+    totalChapters: 158,
+  },
+  {
+    manga_id: "7",
+    manga_name: "Jujutsu Kaisen",
+    author: "Gege Akutami",
+    original_language: "Japan",
+    genre: "Action - Dark Fantasy - Supernatural",
+    status: "Ongoing",
+    coverUrl: "/image/logo.jpg",
+    rating: 8.88,
+    totalChapters: 245,
+  },
+  {
+    manga_id: "8",
+    manga_name: "Tower of God",
+    author: "SIU",
+    original_language: "Korea",
+    genre: "Action - Fantasy - Mystery - Drama",
+    status: "Ongoing",
+    coverUrl: "/image/logo.jpg",
+    rating: 8.95,
+    totalChapters: 585,
+  },
+  {
+    manga_id: "9",
+    manga_name: "Demon Slayer",
+    author: "Koyoharu Gotouge",
+    original_language: "Japan",
+    genre: "Action - Adventure - Fantasy - Drama",
+    status: "Completed",
+    coverUrl: "/image/logo.jpg",
+    rating: 8.76,
+    totalChapters: 205,
+  },
+  {
+    manga_id: "10",
+    manga_name: "My Hero Academia",
+    author: "Kohei Horikoshi",
+    original_language: "Japan",
+    genre: "Action - Adventure - Superhero",
+    status: "Ongoing",
+    coverUrl: "/image/logo.jpg",
+    rating: 8.65,
+    totalChapters: 410,
+  },
+];
+
 export default function Explore() {
-  return(
-    <div style={{
-      width: '100%',
-      height: '100%',
-      display: 'grid',
-      gridTemplateColumns: 'repeat(5, minmax(150px, 1fr))',
-      gridTemplateRows: 'repeat(auto-fill, minmax(300px, ))',
-      gap: '16px',
-    }}>
-      {Array.from({ length: 20 }).map((_, index) => (
-        <MangaCard 
-          key={index}
-          author="Huy" 
-          manga_id={index.toString()} 
-          coverUrl="https://i0.wp.com/www.glenatmanga.com/wp-content/uploads/2023/11/Spy-x-Family-Vol.-10.jpg?fit=500%2C750&ssl=1"
-          genre="manga, action, comedy"
-          manga_name={`Manga Title ${index + 1}`}
-          original_language="japan"
-          rating={8.5 + index * 0.1}
-          status="Ongoing"
-          totalChapters={10 + index}
-          style={{
-            aspectRatio: '1 / 2'
-          }}
-        />
-      ))}
+  return (
+    <div className="p-6 space-y-6 bg-gray-50 dark:bg-gray-500 ">
+      {/* Popular this month */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+            Popular <span className="text-amber-500">this month</span>
+          </h2>
+          <button className="text-sm text-sky-600 hover:text-sky-700 dark:text-sky-400 font-medium">
+            See More
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {EXPLORE_MANGA_DATA.slice(0, 5).map((manga) => (
+            <MangaCard
+              key={manga.manga_id}
+              manga_id={manga.manga_id}
+              manga_name={manga.manga_name}
+              author={manga.author}
+              original_language={manga.original_language}
+              genre={manga.genre}
+              status={manga.status}
+              coverUrl={manga.coverUrl}
+              rating={manga.rating}
+              totalChapters={manga.totalChapters}
+            />
+          ))}
+        </div>
+      </section>
+
+      {/* Recent uploads */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+            Recent <span className="text-amber-500">uploads</span>
+          </h2>
+          <button className="text-sm text-sky-600 hover:text-sky-700 dark:text-sky-400 font-medium">
+            See More
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {EXPLORE_MANGA_DATA.slice(5, 10).map((manga) => (
+            <MangaCard
+              key={manga.manga_id}
+              manga_id={manga.manga_id}
+              manga_name={manga.manga_name}
+              author={manga.author}
+              original_language={manga.original_language}
+              genre={manga.genre}
+              status={manga.status}
+              coverUrl={manga.coverUrl}
+              rating={manga.rating}
+              totalChapters={manga.totalChapters}
+            />
+          ))}
+        </div>
+      </section>
+
+      {/* All Manga */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+            Tất cả truyện
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {EXPLORE_MANGA_DATA.map((manga) => (
+            <MangaCard
+              key={manga.manga_id}
+              manga_id={manga.manga_id}
+              manga_name={manga.manga_name}
+              author={manga.author}
+              original_language={manga.original_language}
+              genre={manga.genre}
+              status={manga.status}
+              coverUrl={manga.coverUrl}
+              rating={manga.rating}
+              totalChapters={manga.totalChapters}
+            />
+          ))}
+        </div>
+      </section>
+
+      {/* Load More Button */}
+      <div className="flex justify-center pt-4">
+        <button className="px-8 py-3 bg-sky-600 hover:bg-sky-700 text-white font-medium rounded-lg transition-colors shadow-md">
+          Tải thêm truyện
+        </button>
+      </div>
     </div>
-  )
+  );
 }

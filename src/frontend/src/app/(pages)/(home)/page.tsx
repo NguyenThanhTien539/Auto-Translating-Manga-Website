@@ -3,6 +3,7 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import MangaCard from "@/app/components/client/MangaCard";
 
 type HighlightItem = {
   id: number;
@@ -61,41 +62,51 @@ const CATEGORIES = [
   "Mistery",
 ];
 
-const CONTINUE_READING = [
+// Dữ liệu giả cho MangaCard
+const MOCK_MANGA_DATA = [
   {
-    id: 1,
-    title: "Berserk - Guide book",
-    image: "/mock/continue-1.jpg",
-    chapter: "368 Chương",
+    manga_id: "1",
+    manga_name: "Berserk - Guide book",
+    author: "Kentaro Miura",
+    original_language: "Japan",
+    genre: "Dark Fantasy - Drama - Fantasy - Adventure",
+    status: "Continuous",
+    coverUrl: "/image/logo.jpg",
     rating: 8.91,
+    totalChapters: 4,
   },
   {
-    id: 2,
-    title: "Solo Leveling",
-    image: "/mock/continue-2.jpg",
-    chapter: "124 Chương",
+    manga_id: "2",
+    manga_name: "Solo Leveling",
+    author: "Chugong",
+    original_language: "Korea",
+    genre: "Action - Fantasy - Adventure",
+    status: "Completed",
+    coverUrl: "/image/logo.jpg",
     rating: 9.15,
+    totalChapters: 124,
   },
   {
-    id: 3,
-    title: "Berserk",
-    image: "/mock/continue-3.jpg",
-    chapter: "368 Chương",
+    manga_id: "3",
+    manga_name: "One Piece",
+    author: "Eiichiro Oda",
+    original_language: "Japan",
+    genre: "Adventure - Action - Comedy - Fantasy",
+    status: "Ongoing",
+    coverUrl: "/image/logo.jpg",
     rating: 9.32,
+    totalChapters: 1012,
   },
   {
-    id: 4,
-    title: "The beginning after the end",
-    image: "/mock/continue-4.jpg",
-    chapter: "112 Chương",
+    manga_id: "4",
+    manga_name: "The Beginning After The End",
+    author: "TurtleMe",
+    original_language: "Korea",
+    genre: "Action - Fantasy - Adventure - Drama",
+    status: "Ongoing",
+    coverUrl: "/image/logo.jpg",
     rating: 9.05,
-  },
-  {
-    id: 5,
-    title: "Versatile Mage",
-    image: "/mock/continue-5.jpg",
-    chapter: "165 Chương",
-    rating: 8.78,
+    totalChapters: 112,
   },
 ];
 
@@ -232,43 +243,26 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ---- CONTINUE READING ---- */}
+      {/* ---- MANGA SHOWCASE ---- */}
       <section className="space-y-3">
-        <div className="rounded-t-xl bg-slate-900 p-4">
+        <div className="rounded-t-xl bg-gradient-to-r from-sky-700 to-sky-900 p-4">
           <h3 className="text-base font-semibold text-white mb-3">
-            Nổi bật <span className="text-amber-2 00">trong tháng</span>
+            Nổi bật <span className="text-amber-300">trong tháng</span>
           </h3>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
-            {CONTINUE_READING.map((item) => (
-              <div
-                key={item.id}
-                className="overflow-hidden rounded-md bg-slate-800 shadow-sm flex flex-col"
-              >
-                <div className="relative h-44 w-full">
-                  <Image
-                    src={"/image/logo.jpg"}
-                    alt={item.title}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <div className="flex flex-1 flex-col justify-between p-3 bg-white">
-                  <div>
-                    <h4 className="text-sm font-semibold text-white line-clamp-2 bg-red">
-                      {item.title}
-                    </h4>
-                    <p className="mt-1 text-[11px] text-slate-300">
-                      {item.chapter}
-                    </p>
-                  </div>
-                  <div className="mt-2 flex items-center justify-between text-[11px] text-slate-200">
-                    <span>Đánh giá</span>
-                    <span className="font-semibold text-amber-300">
-                      ★ {item.rating.toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-              </div>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+            {MOCK_MANGA_DATA.map((manga) => (
+              <MangaCard
+                key={manga.manga_id}
+                manga_id={manga.manga_id}
+                manga_name={manga.manga_name}
+                author={manga.author}
+                original_language={manga.original_language}
+                genre={manga.genre}
+                status={manga.status}
+                coverUrl={manga.coverUrl}
+                rating={manga.rating}
+                totalChapters={manga.totalChapters}
+              />
             ))}
           </div>
         </div>

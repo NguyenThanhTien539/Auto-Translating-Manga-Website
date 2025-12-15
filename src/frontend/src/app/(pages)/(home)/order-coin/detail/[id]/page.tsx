@@ -63,12 +63,20 @@ export default function OrderDetailPage() {
         }
       );
 
+      // If server returned non-2xx, log status and response text for debugging
+      if (!res.ok) {
+        const text = await res.text();
+        console.error("HTTP error on payment request:", res.status, text);
+        return;
+      }
+
       const data = await res.json();
 
       if (data.code == "success") {
         router.push(data.paymentUrl);
       } else {
-        console.error("Lỗi từ server:");
+        // show detailed server response in console to help debugging
+        console.error("Lỗi từ server:", data);
       }
     } catch (error) {
       console.error("Lỗi thanh toán:", error);
