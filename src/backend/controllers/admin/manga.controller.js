@@ -7,7 +7,7 @@ module.exports.getListManga = async (req, res) => {
       .select(
         "mangas.manga_id",
         "mangas.title",
-        "mangas.author",
+        "mangas.author_id",
         "mangas.cover_image",
         "mangas.status", // Cần đảm bảo DB có cột này hoặc thêm vào
         "mangas.created_at",

@@ -299,8 +299,9 @@ export default function ManageMangaPage() {
 
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-center gap-2">
+                          {/* Nút xem chi tiết */}
                           <button 
-                            onClick={() => router.push(`/read/${manga.manga_id}`)}
+                            onClick={() => router.push(`/admin/read/${manga.manga_id}`)}
                             className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                             title="Xem chi tiết"
                           >
