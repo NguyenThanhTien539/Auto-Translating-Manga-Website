@@ -119,7 +119,7 @@ export default function ReadPage() {
   const goToChapter = (chapterId: string) => {
     if (isAdminRoute) {
       // ✅ ADMIN ROUTE (đổi lại nếu route admin của bạn khác)
-      router.push(`/admin/read-manga/${mangaId}/${chapterId}`);
+      router.push(`/admin/read/${mangaId}/${chapterId}`);
       return;
     }
     // ✅ USER ROUTE
