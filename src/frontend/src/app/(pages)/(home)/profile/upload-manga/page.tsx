@@ -40,13 +40,20 @@ export default function UploadMangaPage() {
   const [coverFile, setCoverFile] = useState<any[]>([]);
   const [contentFile, setContentFile] = useState<any[]>([]);
   const [contentFileChapter, setContentFileChapter] = useState<any[]>([]);
-  const [errors, setErrors] = useState({
+  const [errors, setErrors] = useState<{
+    coverFile: string;
+    contentFile: string;
+    contentFileChapter: string;
+    description: string;
+    genres: string;
+  }>({
     coverFile: "",
     contentFile: "",
+    contentFileChapter: "",
     description: "",
     genres: "",
   });
-
+  const [myMangas, setMyMangas] = useState<Array<any>>([]);
   // Clear errors when files are selected
   useEffect(() => {
     if (coverFile.length > 0 && errors.coverFile) {
@@ -55,10 +62,10 @@ export default function UploadMangaPage() {
   }, [coverFile]);
 
   useEffect(() => {
-    if (contentFile.length > 0 && errors.contentFile) {
+    if (contentFileChapter.length > 0 && errors.contentFile) {
       setErrors((prev) => ({ ...prev, contentFile: "" }));
     }
-  }, [contentFile]);
+  }, [contentFileChapter, errors.contentFile]);
 
   // Clear description error when user types in TinyMCE
   useEffect(() => {
@@ -101,7 +108,6 @@ export default function UploadMangaPage() {
       });
   }, []);
 
-  // fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/my-mangas`
   const handleSubmitMangaForm = (event: any) => {
     event.preventDefault();
 
@@ -109,6 +115,7 @@ export default function UploadMangaPage() {
     setErrors({
       coverFile: "",
       contentFile: "",
+      contentFileChapter: "",
       description: "",
       genres: "",
     });
@@ -117,6 +124,7 @@ export default function UploadMangaPage() {
     const newErrors = {
       coverFile: "",
       contentFile: "",
+      contentFileChapter: "",
       description: "",
       genres: "",
     };
@@ -167,7 +175,13 @@ export default function UploadMangaPage() {
       .then((res) => res.json())
       .then((data) => {
         if (data.code === "success") {
-          toast.success("Đăng truyện thành công!");
+          toast.success(data.message || "Đăng truyện thành công!");
+          // Reset form
+          form.reset();
+          setCoverFile([]);
+          setContentFile([]);
+          setSelectedGenres([]);
+          editorRef.current?.setContent("");
         } else {
           toast.error(
             data.message ||
@@ -176,6 +190,95 @@ export default function UploadMangaPage() {
         }
       });
   };
+
+  const handleSubmitChapterForm = (event: any) => {
+    event.preventDefault();
+
+    // Reset errors
+    setErrors({
+      coverFile: "",
+      contentFile: "",
+      contentFileChapter: "",
+      description: "",
+      genres: "",
+    });
+
+    let hasError = false;
+    const newErrors = {
+      coverFile: "",
+      contentFile: "",
+      contentFileChapter: "",
+      description: "",
+      genres: "",
+    };
+
+    const form = event.target as HTMLFormElement;
+
+    if (!form.manga_id.value) {
+      newErrors.genres = "Vui lòng chọn truyện"; // reuse genres for this
+      hasError = true;
+    }
+
+    if (contentFileChapter.length === 0) {
+      newErrors.contentFileChapter = "Vui lòng chọn file nội dung chương";
+      hasError = true;
+    }
+
+    if (hasError) {
+      setErrors(newErrors);
+      // Scroll to the file upload section
+      document.getElementById("chapterContentFile")?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+      // Also show toast for immediate feedback
+
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("manga_id", form.manga_id.value);
+    formData.append("file_content", contentFileChapter[0].file);
+
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/upload-chapter`, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.code === "success") {
+          toast.success(data.message);
+          setContentFileChapter([]);
+        } else {
+          toast.error(
+            data.message ||
+              "Đã có lỗi xảy ra khi đăng chương. Vui lòng thử lại."
+          );
+        }
+      })
+      .catch((error) => {
+        console.error("Error uploading chapter:", error);
+        toast.error("Đã có lỗi xảy ra. Vui lòng thử lại.");
+      });
+  };
+
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/my-mangas`, {
+      method: "GET",
+      credentials: "include",
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.code === "success") {
+          setMyMangas(data.data);
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching my mangas:", error);
+      });
+  }, []);
+
   useEffect(() => {
     if (activeTab !== "new-manga") return;
 
@@ -212,8 +315,16 @@ export default function UploadMangaPage() {
     };
   }, [activeTab]);
 
-  // Setup validation cho form chapter
-  useEffect(() => {}, [activeTab]);
+  // Reset errors when switching tabs
+  useEffect(() => {
+    setErrors({
+      coverFile: "",
+      contentFile: "",
+      contentFileChapter: "",
+      description: "",
+      genres: "",
+    });
+  }, [activeTab]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 py-8 px-4">
@@ -499,7 +610,11 @@ export default function UploadMangaPage() {
           </form>
         ) : (
           // FORM ĐĂNG CHƯƠNG MỚI
-          <form id="chapterForm" className="space-y-6">
+          <form
+            id="chapterForm"
+            onSubmit={handleSubmitChapterForm}
+            className="space-y-6"
+          >
             {/* Card thông tin chương */}
             <div className="bg-white rounded-xl shadow-md p-6">
               <h2 className="text-lg font-bold text-gray-800 mb-5 flex items-center gap-2">
@@ -518,65 +633,17 @@ export default function UploadMangaPage() {
                     className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all bg-white cursor-pointer"
                   >
                     <option value="">-- Chọn truyện cần đăng --</option>
+                    {myMangas.map((manga) => (
+                      <option key={manga.manga_id} value={manga.manga_id}>
+                        {manga.title}
+                      </option>
+                    ))}
                   </select>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Số chương <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      id="chapterNumber"
-                      name="chapter_number"
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all"
-                      placeholder="VD: 100"
-                      min="1"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Tên chương (Tùy chọn)
-                    </label>
-                    <input
-                      type="text"
-                      id="chapterTitle"
-                      name="chapter_title"
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all"
-                      placeholder="VD: Trận chiến cuối cùng"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Ngôn ngữ <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    id="chapterLanguage"
-                    name="language"
-                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all bg-white cursor-pointer"
-                  >
-                    <option value="">-- Chọn ngôn ngữ --</option>
-                    <option value="original">🌐 Gốc (Original)</option>
-                    <option value="vi">🇻🇳 Tiếng Việt</option>
-                    <option value="en">🇬🇧 Tiếng Anh</option>
-                    <option value="jp">🇯🇵 Tiếng Nhật</option>
-                    <option value="cn">🇨🇳 Tiếng Trung</option>
-                    <option value="kr">🇰🇷 Tiếng Hàn</option>
-                  </select>
+                  {errors.genres && (
+                    <p className="text-red-500 text-sm mt-2">{errors.genres}</p>
+                  )}
                 </div>
               </div>
-            </div>
-
-            {/* Card mô tả */}
-            <div className="bg-white rounded-xl shadow-md p-6">
-              <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <FileText size={20} className="text-purple-600" />
-                Mô tả chương
-              </h2>
-              <TinyMCEEditor value="" editorRef={editorRef} />
             </div>
 
             {/* Card upload file */}
@@ -602,6 +669,11 @@ export default function UploadMangaPage() {
                   files={contentFileChapter}
                 />
               </div>
+              {errors.contentFileChapter && (
+                <p className="text-red-500 text-sm mt-2">
+                  {errors.contentFileChapter}
+                </p>
+              )}
 
               <div className="flex items-start gap-2 mt-4 text-sm text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-200">
                 <AlertCircle size={18} className="mt-0.5 flex-shrink-0" />

@@ -25,7 +25,7 @@ module.exports.getChaptersByMangaId = async (mangaId) => {
 module.exports.getMangasByUploader = async (uploaderId) => {
   return db("mangas")
     .where("uploader_id", uploaderId)
-    .select("manga_id as id", "title");
+    .select("manga_id ", "title");
 };
 
 module.exports.getAllMangas = async () => {
@@ -69,6 +69,20 @@ module.exports.getMangaById = async (id) => {
 
 module.exports.getChapterPages = async (chapterId) => {
   return db("pages").where("chapter_id", chapterId);
+};
+
+module.exports.createAuthor = async (data) => {
+  const [id] = await db("authors").insert(data).returning("author_id");
+  return { id: typeof id === "object" ? id.author_id : id };
+};
+
+module.exports.getOriginalLanguageByMangaId = async (id) => {
+  const manga = await db("mangas").where("manga_id", id).first();
+  return manga ? manga.original_language : null;
+};
+
+module.exports.getAuthorDetailByAuthorId = async (authorId) => {
+  return db("authors").where("author_id", authorId).first();
 };
 
 module.exports.getPageById = async (pageId) => {
