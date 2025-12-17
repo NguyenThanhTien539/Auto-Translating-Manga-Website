@@ -70,3 +70,7 @@ module.exports.getMangaById = async (id) => {
 module.exports.getChapterPages = async (chapterId) => {
   return db("pages").where("chapter_id", chapterId);
 };
+
+module.exports.getPageById = async (pageId) => {
+  return db("pages").where("page_id", pageId).first();
+};

@@ -3,6 +3,38 @@ const multer = require("multer");
 const mangaController = require("../../controllers/client/manga.controller");
 const authMiddleware = require("../../middlewares/auth.middleware");
 
+// Simple in-memory rate limiter
+const rateLimitMap = new Map();
+const rateLimit = (limit = 100, windowMs = 60000) => {
+  return (req, res, next) => {
+    const key = req.ip || req.connection.remoteAddress;
+    const now = Date.now();
+    
+    if (!rateLimitMap.has(key)) {
+      rateLimitMap.set(key, { count: 1, resetTime: now + windowMs });
+      return next();
+    }
+    
+    const record = rateLimitMap.get(key);
+    
+    if (now > record.resetTime) {
+      record.count = 1;
+      record.resetTime = now + windowMs;
+      return next();
+    }
+    
+    if (record.count >= limit) {
+      return res.status(429).json({ 
+        code: "error", 
+        message: "Too many requests, please try again later" 
+      });
+    }
+    
+    record.count++;
+    next();
+  };
+};
+
 
 // Configure multer for memory storage (to handle zip processing)
 const upload = multer({ storage: multer.memoryStorage() });
@@ -34,6 +66,9 @@ route.get("/all", mangaController.getAllMangas);
 route.get("/detail/:id", mangaController.getMangaDetail);
 
 route.get("/chapter/:id/pages", mangaController.getChapterPages);
+
+// Rate limit: 100 requests per minute per IP
+route.get("/page-image/:pageId", rateLimit(100, 60000), mangaController.getPageImage);
 
 
 module.exports = route;
