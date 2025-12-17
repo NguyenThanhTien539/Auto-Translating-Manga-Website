@@ -27,6 +27,13 @@ module.exports.profile = async (req, res) => {
 module.exports.registerUploader = async (req, res) => {
   const { reason } = req.body;
   try {
+    if (await uploaderRequestModel.checkExistingRequest(req.infoUser.user_id)) {
+      return res.json({
+        code: "error",
+        message: "Bạn đã gửi yêu cầu trước đó. Vui lòng chờ admin duyệt.",
+      });
+    }
+
     await uploaderRequestModel.insertReason(req.infoUser.user_id, reason);
     res.json({
       code: "success",
@@ -36,4 +43,3 @@ module.exports.registerUploader = async (req, res) => {
     res.json({ code: "error", message: "Đăng ký thất bại" });
   }
 };
-

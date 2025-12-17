@@ -229,22 +229,6 @@ export default function UserListPage() {
                             href={`/admin/registration/detail/${request.request_id}`}
                             title="Xem chi tiết"
                           />
-                          {isPending && (
-                            <>
-                              <button
-                                className="p-2 hover:bg-emerald-50 text-emerald-600 rounded-lg transition-colors border border-emerald-200 cursor-pointer"
-                                title="Chấp nhận"
-                              >
-                                <Check size={18} />
-                              </button>
-                              <button
-                                className="p-2 hover:bg-red-50 text-red-500 rounded-lg transition-colors border border-red-200 cursor-pointer"
-                                title="Từ chối"
-                              >
-                                <X size={18} />
-                              </button>
-                            </>
-                          )}
                         </div>
                       </td>
                     </tr>
@@ -267,7 +251,7 @@ export default function UserListPage() {
         <div className="mt-4 sm:mt-5 grid grid-cols-1 gap-3 sm:gap-4 lg:hidden">
           {filteredRequests.map((request) => {
             const checked = selectedIds.includes(request.request_id);
-            const isPending = request.request_status === "pending";
+            // const isPending = request.request_status === "pending";
 
             return (
               <div
@@ -338,22 +322,6 @@ export default function UserListPage() {
                     >
                       <Eye size={16} /> Xem chi tiết
                     </button>
-                    {isPending && (
-                      <>
-                        <button
-                          className="px-3 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm font-medium flex items-center justify-center cursor-pointer gap-1.5 transition-colors shadow-sm"
-                          title="Chấp nhận"
-                        >
-                          <Check size={16} />
-                        </button>
-                        <button
-                          className="cursor-pointer px-3 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-1.5 transition-colors shadow-sm"
-                          title="Từ chối"
-                        >
-                          <X size={16} />
-                        </button>
-                      </>
-                    )}
                   </div>
                 </div>
               </div>

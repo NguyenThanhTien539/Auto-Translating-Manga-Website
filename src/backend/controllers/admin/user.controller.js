@@ -24,7 +24,6 @@ module.exports.update = async (req, res) => {
   const userId = req.params.id;
   try {
     const updateData = req.body;
-    console.log(updateData);
     await userModel.updateUserById(userId, updateData);
     res.json({ code: "success", message: "Cập nhật thành công" });
   } catch (error) {

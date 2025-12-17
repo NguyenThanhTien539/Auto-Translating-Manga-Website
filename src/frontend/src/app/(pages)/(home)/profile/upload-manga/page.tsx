@@ -1,419 +1,641 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/app/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { 
-  Upload, 
-  FileText, 
-  Image as ImageIcon, 
-  Book, 
-  AlertCircle, 
+import {
+  Upload,
+  FileText,
+  Image as ImageIcon,
+  Book,
+  AlertCircle,
   CheckCircle2,
-  Loader2
+  Loader2,
 } from "lucide-react";
-import Image from "next/image";
+import dynamic from "next/dynamic";
+import JustValidate from "just-validate";
+import { FilePond, registerPlugin } from "react-filepond";
+import "filepond/dist/filepond.min.css";
+import FilePondPluginFileValidateType from "filepond-plugin-file-validate-type";
+import FilePondPluginImagePreview from "filepond-plugin-image-preview";
+import "filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css";
+registerPlugin(FilePondPluginFileValidateType, FilePondPluginImagePreview);
+
+const TinyMCEEditor = dynamic(() => import("@/app/components/TinyMCEEditor"), {
+  ssr: false,
+});
 
 export default function UploadMangaPage() {
-  const { infoUser, isLoading } = useAuth();
+  const editorRef = useRef<any>(null);
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"new-manga" | "new-chapter">("new-manga");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Form States
-  const [formData, setFormData] = useState({
-    title: "",
-    author: "",
+  const [activeTab, setActiveTab] = useState<"new-manga" | "new-chapter">(
+    "new-manga"
+  );
+  const [languages, setLanguages] = useState<Array<any>>([]);
+  const [genres, setGenres] = useState<Array<any>>([]);
+  const [selectedGenres, setSelectedGenres] = useState<number[]>([]);
+  const [coverFile, setCoverFile] = useState<any[]>([]);
+  const [contentFile, setContentFile] = useState<any[]>([]);
+  const [contentFileChapter, setContentFileChapter] = useState<any[]>([]);
+  const [errors, setErrors] = useState({
+    coverFile: "",
+    contentFile: "",
     description: "",
-    genres: "", // Có thể nâng cấp thành Multi-select sau
-    mangaId: "", // Dùng cho tab đăng chương mới
-    chapterNumber: "",
-    chapterTitle: "",
-    language: "original"
+    genres: "",
   });
 
-  const [myMangas, setMyMangas] = useState<{id: string, title: string}[]>([]);
-
-  const [coverFile, setCoverFile] = useState<File | null>(null);
-  const [contentFile, setContentFile] = useState<File | null>(null); // File ZIP
-  const [previewCover, setPreviewCover] = useState<string | null>(null);
-
-  // 1. Security Check: Chỉ cho phép Uploader truy cập
+  // Clear errors when files are selected
   useEffect(() => {
-    if (!isLoading) {
-      if (!infoUser) {
-        router.push("/account/login");
-      } else if (infoUser.role !== "Uploader") {
-        toast.error("Bạn không có quyền truy cập trang này!");
-        router.push("/");
-      }
+    if (coverFile.length > 0 && errors.coverFile) {
+      setErrors((prev) => ({ ...prev, coverFile: "" }));
     }
-  }, [infoUser, isLoading, router]);
+  }, [coverFile]);
 
-  // Fetch mangas when switching to "new-chapter" tab
   useEffect(() => {
-    if (activeTab === "new-chapter" && infoUser) {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/my-mangas`, {
-        credentials: "include"
-      })
-      .then(res => res.json())
-      .then(data => {
+    if (contentFile.length > 0 && errors.contentFile) {
+      setErrors((prev) => ({ ...prev, contentFile: "" }));
+    }
+  }, [contentFile]);
+
+  // Clear description error when user types in TinyMCE
+  useEffect(() => {
+    if (!editorRef.current) return;
+
+    const checkContent = () => {
+      const content = editorRef.current?.getContent() || "";
+      if (content.trim() && errors.description) {
+        setErrors((prev) => ({ ...prev, description: "" }));
+      }
+    };
+
+    const interval = setInterval(checkContent, 500);
+    return () => clearInterval(interval);
+  }, [errors.description]);
+
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/languages`)
+      .then((res) => res.json())
+      .then((data) => {
         if (data.code === "success") {
-          setMyMangas(data.data);
+          setLanguages(data.data);
         }
       })
-      .catch(err => console.error(err));
-    }
-  }, [activeTab, infoUser]);
+      .catch((error) => {
+        console.error("Error fetching languages:", error);
+      });
+  }, []);
 
-  // Xử lý chọn ảnh bìa
-  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setCoverFile(file);
-      setPreviewCover(URL.createObjectURL(file));
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/genres`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.code === "success") {
+          setGenres(data.data);
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching languages:", error);
+      });
+  }, []);
+
+  // fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/my-mangas`
+  const handleSubmitMangaForm = (event: any) => {
+    event.preventDefault();
+
+    // Reset errors
+    setErrors({
+      coverFile: "",
+      contentFile: "",
+      description: "",
+      genres: "",
+    });
+
+    let hasError = false;
+    const newErrors = {
+      coverFile: "",
+      contentFile: "",
+      description: "",
+      genres: "",
+    };
+
+    const mangaDescription = editorRef.current?.getContent() || "";
+
+    if (!mangaDescription.trim()) {
+      newErrors.description = "Vui lòng nhập mô tả truyện";
+      hasError = true;
     }
+
+    if (coverFile.length === 0) {
+      newErrors.coverFile = "Vui lòng chọn ảnh bìa truyện";
+      hasError = true;
+    }
+
+    if (contentFile.length === 0) {
+      newErrors.contentFile = "Vui lòng chọn file nội dung truyện";
+      hasError = true;
+    }
+
+    if (selectedGenres.length === 0) {
+      newErrors.genres = "Vui lòng chọn ít nhất một thể loại";
+      hasError = true;
+    }
+
+    if (hasError) {
+      setErrors(newErrors);
+      return;
+    }
+
+    const form = event.target as HTMLFormElement;
+    const formData = new FormData();
+    formData.append("title", form.mangaTitle.value);
+    formData.append("author", form.mangaAuthor.value);
+    formData.append("language", form.mangaLanguage.value);
+    formData.append("description", mangaDescription);
+    formData.append("cover_image", coverFile[0].file);
+    formData.append("file_content", contentFile[0].file);
+
+    // Append multiple genres as JSON string or comma-separated
+    formData.append("genres", JSON.stringify(selectedGenres));
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/upload`, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.code === "success") {
+          toast.success("Đăng truyện thành công!");
+        } else {
+          toast.error(
+            data.message ||
+              "Đã có lỗi xảy ra khi đăng truyện. Vui lòng thử lại."
+          );
+        }
+      });
   };
+  useEffect(() => {
+    if (activeTab !== "new-manga") return;
 
-  // Xử lý chọn file ZIP nội dung
-  const handleContentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Kiểm tra đuôi file cơ bản
-      if (!file.name.endsWith('.zip') && !file.name.endsWith('.rar')) {
-        toast.error("Vui lòng chỉ upload file .zip hoặc .rar");
-        return;
-      }
-      setContentFile(file);
-    }
-  };
+    const validateMangaForm = new JustValidate("#mangaForm", {
+      errorFieldCssClass: "is-invalid",
+      errorLabelCssClass: "text-red-500 text-sm mt-1",
+    });
 
-  // Xử lý Submit
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    try {
-      const data = new FormData();
-      
-      // Append dữ liệu chung
-      data.append("type", activeTab); // Để backend biết đang xử lý loại nào
-      data.append("file_content", contentFile as Blob);
-      data.append("language", formData.language);
-
-      if (activeTab === "new-manga") {
-        if (!coverFile) throw new Error("Thiếu ảnh bìa truyện");
-        data.append("title", formData.title);
-        data.append("author", formData.author);
-        data.append("description", formData.description);
-        data.append("genres", formData.genres);
-        data.append("cover_image", coverFile);
-      } else {
-        if (!formData.mangaId) throw new Error("Chưa chọn truyện");
-        data.append("manga_id", formData.mangaId);
-        data.append("chapter_number", formData.chapterNumber);
-        data.append("chapter_title", formData.chapterTitle);
-      }
-
-      // Gọi API (Cần implement backend tương ứng)
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/upload`, {
-        method: "POST",
-        body: data,
-        credentials: "include", // Quan trọng: Gửi cookie xác thực
-        // Lưu ý: Không set Content-Type header khi dùng FormData, browser tự làm
+    validateMangaForm
+      .addField("#mangaTitle", [
+        {
+          rule: "required",
+          errorMessage: "Vui lòng nhập tên truyện",
+        },
+      ])
+      .addField("#mangaAuthor", [
+        {
+          rule: "required",
+          errorMessage: "Vui lòng nhập tên tác giả",
+        },
+      ])
+      .addField("#mangaLanguage", [
+        {
+          rule: "required",
+          errorMessage: "Vui lòng chọn ngôn ngữ",
+        },
+      ])
+      .onSuccess((event: any) => {
+        handleSubmitMangaForm(event);
       });
 
-      const result = await res.json();
+    return () => {
+      validateMangaForm.destroy();
+    };
+  }, [activeTab]);
 
-      if (res.ok) {
-        toast.success("Upload thành công!");
-        router.push("/profile/manage"); // Chuyển hướng về trang quản lý chung
-      } else {
-        toast.error(result.message || "Có lỗi xảy ra khi upload");
-      }
-
-    } catch (error: any) {
-      toast.error(error.message || "Lỗi kết nối server");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  if (isLoading || infoUser?.role !== "Uploader") {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 className="animate-spin text-blue-500" size={40} />
-      </div>
-    );
-  }
+  // Setup validation cho form chapter
+  useEffect(() => {}, [activeTab]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-10 px-4">
-      <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
-        
-        {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white">
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Upload size={24} />
-            Upload Truyện & Chương Mới
-          </h1>
-          <p className="text-blue-100 mt-1 text-sm">
-            Đăng tải truyện mới hoặc cập nhật chương mới cho truyện đã có. Hỗ trợ file .zip
-          </p>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 py-8 px-4">
+      <div className="max-w-6xl mx-auto">
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6 ">
+          <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 p-6 text-white">
+            <div className="flex items-center justify-center gap-3">
+              <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm">
+                <Upload size={24} />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">
+                  Upload Truyện & Chương Mới
+                </h1>
+                <p className="text-indigo-100 text-sm mt-1">
+                  Đăng tải truyện mới hoặc cập nhật chương mới cho truyện đã có
+                </p>
+              </div>
+            </div>
+          </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-gray-200">
-          <button
-            onClick={() => setActiveTab("new-manga")}
-            className={`flex-1 py-4 text-sm font-medium text-center transition-colors ${
-              activeTab === "new-manga"
-                ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50/50"
-                : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-            }`}
-          >
-            Đăng Truyện Mới
-          </button>
-          <button
-            onClick={() => setActiveTab("new-chapter")}
-            className={`flex-1 py-4 text-sm font-medium text-center transition-colors ${
-              activeTab === "new-chapter"
-                ? "text-purple-600 border-b-2 border-purple-600 bg-purple-50/50"
-                : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-            }`}
-          >
-            Thêm Chương Mới
-          </button>
+          {/* Tabs */}
+          <div className="flex bg-gray-50">
+            <button
+              onClick={() => setActiveTab("new-manga")}
+              className={`flex-1 py-4 text-sm font-semibold text-center transition-all relative ${
+                activeTab === "new-manga"
+                  ? "text-indigo-600 bg-white"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              <div className="flex items-center justify-center gap-2">
+                <Book size={18} />
+                <span>Đăng Truyện Mới</span>
+              </div>
+              {activeTab === "new-manga" && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600"></div>
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab("new-chapter")}
+              className={`flex-1 py-4 text-sm font-semibold text-center transition-all relative ${
+                activeTab === "new-chapter"
+                  ? "text-purple-600 bg-white"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              <div className="flex items-center justify-center gap-2">
+                <FileText size={18} />
+                <span>Thêm Chương Mới</span>
+              </div>
+              {activeTab === "new-chapter" && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600"></div>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Form Content */}
-        <div className="p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            
-            {/* === FORM ĐĂNG TRUYỆN MỚI === */}
-            {activeTab === "new-manga" && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {/* Cột trái: Ảnh bìa */}
-                <div className="col-span-1 space-y-4">
-                  <label className="block text-sm font-medium text-gray-700">Ảnh bìa truyện</label>
-                  <div className="relative w-full aspect-[2/3] bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center overflow-hidden hover:bg-gray-50 transition-colors group">
-                    {previewCover ? (
-                      <Image 
-                        src={previewCover} 
-                        alt="Preview" 
-                        fill 
-                        className="object-cover"
-                      />
-                    ) : (
-                      <div className="text-center p-4">
-                        <ImageIcon className="mx-auto h-10 w-10 text-gray-400 group-hover:text-blue-500 transition-colors" />
-                        <p className="mt-2 text-xs text-gray-500">Click để tải ảnh lên</p>
-                      </div>
-                    )}
-                    <input 
-                      type="file" 
-                      accept="image/*"
-                      onChange={handleCoverChange}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      required
+        {activeTab === "new-manga" ? (
+          // FORM ĐĂNG TRUYỆN MỚI
+          <form
+            id="mangaForm"
+            onSubmit={handleSubmitMangaForm}
+            className="space-y-6"
+          >
+            {/* Card thông tin cơ bản */}
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <h2 className="text-lg font-bold text-gray-800 mb-5 flex items-center gap-2">
+                <Book size={20} className="text-indigo-600" />
+                Thông tin truyện
+              </h2>
+
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                {/* Ảnh bìa - chiếm 1 cột */}
+                <div className="lg:col-span-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Ảnh bìa truyện <span className="text-red-500">*</span>
+                  </label>
+
+                  <div className="bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 overflow-hidden">
+                    <FilePond
+                      className="pond-cover"
+                      name="coverImage"
+                      id="coverImage"
+                      allowMultiple={false}
+                      allowRemove={true}
+                      acceptedFileTypes={["image/*"]}
+                      files={coverFile}
+                      onupdatefiles={setCoverFile}
+                      labelIdle='Kéo thả ảnh vào đây hoặc <span class="filepond--label-action">Chọn file</span>'
+                      imagePreviewHeight={320}
                     />
                   </div>
+                  {errors.coverFile && (
+                    <p className="text-red-500 text-sm mt-2">
+                      {errors.coverFile}
+                    </p>
+                  )}
                 </div>
 
-                {/* Cột phải: Thông tin */}
-                <div className="col-span-1 md:col-span-2 space-y-5">
+                {/* Thông tin - chiếm 3 cột */}
+                <div className="lg:col-span-3 space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Tên truyện</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tên truyện <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text"
-                      className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                      id="mangaTitle"
+                      name="mangaTitle"
+                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
                       placeholder="Ví dụ: One Piece"
-                      value={formData.title}
-                      onChange={(e) => setFormData({...formData, title: e.target.value})}
-                      required
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Tác giả</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Tác giả <span className="text-red-500">*</span>
+                      </label>
                       <input
                         type="text"
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none"
-                        value={formData.author}
-                        onChange={(e) => setFormData({...formData, author: e.target.value})}
-                        required
+                        id="mangaAuthor"
+                        name="mangaAuthor"
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                        placeholder="Tên tác giả"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Thể loại</label>
-                      <input
-                        type="text"
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none"
-                        placeholder="Hành động, Phiêu lưu..."
-                        value={formData.genres}
-                        onChange={(e) => setFormData({...formData, genres: e.target.value})}
-                      />
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Ngôn ngữ gốc <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        id="mangaLanguage"
+                        name="mangaLanguage"
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white cursor-pointer"
+                      >
+                        <option value="">-- Chọn ngôn ngữ --</option>
+                        {languages.map((lang) => (
+                          <option
+                            key={lang.language_code}
+                            value={lang.language_code}
+                          >
+                            {lang.language_name}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>
-                    <textarea
-                      rows={4}
-                      className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
-                      placeholder="Tóm tắt nội dung truyện..."
-                      value={formData.description}
-                      onChange={(e) => setFormData({...formData, description: e.target.value})}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Ngôn ngữ gốc</label>
-                    <select
-                      className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none"
-                      value={formData.language}
-                      onChange={(e) => setFormData({...formData, language: e.target.value})}
-                    >
-                      <option value="original">Gốc (Original)</option>
-                      <option value="vi">Tiếng Việt</option>
-                      <option value="en">Tiếng Anh</option>
-                      <option value="jp">Tiếng Nhật</option>
-                      <option value="cn">Tiếng Trung</option>
-                      <option value="kr">Tiếng Hàn</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* === FORM ĐĂNG CHƯƠNG MỚI === */}
-            {activeTab === "new-chapter" && (
-              <div className="space-y-5 max-w-2xl mx-auto">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Chọn truyện</label>
-                  <select 
-                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 outline-none"
-                    value={formData.mangaId}
-                    onChange={(e) => setFormData({...formData, mangaId: e.target.value})}
-                    required
-                  >
-                    <option value="">-- Chọn truyện cần đăng --</option>
-                    {myMangas.map(manga => (
-                      <option key={manga.id} value={manga.id}>{manga.title}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Số chương</label>
-                    <input
-                      type="number"
-                      className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 outline-none"
-                      placeholder="VD: 100"
-                      value={formData.chapterNumber}
-                      onChange={(e) => setFormData({...formData, chapterNumber: e.target.value})}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Tên chương (Tùy chọn)</label>
-                    <input
-                      type="text"
-                      className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 outline-none"
-                      placeholder="VD: Trận chiến cuối cùng"
-                      value={formData.chapterTitle}
-                      onChange={(e) => setFormData({...formData, chapterTitle: e.target.value})}
-                    />
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Thể loại <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg border border-gray-300">
+                      {genres.map((genre) => (
+                        <label
+                          key={genre.genre_id}
+                          className={`inline-flex items-center px-4 py-2 rounded-full cursor-pointer transition-all ${
+                            selectedGenres.includes(genre.genre_id)
+                              ? "bg-indigo-600 text-white"
+                              : "bg-white text-gray-700 border border-gray-300 hover:border-indigo-400"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            className="hidden"
+                            checked={selectedGenres.includes(genre.genre_id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedGenres([
+                                  ...selectedGenres,
+                                  genre.genre_id,
+                                ]);
+                                if (errors.genres) {
+                                  setErrors((prev) => ({
+                                    ...prev,
+                                    genres: "",
+                                  }));
+                                }
+                              } else {
+                                setSelectedGenres(
+                                  selectedGenres.filter(
+                                    (id) => id !== genre.genre_id
+                                  )
+                                );
+                              }
+                            }}
+                          />
+                          <span className="text-sm font-medium">
+                            {genre.genre_name}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                    {errors.genres && (
+                      <p className="text-red-500 text-sm mt-2">
+                        {errors.genres}
+                      </p>
+                    )}
                   </div>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Ngôn ngữ</label>
-                  <select
-                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 outline-none"
-                    value={formData.language}
-                    onChange={(e) => setFormData({...formData, language: e.target.value})}
-                  >
-                    <option value="original">Gốc (Original)</option>
-                    <option value="vi">Tiếng Việt</option>
-                    <option value="en">Tiếng Anh</option>
-                    <option value="jp">Tiếng Nhật</option>
-                    <option value="cn">Tiếng Trung</option>
-                    <option value="kr">Tiếng Hàn</option>
-                  </select>
-                </div>
-              </div>
-            )}
-
-            {/* === PHẦN UPLOAD FILE ZIP (CHUNG CHO CẢ 2 TAB) === */}
-            <div className="mt-8 pt-6 border-t border-gray-100">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                File nội dung truyện (.zip, .rar)
-              </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:bg-gray-50 transition-colors relative">
-                <input
-                  type="file"
-                  accept=".zip,.rar"
-                  onChange={handleContentChange}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  required
-                />
-                {contentFile ? (
-                  <div className="flex flex-col items-center text-green-600">
-                    <CheckCircle2 size={40} className="mb-2" />
-                    <span className="font-medium">{contentFile.name}</span>
-                    <span className="text-sm text-gray-500">{(contentFile.size / 1024 / 1024).toFixed(2)} MB</span>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center text-gray-500">
-                    <FileText size={40} className="mb-2 text-gray-400" />
-                    <span className="font-medium text-gray-700">Kéo thả file vào đây hoặc click để chọn</span>
-                    <span className="text-xs mt-1">Hỗ trợ file nén chứa ảnh các trang truyện</span>
-                  </div>
-                )}
-              </div>
-              
-              <div className="flex items-start gap-2 mt-3 text-sm text-amber-600 bg-amber-50 p-3 rounded-lg">
-                <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
-                <p>Lưu ý: File zip nên chứa các ảnh được đánh số thứ tự (01.jpg, 02.jpg...) để đảm bảo thứ tự trang đúng.</p>
               </div>
             </div>
 
-            {/* Submit Button */}
-            <div className="flex justify-end pt-4">
+            {/* Card mô tả */}
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <FileText size={20} className="text-indigo-600" />
+                Mô tả truyện
+              </h2>
+              <div id="description">
+                <TinyMCEEditor value="" editorRef={editorRef} />
+              </div>
+              {errors.description && (
+                <p className="text-red-500 text-sm mt-2">
+                  {errors.description}
+                </p>
+              )}
+            </div>
+
+            {/* Card upload file */}
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <Upload size={20} className="text-indigo-600" />
+                File nội dung truyện <span className="text-red-500">*</span>
+              </h2>
+
+              <div className="bg-gray-50 rounded-xl p-4 border-2 border-dashed border-gray-300">
+                <FilePond
+                  name="mangaContentFile"
+                  id="mangaContentFile"
+                  allowMultiple={false}
+                  allowRemove={true}
+                  labelIdle='Kéo thả file ZIP vào đây hoặc <span class="filepond--label-action">Chọn file</span>'
+                  acceptedFileTypes={[
+                    "application/zip",
+                    "application/x-zip-compressed",
+                    "application/x-rar-compressed",
+                  ]}
+                  onupdatefiles={setContentFile}
+                  files={contentFile}
+                />
+              </div>
+              {errors.contentFile && (
+                <p className="text-red-500 text-sm mt-2">
+                  {errors.contentFile}
+                </p>
+              )}
+
+              <div className="flex items-start gap-2 mt-4 text-sm text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-200">
+                <AlertCircle size={18} className="mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium">Lưu ý:</p>
+                  <ul className="list-disc list-inside text-xs mt-1 space-y-1">
+                    <li>
+                      File nên chứa ảnh đánh số thứ tự (01.jpg, 02.jpg...)
+                    </li>
+                    <li>Định dạng: JPG, PNG, WEBP</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Submit Buttons */}
+            <div className="flex justify-end gap-3 bg-white rounded-xl shadow-md p-6">
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="px-6 py-2.5 rounded-lg font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all"
+              >
+                Hủy bỏ
+              </button>
               <button
                 type="submit"
-                disabled={isSubmitting}
-                className={`
-                  flex items-center gap-2 px-8 py-3 rounded-xl font-bold text-white shadow-lg transition-all
-                  ${isSubmitting 
-                    ? "bg-gray-400 cursor-not-allowed" 
-                    : activeTab === "new-manga" 
-                      ? "bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 hover:shadow-blue-500/30"
-                      : "bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 hover:shadow-purple-500/30"
-                  }
-                `}
+                className="flex items-center gap-2 px-8 py-2.5 rounded-lg font-bold text-white shadow-md transition-all bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
               >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="animate-spin" size={20} />
-                    Đang xử lý...
-                  </>
-                ) : (
-                  <>
-                    <Upload size={20} />
-                    {activeTab === "new-manga" ? "Đăng Truyện Ngay" : "Đăng Chương Mới"}
-                  </>
-                )}
+                <Upload size={20} />
+                <span>Đăng Truyện Ngay</span>
               </button>
             </div>
-
           </form>
-        </div>
+        ) : (
+          // FORM ĐĂNG CHƯƠNG MỚI
+          <form id="chapterForm" className="space-y-6">
+            {/* Card thông tin chương */}
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <h2 className="text-lg font-bold text-gray-800 mb-5 flex items-center gap-2">
+                <Book size={20} className="text-purple-600" />
+                Thông tin chương
+              </h2>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Chọn truyện <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    id="chapterMangaId"
+                    name="manga_id"
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all bg-white cursor-pointer"
+                  >
+                    <option value="">-- Chọn truyện cần đăng --</option>
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Số chương <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      id="chapterNumber"
+                      name="chapter_number"
+                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all"
+                      placeholder="VD: 100"
+                      min="1"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tên chương (Tùy chọn)
+                    </label>
+                    <input
+                      type="text"
+                      id="chapterTitle"
+                      name="chapter_title"
+                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all"
+                      placeholder="VD: Trận chiến cuối cùng"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Ngôn ngữ <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    id="chapterLanguage"
+                    name="language"
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all bg-white cursor-pointer"
+                  >
+                    <option value="">-- Chọn ngôn ngữ --</option>
+                    <option value="original">🌐 Gốc (Original)</option>
+                    <option value="vi">🇻🇳 Tiếng Việt</option>
+                    <option value="en">🇬🇧 Tiếng Anh</option>
+                    <option value="jp">🇯🇵 Tiếng Nhật</option>
+                    <option value="cn">🇨🇳 Tiếng Trung</option>
+                    <option value="kr">🇰🇷 Tiếng Hàn</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Card mô tả */}
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <FileText size={20} className="text-purple-600" />
+                Mô tả chương
+              </h2>
+              <TinyMCEEditor value="" editorRef={editorRef} />
+            </div>
+
+            {/* Card upload file */}
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <Upload size={20} className="text-purple-600" />
+                File nội dung chương <span className="text-red-500">*</span>
+              </h2>
+
+              <div className="bg-gray-50 rounded-xl p-4 border-2 border-dashed border-gray-300">
+                <FilePond
+                  name="content_file"
+                  id="chapterContentFile"
+                  allowMultiple={false}
+                  allowRemove={true}
+                  labelIdle='Kéo thả file ZIP vào đây hoặc <span class="filepond--label-action">Chọn file</span>'
+                  acceptedFileTypes={[
+                    "application/zip",
+                    "application/x-zip-compressed",
+                    "application/x-rar-compressed",
+                  ]}
+                  onupdatefiles={setContentFileChapter}
+                  files={contentFileChapter}
+                />
+              </div>
+
+              <div className="flex items-start gap-2 mt-4 text-sm text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-200">
+                <AlertCircle size={18} className="mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium">Lưu ý:</p>
+                  <ul className="list-disc list-inside text-xs mt-1 space-y-1">
+                    <li>
+                      File nên chứa ảnh đánh số thứ tự (01.jpg, 02.jpg...)
+                    </li>
+                    <li>Định dạng: JPG, PNG, WEBP</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Submit Buttons */}
+            <div className="flex justify-end gap-3 bg-white rounded-xl shadow-md p-6">
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="px-6 py-2.5 rounded-lg font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="submit"
+                className="flex items-center gap-2 px-8 py-2.5 rounded-lg font-bold text-white shadow-md transition-all bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+              >
+                <Upload size={20} />
+                <span>Đăng Chương Mới</span>
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );

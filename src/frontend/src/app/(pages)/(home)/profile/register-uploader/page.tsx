@@ -123,7 +123,7 @@ export default function RegisterUploaderPage() {
                 );
                 router.push("/profile");
               } else {
-                toast.error(data.message || "Đăng ký thất bại");
+                toast.error(data.message);
               }
             });
         });
@@ -368,9 +368,7 @@ export default function RegisterUploaderPage() {
                     type="submit"
                     className="cursor-pointer flex items-center justify-center gap-2 h-12 px-6 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white text-base font-semibold transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-blue-500 disabled:hover:to-indigo-500"
                     disabled={
-                      !infoUser.fullName ||
-                      !infoUser.phone ||
-                      !infoUser.address
+                      !infoUser.fullName || !infoUser.phone || !infoUser.address
                     }
                   >
                     <Save size={20} />

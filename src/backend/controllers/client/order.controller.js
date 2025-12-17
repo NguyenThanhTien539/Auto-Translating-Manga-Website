@@ -33,7 +33,7 @@ module.exports.paymentZaloPay = async (req, res) => {
     };
 
     const embed_data = {
-      redirecturl: `https://debora-dizziest-unpliably.ngrok-free.dev/order/success?depositeId=${orderCode}`,
+      // redirecturl: `/order/success?depositeId=${orderCode}`,
     };
     const items = [{}];
     const transID = Math.floor(Math.random() * 1000000);

@@ -23,3 +23,11 @@ module.exports.updateRequestStatus = async (request_id, request_status) => {
     .where("request_id", request_id)
     .update({ request_status });
 };
+
+module.exports.checkExistingRequest = async (user_id) => {
+  // request_status = pending
+  return db("uploader_requests")
+    .where("user_id", user_id)
+    .andWhere("request_status", "pending")
+    .first();
+};
