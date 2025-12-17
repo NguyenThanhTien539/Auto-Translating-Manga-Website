@@ -120,7 +120,7 @@ const EXPLORE_MANGA_DATA = [
 type Manga = {
   manga_id: string;
   title: string;
-  author: string;
+  author_name: string;
   original_language: string;
   genres: string[];
   status: string;
@@ -167,7 +167,7 @@ export default function Explore() {
                 <MangaCard
                   manga_id={manga.manga_id}
                   manga_name={manga.title}
-                  author={manga.author}
+                  author={manga.author_name}
                   original_language={manga?.original_language}
                   genre={manga?.genres?.join(" - ")}
                   status={manga?.status}

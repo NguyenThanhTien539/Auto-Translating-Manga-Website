@@ -60,15 +60,18 @@ route.post(
   mangaController.uploadManga
 );
 
+route.post(
+  "/upload-chapter",
+  authMiddleware.uploaderAuth,
+  upload.fields([{ name: "file_content", maxCount: 1 }]),
+  mangaController.uploadChapter
+);
 
 route.get("/all", mangaController.getAllMangas);
 
 route.get("/detail/:id", mangaController.getMangaDetail);
 
 route.get("/chapter/:id/pages", mangaController.getChapterPages);
-
-// Rate limit: 100 requests per minute per IP
-route.get("/page-image/:pageId", rateLimit(100, 60000), mangaController.getPageImage);
 
 
 module.exports = route;

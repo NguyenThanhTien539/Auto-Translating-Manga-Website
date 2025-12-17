@@ -23,6 +23,7 @@ type Manga = {
   totalChapters?: number;
   rating?: number;
 };
+
 export default function ReadPage() {
   const router = useRouter();
   const params = useParams();
@@ -31,12 +32,17 @@ export default function ReadPage() {
     chapters: Chapter[];
   } | null>(null);
 
-  const [showFullDescription, setShowFullDescription] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "chapters">(
     "overview"
   );
   const [myListStatus, setMyListStatus] = useState("Want to read");
-  console.log("Manga ID:", params.manga_id);
+
+  const decodeHtml = (html: string) => {
+    const txt = document.createElement("textarea");
+    txt.innerHTML = html;
+    return txt.value;
+  };
+
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/detail/${params.manga_id}`)
       .then((response) => response.json())
@@ -154,19 +160,11 @@ export default function ReadPage() {
               {/* Description */}
               <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-xl p-8 hover:bg-slate-800/70 transition-colors">
                 <h2 className="text-2xl font-bold text-white mb-4">Nội dung</h2>
-                <p
-                  className={`text-slate-300 leading-relaxed ${
-                    !showFullDescription ? "line-clamp-4" : ""
-                  }`}
-                >
-                  {mangaDetail?.manga.description.replace(/<[^>]+>/g, "")}
+                <p className="text-slate-300 leading-relaxed">
+                  {decodeHtml(
+                    mangaDetail?.manga.description.replace(/<[^>]+>/g, "")
+                  )}
                 </p>
-                <button
-                  onClick={() => setShowFullDescription(!showFullDescription)}
-                  className="text-blue-400 hover:text-blue-300 font-semibold mt-4 text-sm transition-colors"
-                >
-                  {showFullDescription ? "Thu gọn" : "Xem thêm"}
-                </button>
               </div>
 
               {/* Genres */}
@@ -231,7 +229,7 @@ export default function ReadPage() {
                     <div className="p-5">
                       <div className="flex items-center justify-between">
                         <span className="font-semibold text-white">
-                          Chương {chapter.chapter_number}:  {chapter.title}
+                          Chương {chapter.chapter_number}: {chapter.title}
                         </span>
                         <div className="flex items-center gap-6 text-slate-400">
                           <button className="hover:text-blue-400 transition-colors flex items-center gap-2">

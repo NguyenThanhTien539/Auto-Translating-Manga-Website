@@ -18,11 +18,14 @@ export default function ChapterReadPage() {
   const params = useParams();
   const [pages, setPages] = useState<PageData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedLanguage, setSelectedLanguage] = useState<"vi" | "en">("vi");
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
-    fetch(`http://localhost:5000/manga/chapter/${params.chapter_id}/pages`)
+    fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/manga/chapter/${params.chapter_id}/pages`
+    )
       .then((response) => response.json())
       .then((data) => {
         if (data.code === "success") {
@@ -47,6 +50,34 @@ export default function ChapterReadPage() {
 
   return (
     <div className="min-h-screen bg-gray-900">
+      {/* Language Selection Button */}
+      <div className="container mx-auto px-4 pt-4">
+        <div className="max-w-4xl mx-auto flex justify-end">
+          <div className="bg-gray-800 rounded-lg p-1 flex gap-1">
+            <button
+              onClick={() => setSelectedLanguage("vi")}
+              className={`px-4 py-2 rounded-md font-medium transition-all ${
+                selectedLanguage === "vi"
+                  ? "bg-sky-600 text-white"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            >
+              Tiếng Việt
+            </button>
+            <button
+              onClick={() => setSelectedLanguage("en")}
+              className={`px-4 py-2 rounded-md font-medium transition-all ${
+                selectedLanguage === "en"
+                  ? "bg-sky-600 text-white"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            >
+              English
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Main Content - Scroll View */}
       <div className="container mx-auto px-4 pt-6 pb-6">
         <div className="max-w-4xl mx-auto space-y-2">

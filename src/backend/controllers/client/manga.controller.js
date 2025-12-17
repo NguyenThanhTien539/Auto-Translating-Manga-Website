@@ -66,51 +66,18 @@ const uploadFromBuffer = (buffer) => {
   });
 };
 
-module.exports.uploadManga = async (req, res) => {
+// Background processing function
+const processChaptersInBackground = async (
+  currentMangaId,
+  uploader_id,
+  fileContentBuffer,
+  language
+) => {
   try {
-    const { title, author, description, genres, language } = req.body;
-    const files = req.files;
+    console.log(`Starting background processing for manga ${currentMangaId}`);
 
-    // Get user ID from request (set by auth middleware)
-    const uploader_id = req.infoUser.user_id;
-
-    // Parse genres (sent as JSON string from frontend)
-    let genreIds = [];
-    if (genres) {
-      try {
-        genreIds = JSON.parse(genres);
-      } catch (e) {
-        console.error("Error parsing genres:", e);
-      }
-    }
-
-    // 1. Upload cover image to Cloudinary
-    const coverUpload = await uploadFromBuffer(files.cover_image[0].buffer);
-
-    // 2. Create Manga Record (without genres field)
-    const mangaData = {
-      title,
-      author,
-      description,
-      cover_image: coverUpload.secure_url,
-      uploader_id: uploader_id,
-      status: "OnGoing", // Valid values: 'OnGoing', 'Completed', 'Dropped'
-    };
-
-    const newManga = await Manga.createManga(mangaData);
-    const currentMangaId = newManga.id;
-
-    // 3. Insert manga-genre relationships
-    if (genreIds.length > 0) {
-      const mangaGenreData = genreIds.map((genreId) => ({
-        manga_id: currentMangaId,
-        genre_id: genreId,
-      }));
-      await Manga.createMangaGenres(mangaGenreData);
-    }
-
-    // 4. Process ZIP file and extract chapters
-    const zip = new AdmZip(files.file_content[0].buffer);
+    // Process ZIP file and extract chapters
+    const zip = new AdmZip(fileContentBuffer);
     const zipEntries = zip.getEntries();
 
     // Group images by folder (each folder = one chapter)
@@ -148,7 +115,7 @@ module.exports.uploadManga = async (req, res) => {
       }
     }
 
-    // 4. Process each chapter
+    // Process each chapter
     let chapterIndex = 0;
     for (const [folderName, entries] of chaptersMap) {
       chapterIndex++;
@@ -194,7 +161,7 @@ module.exports.uploadManga = async (req, res) => {
           chapter_id: chapterId,
           image_url: uploadResult.secure_url,
           page_number: i + 1,
-          language: language || "en", // use language from form or default 'en'
+          language: language || "en",
         });
       }
 
@@ -203,14 +170,86 @@ module.exports.uploadManga = async (req, res) => {
         await Manga.createPages(pagesData);
       }
     }
+  } catch (error) {
+    console.error(
+      `Error in background processing for manga ${currentMangaId}:`,
+      error
+    );
+  }
+};
 
+module.exports.uploadManga = async (req, res) => {
+  try {
+    const { title, author, description, genres, language } = req.body;
+    const files = req.files;
+
+    // Get user ID from request (set by auth middleware)
+    const uploader_id = req.infoUser.user_id;
+
+    // Parse genres (sent as JSON string from frontend)
+    let genreIds = [];
+    if (genres) {
+      try {
+        genreIds = JSON.parse(genres);
+      } catch (e) {
+        console.error("Error parsing genres:", e);
+      }
+    }
+
+    // 1. Upload cover image to Cloudinary
+    const coverUpload = await uploadFromBuffer(files.cover_image[0].buffer);
+
+    // 2. Create or get Author
+    let author_id;
+    if (author && author.trim()) {
+      // Create new author with the provided name
+      const newAuthor = await Manga.createAuthor({
+        author_name: author.trim(),
+      });
+      author_id = newAuthor.id;
+    }
+
+    // 3. Create Manga Record
+    const mangaData = {
+      title,
+      author_id: author_id,
+      description,
+      cover_image: coverUpload.secure_url,
+      uploader_id: uploader_id,
+      status: "OnGoing", // Valid values: 'OnGoing', 'Completed', 'Dropped'
+      original_language: language,
+    };
+
+    const newManga = await Manga.createManga(mangaData);
+    const currentMangaId = newManga.id;
+
+    // 4. Insert manga-genre relationships
+    if (genreIds.length > 0) {
+      const mangaGenreData = genreIds.map((genreId) => ({
+        manga_id: currentMangaId,
+        genre_id: genreId,
+      }));
+      await Manga.createMangaGenres(mangaGenreData);
+    }
+
+    // 5. Get ZIP file buffer for background processing
+    const fileContentBuffer = files.file_content[0].buffer;
+
+    // ⚡ Respond immediately to frontend
     res.json({
       code: "success",
-      message: "Upload manga thành công!",
-      data: {
-        manga_id: currentMangaId,
-        chapters_count: chaptersMap.size,
-      },
+      message: "Manga của bạn đang được xử lý.",
+    });
+
+    // 6. Process chapters in background (non-blocking)
+    // Don't await this - let it run in background
+    processChaptersInBackground(
+      currentMangaId,
+      uploader_id,
+      fileContentBuffer,
+      language
+    ).catch((err) => {
+      console.error("Background processing error:", err);
     });
   } catch (error) {
     console.error("Error in uploadManga:", error);
@@ -223,10 +262,8 @@ module.exports.uploadManga = async (req, res) => {
 
 module.exports.getMyMangas = async (req, res) => {
   try {
-    const uploader_id = req.infoUser ? req.infoUser.user_id : null;
-    if (!uploader_id) {
-      return res.status(401).json({ code: "error", message: "Unauthorized" });
-    }
+    const uploader_id = req.infoUser.user_id;
+
     const mangas = await Manga.getMangasByUploader(uploader_id);
     res.json({ code: "success", data: mangas });
   } catch (error) {
@@ -264,6 +301,9 @@ module.exports.getAllMangas = async (req, res) => {
 
       const genres = await Manga.getGenresByMangaId(manga.manga_id);
       manga.genres = genres.map((g) => g.genre_name);
+
+      const author = await Manga.getAuthorDetailByAuthorId(manga.author_id);
+      manga.author_name = author ? author.author_name : "Unknown";
     }
     res.json({ code: "success", mangas: mangas });
   } catch (error) {
@@ -390,5 +430,157 @@ module.exports.getPageImage = async (req, res) => {
   } catch (error) {
     console.error('Error in getPageImage:', error);
     res.status(500).json({ code: "error", message: "Error loading image" });
+  }
+};
+
+const processSingleChapterInBackground = async (
+  mangaId,
+  uploader_id,
+  fileContentBuffer,
+  language
+) => {
+  try {
+    console.log(
+      `Starting background processing for chapter in manga ${mangaId}`
+    );
+
+    // Process ZIP file and extract chapters
+    const zip = new AdmZip(fileContentBuffer);
+    const zipEntries = zip.getEntries();
+
+    // Group images by folder (each folder = one chapter)
+    const chaptersMap = new Map();
+
+    zipEntries.forEach((entry) => {
+      if (entry.isDirectory) return;
+      if (!entry.entryName.match(/\.(jpg|jpeg|png|gif|webp)$/i)) return;
+
+      // Parse path structure
+      const parts = entry.entryName.split("/").filter((p) => p);
+
+      if (parts.length === 0) return;
+
+      let chapterFolder = "Chapter 1"; // default
+
+      if (parts.length > 1) {
+        // If structure is: ChapterFolder/image.jpg
+        chapterFolder = parts[parts.length - 2];
+      }
+
+      if (!chaptersMap.has(chapterFolder)) {
+        chaptersMap.set(chapterFolder, []);
+      }
+      chaptersMap.get(chapterFolder).push(entry);
+    });
+
+    // If no folders detected, treat all images as Chapter 1
+    if (chaptersMap.size === 0) {
+      const images = zipEntries.filter((e) =>
+        e.entryName.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+      );
+      if (images.length > 0) {
+        chaptersMap.set("Chapter 1", images);
+      }
+    }
+
+    // Process each chapter
+    let chapterIndex = 0;
+    for (const [folderName, entries] of chaptersMap) {
+      chapterIndex++;
+
+      // Try to extract chapter number from folder name
+      const numberMatch = folderName.match(/(\d+)/);
+      const chapterNumber = numberMatch
+        ? parseFloat(numberMatch[1])
+        : chapterIndex;
+
+      // Create Chapter Record
+      const chapterData = {
+        manga_id: mangaId,
+        uploader_id: uploader_id,
+        chapter_number: chapterNumber,
+        title: folderName,
+      };
+
+      const newChapter = await Manga.createChapter(chapterData);
+      const chapterId = newChapter.id;
+
+      console.log(`Chapter ${chapterNumber} created with ID:`, chapterId);
+
+      // Upload all pages for this chapter
+      const sortedEntries = entries.sort((a, b) =>
+        a.entryName.localeCompare(b.entryName, undefined, { numeric: true })
+      );
+
+      const pagesData = [];
+
+      for (let i = 0; i < sortedEntries.length; i++) {
+        const entry = sortedEntries[i];
+        console.log(
+          `  Uploading page ${i + 1}/${sortedEntries.length}: ${
+            entry.entryName
+          }`
+        );
+
+        const buffer = entry.getData();
+        const uploadResult = await uploadFromBuffer(buffer);
+
+        pagesData.push({
+          chapter_id: chapterId,
+          image_url: uploadResult.secure_url,
+          page_number: i + 1,
+          language: language || "en",
+        });
+      }
+
+      // Insert all pages for this chapter
+      if (pagesData.length > 0) {
+        await Manga.createPages(pagesData);
+      }
+    }
+  } catch (error) {
+    console.error(
+      `Error in background chapter processing for manga ${mangaId}:`,
+      error
+    );
+  }
+};
+
+module.exports.uploadChapter = async (req, res) => {
+  try {
+    const { manga_id } = req.body;
+    const files = req.files;
+
+    // Get user ID from request (set by auth middleware)
+    const uploader_id = req.infoUser.user_id;
+
+    // Get ZIP file buffer for background processing
+    const fileContentBuffer = files.file_content[0].buffer;
+
+    // ⚡ Respond immediately to frontend
+    res.json({
+      code: "success",
+      message: "Chương của bạn đang được xử lý.",
+    });
+
+    // Process chapters in background (non-blocking)
+    // Don't await this - let it run in background
+
+    const originalLanguage = await Manga.getOriginalLanguageByMangaId(manga_id);
+
+    processSingleChapterInBackground(
+      manga_id,
+      uploader_id,
+      fileContentBuffer,
+      originalLanguage
+    ).catch((err) => {
+      console.error("Background chapter processing error:", err);
+    });
+  } catch (error) {
+    console.error("Error in uploadChapter:", error);
+    res.status(500).json({
+      code: "error",
+      message: "Lỗi server: " + error.message,
+    });
   }
 };
