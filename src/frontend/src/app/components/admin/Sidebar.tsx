@@ -23,7 +23,7 @@ const normalClass = "text-gray-800 hover:bg-gray-100";
 export default function Sidebar() {
   const pathname = usePathname();
   const route = useRouter();
-  const isCategoryActive = pathname.startsWith("/admin/category");
+  const isCategoryActive = pathname.startsWith("/admin/genre");
   const handleLogout = (url: string) => {
     // Xử lý đăng xuất ở đây
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, {
@@ -50,7 +50,7 @@ export default function Sidebar() {
       </Link>
 
       <Link
-        href="/admin/category/list"
+        href="/admin/genre/list"
         className={`${baseClass} ${
           isCategoryActive ? activeClass : normalClass
         }`}
