@@ -67,11 +67,12 @@ route.post(
   mangaController.uploadChapter
 );
 
-route.get("/all", mangaController.getAllMangas);
+route.get("/all", mangaController.getAllMangasOfClient);
 
-route.get("/detail/:id", mangaController.getMangaDetail);
+route.get("/detail/:id", mangaController.getMangaDetailOfClient);
 
 route.get("/chapter/:id/pages", mangaController.getChapterPages);
 
+route.get("/detail", mangaController.getMangaAndSpecificChapter);
 
 module.exports = route;

@@ -62,3 +62,8 @@ module.exports.updateUserById = async (user_id, data) => {
 module.exports.updateRoleById = async (user_id, role_id) => {
   return db("users").where({ user_id: user_id }).update({ role_id: role_id });
 };
+
+
+module.exports.updateCoinById = async (user_id, coin) => {
+  return db("users").where({ user_id: user_id }).update({ coin_balance: coin });
+}

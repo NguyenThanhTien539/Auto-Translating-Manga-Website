@@ -96,6 +96,20 @@ module.exports.paymentZaloPayResult = async (req, res) => {
 
     if (reqMac !== mac) {
       // callback không hợp lệ
+
+      let dataJson = JSON.parse(dataStr, config.key2);
+      const [email, orderId] = dataJson.app_user.split(" - ");
+      const existedRecord = await accountModel.findEmail(email);
+      const finalData = {
+        user_id: existedRecord.user_id,
+        coin_package_id: orderId,
+        payment_method: "ZaloPay",
+        status: "Failed",
+      };
+
+      if (existedRecord) {
+        await orderModel.createOrder(finalData);
+      }
       result.return_code = -1;
       result.return_message = "mac not equal";
     } else {
@@ -114,6 +128,12 @@ module.exports.paymentZaloPayResult = async (req, res) => {
       if (existedRecord) {
         await orderModel.createOrder(finalData);
       }
+
+      const packageDetail = await orderModel.getOrderDetailById(orderId);
+      await accountModel.updateCoinById(
+        existedRecord.user_id,
+        packageDetail.coins
+      );
 
       result.return_code = 1;
       result.return_message = "success";

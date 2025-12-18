@@ -57,52 +57,6 @@ export default function ManageMangaPage() {
     fetchMangas();
   }, []);
 
-  // // ========= ACTIONS =========
-  // const handleApprove = async (id: number) => {
-  //   try {
-  //     const res = await fetch(
-  //       `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manga/approve/${id}`,
-  //       {
-  //         method: "PATCH",
-  //         credentials: "include",
-  //       }
-  //     );
-  //     const data = await res.json();
-  //     if (data.code === "success") {
-  //       toast.success("Đã duyệt truyện thành công");
-  //       fetchMangas(); // Reload list
-  //     } else {
-  //       toast.error(data.message || "Lỗi khi duyệt truyện");
-  //     }
-  //   } catch (error) {
-  //     toast.error("Lỗi kết nối server");
-  //   }
-  // };
-
-  // const handleReject = async (id: number) => {
-  //   // Có thể thêm modal nhập lý do từ chối ở đây
-  //   if (!confirm("Bạn có chắc muốn từ chối/ẩn truyện này?")) return;
-
-  //   try {
-  //     const res = await fetch(
-  //       `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manga/reject/${id}`,
-  //       {
-  //         method: "PATCH",
-  //         credentials: "include",
-  //       }
-  //     );
-  //     const data = await res.json();
-  //     if (data.code === "success") {
-  //       toast.success("Đã ẩn truyện thành công");
-  //       fetchMangas();
-  //     } else {
-  //       toast.error(data.message || "Lỗi khi ẩn truyện");
-  //     }
-  //   } catch (error) {
-  //     toast.error("Lỗi kết nối server");
-  //   }
-  // };
-
   // ========= HELPERS =========
   const resetFilters = () => {
     setStatusFilter("all");

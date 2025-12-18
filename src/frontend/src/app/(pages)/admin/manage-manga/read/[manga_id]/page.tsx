@@ -187,7 +187,7 @@ export default function ReadPage() {
 
     setLoading(true);
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/detail/${mangaId}`, {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manage-manga/detail/${mangaId}`, {
       credentials: "include",
     })
       .then((res) => res.json())

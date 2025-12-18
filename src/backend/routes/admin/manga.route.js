@@ -22,4 +22,10 @@ route.patch(
   mangaController.rejectManga
 );
 
+route.get(
+  "/detail/:id",
+  authMiddleware.adminAuth,
+  mangaController.getMangaDetail
+);
+
 module.exports = route;

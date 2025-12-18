@@ -1,21 +1,17 @@
 const db = require("../../config/database.config");
 const mangaModel = require("../../models/manga.model");
+const accountModel = require("../../models/account.model");
+
 module.exports.getListManga = async (req, res) => {
   try {
-    const mangaList = await db("mangas")
-      .join("users", "mangas.uploader_id", "users.user_id")
-      .select(
-        "mangas.manga_id",
-        "mangas.title",
-        "mangas.author_id",
-        "mangas.cover_image",
-        "mangas.status", // Cần đảm bảo DB có cột này hoặc thêm vào
-        "mangas.created_at",
-        "mangas.is_highlighted as is_approved", // Tạm dùng is_highlighted hoặc thêm cột is_approved
-        "users.full_name as uploader_name"
-      )
-      .orderBy("mangas.created_at", "desc");
+    const mangaList = await mangaModel.getAllMangas();
+    for (const manga of mangaList) {
+      const uploader = await accountModel.getUserById(manga.uploader_id);
+      manga.uploader_name = uploader.username;
 
+      const author = await mangaModel.getAuthorDetailByAuthorId(manga.author_id);
+      manga.author = author ? author.author_name : "N/A";
+    }
     res.json({
       code: "success",
       mangaList: mangaList,
@@ -79,3 +75,22 @@ module.exports.rejectManga = async (req, res) => {
     res.json({ code: "error", message: "Lỗi server" });
   }
 };
+
+module.exports.getMangaDetail = async (req, res) => {
+  try {
+    const mangaId = req.params.id;
+    const manga = await mangaModel.getMangaById(mangaId);
+    const genres = await mangaModel.getGenresByMangaId(mangaId);
+    manga.genres = genres.map((g) => g.genre_name);
+
+    const chapters = await mangaModel.getChaptersByMangaId(mangaId);
+    const totalChaper = await mangaModel.countChaptersByMangaId(mangaId);
+    manga.totalChapters = totalChaper;
+    const finalDetail = { manga, chapters };
+    res.json({ code: "success", data: finalDetail });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ code: "error", message: "Lỗi server" });
+  }
+};
+

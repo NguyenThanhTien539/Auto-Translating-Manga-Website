@@ -12,38 +12,44 @@ cloudinary.config({
 });
 
 // Secret key for signing URLs (should be in .env)
-const URL_SECRET = process.env.URL_SECRET || 'your-secret-key-change-this';
+const URL_SECRET = process.env.URL_SECRET || "your-secret-key-change-this";
 
 // Generate signed token for image URL
 const generateSignedToken = (pageId, expiresIn = 3600) => {
   const expirationTime = Math.floor(Date.now() / 1000) + expiresIn; // 1 hour default
   const data = `${pageId}:${expirationTime}`;
-  const signature = crypto.createHmac('sha256', URL_SECRET).update(data).digest('hex');
+  const signature = crypto
+    .createHmac("sha256", URL_SECRET)
+    .update(data)
+    .digest("hex");
   return `${signature}:${expirationTime}`;
 };
 
 // Verify signed token
 const verifySignedToken = (pageId, token) => {
   try {
-    const [signature, expirationTime] = token.split(':');
+    const [signature, expirationTime] = token.split(":");
     const currentTime = Math.floor(Date.now() / 1000);
-    
+
     // Check if token expired
     if (currentTime > parseInt(expirationTime)) {
-      return { valid: false, reason: 'Token expired' };
+      return { valid: false, reason: "Token expired" };
     }
-    
+
     // Verify signature
     const data = `${pageId}:${expirationTime}`;
-    const expectedSignature = crypto.createHmac('sha256', URL_SECRET).update(data).digest('hex');
-    
+    const expectedSignature = crypto
+      .createHmac("sha256", URL_SECRET)
+      .update(data)
+      .digest("hex");
+
     if (signature !== expectedSignature) {
-      return { valid: false, reason: 'Invalid signature' };
+      return { valid: false, reason: "Invalid signature" };
     }
-    
+
     return { valid: true };
   } catch (error) {
-    return { valid: false, reason: 'Invalid token format' };
+    return { valid: false, reason: "Invalid token format" };
   }
 };
 
@@ -292,9 +298,9 @@ module.exports.getGenres = async (req, res) => {
   }
 };
 
-module.exports.getAllMangas = async (req, res) => {
+module.exports.getAllMangasOfClient = async (req, res) => {
   try {
-    const mangas = await Manga.getAllMangas();
+    const mangas = await Manga.getAllMangasOfClient();
     for (const manga of mangas) {
       const chapterCount = await Manga.countChaptersByMangaId(manga.manga_id);
       manga.total_chapters = chapterCount;
@@ -312,16 +318,15 @@ module.exports.getAllMangas = async (req, res) => {
   }
 };
 
-module.exports.getMangaDetail = async (req, res) => {
+module.exports.getMangaDetailOfClient = async (req, res) => {
   try {
     const mangaId = req.params.id;
     const manga = await Manga.getMangaById(mangaId);
     const genres = await Manga.getGenresByMangaId(mangaId);
     manga.genres = genres.map((g) => g.genre_name);
 
-    const chapters = await Manga.getChaptersByMangaId(mangaId);
-    const totalChaper = await Manga.countChaptersByMangaId(mangaId);
-    manga.totalChapters = totalChaper;
+    const chapters = await Manga.getChaptersByMangaIdOfClient(mangaId);
+    manga.totalChapters = chapters.length;
     const finalDetail = { manga, chapters };
     res.json({ code: "success", data: finalDetail });
   } catch (error) {
@@ -336,97 +341,107 @@ module.exports.getChapterPages = async (req, res) => {
     const pages = await Manga.getChapterPages(chapterId);
     // Get base URL from request or use default
     const protocol = req.protocol;
-    const host = req.get('host');
+    const host = req.get("host");
     const baseUrl = `${protocol}://${host}`;
-    
+
     // Return proxy URLs with signed tokens (expires in 1 hour)
-    const securePages = pages.map(page => {
+    const securePages = pages.map((page) => {
       const token = generateSignedToken(page.page_id, 3600); // 1 hour
       return {
         page_id: page.page_id,
         page_number: page.page_number,
         language: page.language,
         chapter_id: page.chapter_id,
-        image_url: `${baseUrl}/manga/page-image/${page.page_id}?token=${token}`
+        image_url: `${baseUrl}/manga/page-image/${page.page_id}?token=${token}`,
       };
     });
-    
+
     res.json({ code: "success", data: securePages });
   } catch (error) {
     console.error(error);
     res.status(500).json({ code: "error", message: "Lỗi server" });
   }
-};;
+};
 
 module.exports.getPageImage = async (req, res) => {
   try {
     const pageId = req.params.pageId;
     const token = req.query.token;
-    
+
     // 1. Verify token
     if (!token) {
       return res.status(403).json({ code: "error", message: "Missing token" });
     }
-    
+
     const verification = verifySignedToken(pageId, token);
     if (!verification.valid) {
-      return res.status(403).json({ code: "error", message: verification.reason });
+      return res
+        .status(403)
+        .json({ code: "error", message: verification.reason });
     }
-    
+
     // 2. STRICT referrer check - MUST have referrer from allowed origins
-    const referrer = req.get('referer') || req.get('referrer');
-    const allowedOrigins = ['http://localhost:3000', 'http://localhost:5000'];
-    
+    const referrer = req.get("referer") || req.get("referrer");
+    const allowedOrigins = ["http://localhost:3000", "http://localhost:5000"];
+
     if (!referrer) {
-      return res.status(403).json({ 
-        code: "error", 
-        message: "Direct access forbidden. This image can only be loaded from our website." 
+      return res.status(403).json({
+        code: "error",
+        message:
+          "Direct access forbidden. This image can only be loaded from our website.",
       });
     }
-    
+
     const referrerOrigin = new URL(referrer).origin;
     if (!allowedOrigins.includes(referrerOrigin)) {
-      return res.status(403).json({ 
-        code: "error", 
-        message: "Invalid referrer. Access denied." 
+      return res.status(403).json({
+        code: "error",
+        message: "Invalid referrer. Access denied.",
       });
     }
-    
+
     // 3. Get page data from database
     const page = await Manga.getPageById(pageId);
-    
+
     if (!page) {
       return res.status(404).json({ code: "error", message: "Page not found" });
     }
-    
+
     // 4. Fetch image from Cloudinary and stream to client
-    const https = require('https');
-    const url = require('url');
-    
+    const https = require("https");
+    const url = require("url");
+
     const parsedUrl = url.parse(page.image_url);
-    
-    https.get({
-      hostname: parsedUrl.hostname,
-      path: parsedUrl.path,
-      headers: {
-        'User-Agent': 'Mozilla/5.0'
-      }
-    }, (cloudinaryRes) => {
-      // Set proper headers
-      res.set('Content-Type', cloudinaryRes.headers['content-type'] || 'image/jpeg');
-      res.set('Cache-Control', 'private, max-age=3600'); // Cache 1 hour
-      res.set('X-Content-Type-Options', 'nosniff');
-      res.set('X-Frame-Options', 'SAMEORIGIN'); // Prevent embedding in iframes
-      
-      // Stream image to client
-      cloudinaryRes.pipe(res);
-    }).on('error', (err) => {
-      console.error('Error fetching image from Cloudinary:', err);
-      res.status(500).send('Error loading image');
-    });
-    
+
+    https
+      .get(
+        {
+          hostname: parsedUrl.hostname,
+          path: parsedUrl.path,
+          headers: {
+            "User-Agent": "Mozilla/5.0",
+          },
+        },
+        (cloudinaryRes) => {
+          // Set proper headers
+          res.set(
+            "Content-Type",
+            cloudinaryRes.headers["content-type"] || "image/jpeg"
+          );
+          res.set("Cache-Control", "private, max-age=3600"); // Cache 1 hour
+          res.set("X-Content-Type-Options", "nosniff");
+          res.set("X-Frame-Options", "SAMEORIGIN"); // Prevent embedding in iframes
+
+          // Stream image to client
+          cloudinaryRes.pipe(res);
+        }
+      )
+      .on("error", (err) => {
+        console.error("Error fetching image from Cloudinary:", err);
+        res.status(500).send("Error loading image");
+      });
   } catch (error) {
-    console.error('Error in getPageImage:', error);
+    console.error("Error in getPageImage:", error);
     res.status(500).json({ code: "error", message: "Error loading image" });
   }
 };
@@ -580,5 +595,23 @@ module.exports.uploadChapter = async (req, res) => {
       code: "error",
       message: "Lỗi server: " + error.message,
     });
+  }
+};
+
+module.exports.getMangaAndSpecificChapter = async (req, res) => {
+  try {
+    // use query parameters to get manga and chapter
+    const mangaId = req.query.manga_id;
+    const chapterId = req.query.chapter_id;
+    const manga = await Manga.getMangaById(mangaId);
+
+    const author = await Manga.getAuthorDetailByAuthorId(manga.author_id);
+    manga.author_name = author ? author.author_name : "Unknown";
+
+    const chapter = await Manga.getChapterByChapterId(mangaId, chapterId);
+    res.json({ code: "success", data: { manga, chapter } });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ code: "error", message: "Lỗi server" });
   }
 };
