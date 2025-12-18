@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
@@ -128,7 +129,7 @@ export default function AdminChapterReadPage() {
             </h3>
             <div className="flex items-center justify-center gap-4">
               <Link
-                href={`/admin/read/${mangaId}`}
+                href={`/admin/manage-manga/read/${mangaId}`}
                 className="px-6 py-3 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-medium transition-colors"
               >
                 Danh sách chương (Admin)

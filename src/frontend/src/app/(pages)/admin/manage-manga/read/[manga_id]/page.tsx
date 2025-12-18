@@ -132,6 +132,24 @@ export default function ReadPage() {
   );
 
   useEffect(() => {
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      const t = sp.get("tab");
+      if (t === "overview" || t === "chapters" || t === "edit-status") {
+        setActiveTab(t as "overview" | "chapters" | "edit-status");
+      }
+    } catch (err) {}
+  }, []);
+
+  useEffect(() => {
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", activeTab);
+      window.history.replaceState(null, "", url.toString());
+    } catch (err) {}
+  }, [activeTab]);
+
+  useEffect(() => {
     if (!mangaId) {
       setLoading(false);
       setMangaDetail(null);
@@ -342,7 +360,7 @@ export default function ReadPage() {
                     className="px-5 sm:px-6 py-4 hover:bg-blue-50/50 cursor-pointer transition-colors"
                     onClick={() =>
                       router.push(
-                        `/${process.env.NEXT_PUBLIC_PATH_ADMIN}/read/${mangaDetail.manga.manga_id}/${chapter.chapter_id}`
+                        `/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manage-manga/read/${mangaDetail.manga.manga_id}/${chapter.chapter_id}`
                       )
                     }
                   >
@@ -382,10 +400,11 @@ export default function ReadPage() {
                   onChange={(e) => setStatusDraft(e.target.value)}
                   className="w-full border rounded-lg p-2.5 bg-white text-sm"
                 >
-                  <option value="pending">Chờ duyệt</option>
-                  <option value="ongoing">Đang tiến hành</option>
-                  <option value="completed">Hoàn thành</option>
-                  <option value="dropped">Tạm ngưng</option>
+                  <option value="Pending">Chờ duyệt</option>
+                  <option value="Ongoing">Đang diễn ra</option>
+                  <option value="Completed">Hoàn thành</option>
+                  <option value="Dropped">Tạm ngưng</option>
+                  <option value="Rejected">Từ chối</option>
                 </select>
 
                 <div className="mt-4 flex items-center gap-3">
@@ -445,11 +464,9 @@ export default function ReadPage() {
                             }
                             className="rounded-lg border px-3 py-1 text-sm bg-white"
                           >
-                            <option value="pending">Chờ duyệt</option>
-                            <option value="approved">Đã duyệt</option>
-                            <option value="rejected">Từ chối</option>
-                            <option value="active">Hiển thị</option>
-                            <option value="inactive">Ẩn</option>
+                            <option value="Pending">Chờ duyệt</option>
+                            <option value="Published">Đã duyệt</option>
+                            <option value="Rejected">Từ chối</option>
                           </select>
 
                           <button

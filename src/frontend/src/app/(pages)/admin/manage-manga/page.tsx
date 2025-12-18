@@ -309,7 +309,7 @@ export default function ManageMangaPage() {
                           {/* Nút xem chi tiết */}
 
                           <ViewDetailButton
-                            href={`/admin/read/${manga.manga_id}`}
+                            href={`/admin/manage-manga/read/${manga.manga_id}`}
                             title="Xem chi tiết"
                           />
                         </div>
