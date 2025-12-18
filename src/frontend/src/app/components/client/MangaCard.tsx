@@ -10,7 +10,7 @@ interface MangaCardProps {
   genre: string;
   status: string;
   coverUrl: string;
-  rating: number;
+  average_rating: number;
   totalChapters: number;
 }
 
@@ -18,22 +18,12 @@ export default function MangaCard({
   manga_id,
   manga_name,
   author,
-  original_language,
   genre,
   status,
   coverUrl,
-  rating,
+  average_rating,
   totalChapters,
 }: MangaCardProps) {
-  const getFlagEmoji = (lang: string): string => {
-    const lowerLang = lang?.toLowerCase() || "";
-    if (lowerLang.includes("japan")) return "🇯🇵";
-    if (lowerLang.includes("korea")) return "🇰🇷";
-    if (lowerLang.includes("china")) return "🇨🇳";
-    if (lowerLang.includes("vietnam")) return "🇻🇳";
-    return "🏳️";
-  };
-
   const formattedGenre = genre ? genre.replace(/,/g, " - ") : "";
 
   return (
@@ -44,11 +34,6 @@ export default function MangaCard({
       <div className="h-full flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 border border-gray-200 dark:border-gray-700">
         {/* Cover Image */}
         <div className="relative h-100 w-full overflow-hidden bg-gray-100 dark:bg-gray-700">
-          <div className="absolute top-2 left-2 bg-white/95 text-xs font-bold px-2 py-1 rounded shadow-sm flex items-center gap-1 z-10 text-gray-800">
-            <span>{getFlagEmoji(original_language)}</span>
-            <span className="uppercase tracking-wide">Manga</span>
-          </div>
-
           <Image
             src={coverUrl}
             alt={manga_name}
@@ -89,7 +74,7 @@ export default function MangaCard({
             <div className="flex items-center gap-1">
               <span className="text-yellow-400 text-sm">★</span>
               <span className="text-gray-800 dark:text-gray-200 font-bold text-sm">
-                {rating.toFixed(2)}
+                {average_rating ? average_rating.toFixed(1) : "0"}
               </span>
             </div>
           </div>

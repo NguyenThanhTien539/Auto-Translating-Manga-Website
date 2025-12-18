@@ -310,7 +310,11 @@ module.exports.getAllMangasOfClient = async (req, res) => {
 
       const author = await Manga.getAuthorDetailByAuthorId(manga.author_id);
       manga.author_name = author ? author.author_name : "Unknown";
+
+      const averageRating = await Manga.calculateAverageRating(manga.manga_id);
+      manga.average_rating = averageRating;
     }
+
     res.json({ code: "success", mangas: mangas });
   } catch (error) {
     console.error(error);
@@ -324,9 +328,14 @@ module.exports.getMangaDetailOfClient = async (req, res) => {
     const manga = await Manga.getMangaById(mangaId);
     const genres = await Manga.getGenresByMangaId(mangaId);
     manga.genres = genres.map((g) => g.genre_name);
-
+    const author = await Manga.getAuthorDetailByAuthorId(manga.author_id);
+    manga.author_name = author ? author.author_name : "Unknown";
     const chapters = await Manga.getChaptersByMangaIdOfClient(mangaId);
     manga.totalChapters = chapters.length;
+
+    const averageRating = await Manga.calculateAverageRating(manga.manga_id);
+    manga.average_rating = averageRating;
+
     const finalDetail = { manga, chapters };
     res.json({ code: "success", data: finalDetail });
   } catch (error) {
@@ -610,6 +619,88 @@ module.exports.getMangaAndSpecificChapter = async (req, res) => {
 
     const chapter = await Manga.getChapterByChapterId(mangaId, chapterId);
     res.json({ code: "success", data: { manga, chapter } });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ code: "error", message: "Lỗi server" });
+  }
+};
+
+module.exports.getFilterPanelData = async (req, res) => {
+  try {
+    const values = await Manga.getFilterPanelData();
+    res.json({ code: "success", data: values });
+    console.log(values);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ code: "error", message: "Lỗi server" });
+  }
+};
+
+module.exports.filterMangas = async (req, res) => {
+  try {
+    let { chaptersMin, chaptersMax, state } = req.query;
+
+    // normalize state nếu bị array
+    if (Array.isArray(state)) state = state[0];
+
+    // categories: string | string[]
+    let categories = req.query.categories;
+    if (categories == null) categories = [];
+    if (!Array.isArray(categories)) categories = [categories];
+    categories = categories.map((x) => String(x).trim()).filter(Boolean);
+
+    const filters = {
+      chaptersMin: chaptersMin !== undefined ? Number(chaptersMin) : undefined,
+      chaptersMax: chaptersMax !== undefined ? Number(chaptersMax) : undefined,
+      state: state ?? "all",
+      categories,
+    };
+
+    const mangas = await Manga.filterMangas(filters);
+    return res.json({ code: "success", data: mangas });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ code: "error", message: "Lỗi server" });
+  }
+};
+
+module.exports.favoriteManga = async (req, res) => {
+  try {
+    const user_id = req.infoUser.user_id;
+    const { manga_id } = req.body;
+    const { type } = req.body;
+    if (type === "add") {
+      await Manga.addFavoriteManga(user_id, manga_id);
+    } else if (type === "remove") {
+      await Manga.removeFavoriteManga(user_id, manga_id);
+    }
+    res.json({
+      code: "success",
+      message: "Cập nhật danh sách yêu thích thành công",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ code: "error", message: "Lỗi server" });
+  }
+};
+
+module.exports.getFavoriteMangaList = async (req, res) => {
+  try {
+    const user_id = req.infoUser.user_id;
+    const mangas = await Manga.getFavoriteMangasByUserId(user_id);
+    res.json({ code: "success", data: mangas });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ code: "error", message: "Lỗi server" });
+  }
+};
+
+module.exports.checkFavoriteManga = async (req, res) => {
+  try {
+    const user_id = req.infoUser.user_id;
+    const manga_id = req.params.mangaId;
+    const isFavorite = await Manga.isMangaFavoritedByUser(user_id, manga_id);
+    res.json({ code: "success", data: { isFavorite } });
   } catch (error) {
     console.error(error);
     res.status(500).json({ code: "error", message: "Lỗi server" });

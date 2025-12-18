@@ -154,7 +154,7 @@ export default function ProfilePage() {
                   </button>
                   <button
                     className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white rounded-lg font-medium text-sm shadow-md hover:shadow-lg transition-all"
-                    onClick={() => router.push("/profile/manage")}
+                    onClick={() => router.push("/profile/manage-manga")}
                   >
                     <Settings size={16} />
                     Quản lý truyện

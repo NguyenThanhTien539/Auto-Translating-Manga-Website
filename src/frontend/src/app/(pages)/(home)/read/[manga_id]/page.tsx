@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { Eye, MessageCircle, Download, Star } from "lucide-react";
+import React, { use, useEffect, useState } from "react";
+import { MessageCircle, Star, Heart, Share2 } from "lucide-react";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 interface Chapter {
   chapter_id: string;
@@ -21,7 +22,7 @@ type Manga = {
   genres: string[];
   status: string;
   totalChapters?: number;
-  rating?: number;
+  average_rating?: number;
 };
 
 export default function ReadPage() {
@@ -35,12 +36,72 @@ export default function ReadPage() {
   const [activeTab, setActiveTab] = useState<"overview" | "chapters">(
     "overview"
   );
-  const [myListStatus, setMyListStatus] = useState("Want to read");
+  const [isFavorite, setIsFavorite] = useState(false);
 
   const decodeHtml = (html: string) => {
     const txt = document.createElement("textarea");
     txt.innerHTML = html;
     return txt.value;
+  };
+
+  const handleShare = async () => {
+    const currentUrl = window.location.href;
+    const mangaTitle = mangaDetail?.manga.title || "Manga";
+    const mangaAuthor = mangaDetail?.manga.author_name || "";
+    const mangaGenres = mangaDetail?.manga.genres?.join(", ") || "";
+    const mangaDescription = decodeHtml(
+      mangaDetail?.manga.description
+        ?.replace(/<[^>]+>/g, "")
+        .substring(0, 200) || ""
+    );
+
+    // Tạo nội dung chia sẻ chi tiết
+    const shareContent = `🔥 ${mangaTitle} 🔥
+
+📚 Tác giả: ${mangaAuthor}
+🎭 Thể loại: ${mangaGenres}
+
+📖 Giới thiệu:
+${mangaDescription}${mangaDescription.length >= 200 ? "..." : ""}
+
+👉 Đọc ngay tại: ${currentUrl}
+
+#Manga #${mangaTitle.replace(/\s+/g, "")} #DocTruyen`;
+
+    try {
+      // Copy nội dung vào clipboard
+      await navigator.clipboard.writeText(shareContent);
+
+      // Mở Facebook share dialog
+      const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+        currentUrl
+      )}`;
+
+      window.open(
+        facebookShareUrl,
+        "facebook-share-dialog",
+        "width=800,height=600"
+      );
+
+      // Thông báo cho người dùng
+      toast.success("Đã copy nội dung! Nhấn Ctrl+V  để dán vào Facebook", {
+        duration: 5000,
+      });
+    } catch (error) {
+      console.error("Copy failed:", error);
+
+      // Fallback: mở Facebook share mà không copy
+      const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+        currentUrl
+      )}`;
+      window.open(
+        facebookShareUrl,
+        "facebook-share-dialog",
+        "width=800,height=600"
+      );
+
+      toast.info("Đang mở Facebook share...");
+    }
   };
 
   useEffect(() => {
@@ -53,7 +114,29 @@ export default function ReadPage() {
           setMangaDetail(null);
         }
       });
-  }, []);
+  }, [params.manga_id]);
+
+  useEffect(() => {
+    fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/manga/check-favorite/${params.manga_id}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      }
+    )
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.code === "success") {
+          setIsFavorite(data.data);
+        } else {
+          setIsFavorite(false);
+        }
+      });
+  }, [params.manga_id]);
+
   return (
     mangaDetail && (
       <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
@@ -107,9 +190,63 @@ export default function ReadPage() {
 
               {/* Manga Info */}
               <div className="md:col-span-3 text-white">
-                <h1 className="text-5xl font-black mb-2 bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
-                  {mangaDetail?.manga.title}
-                </h1>
+                <div className="flex items-start justify-between gap-4 mb-2">
+                  <h1 className="text-5xl font-black bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
+                    {mangaDetail?.manga.title}
+                  </h1>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleShare}
+                      className="group p-3 bg-slate-700/50 hover:bg-slate-700 rounded-xl border border-slate-600 hover:border-blue-500/50 transition-all duration-300 hover:scale-110"
+                      title="Chia sẻ lên Facebook"
+                    >
+                      <Share2
+                        size={28}
+                        className="text-slate-400 group-hover:text-blue-400 transition-all duration-300"
+                      />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsFavorite(!isFavorite);
+                        fetch(
+                          `${process.env.NEXT_PUBLIC_API_URL}/manga/favorite`,
+                          {
+                            method: "POST",
+                            headers: {
+                              "Content-Type": "application/json",
+                            },
+                            credentials: "include",
+                            body: JSON.stringify({
+                              manga_id: mangaDetail?.manga.manga_id,
+                              type: isFavorite ? "remove" : "add",
+                            }),
+                          }
+                        )
+                          .then((response) => response.json())
+                          .then((data) => {
+                            if (data.code === "success") {
+                              toast.success(data.message);
+                            } else {
+                              toast.error("Đã có lỗi xảy ra");
+                            }
+                          });
+                      }}
+                      className="group p-3 bg-slate-700/50 hover:bg-slate-700 rounded-xl border border-slate-600 hover:border-pink-500/50 transition-all duration-300 hover:scale-110"
+                      title={
+                        isFavorite ? "Xóa khỏi yêu thích" : "Thêm vào yêu thích"
+                      }
+                    >
+                      <Heart
+                        size={28}
+                        className={`transition-all duration-300 ${
+                          isFavorite
+                            ? "fill-pink-500 text-pink-500"
+                            : "text-slate-400 group-hover:text-pink-400"
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
                 <p className="text-lg text-slate-300 mb-6">
                   {mangaDetail?.manga.author_name}
                 </p>
@@ -135,7 +272,9 @@ export default function ReadPage() {
                         className="fill-yellow-400 text-yellow-400"
                       />
                       <span className="text-2xl font-bold text-yellow-400">
-                        {5}
+                        {mangaDetail?.manga.average_rating
+                          ? Number(mangaDetail.manga.average_rating).toFixed(1)
+                          : "0.0"}
                       </span>
                     </div>
                   </div>
@@ -183,32 +322,6 @@ export default function ReadPage() {
               </div>
 
               {/* Reading Status */}
-              <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-xl p-8">
-                <h2 className="text-2xl font-bold text-white mb-6">
-                  Danh sách của tôi
-                </h2>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                  {[
-                    "Reading",
-                    "Want to read",
-                    "Stalled",
-                    "Dropped",
-                    "Won't read",
-                  ].map((status) => (
-                    <button
-                      key={status}
-                      onClick={() => setMyListStatus(status)}
-                      className={`px-4 py-3 rounded-lg font-semibold transition-all text-sm ${
-                        myListStatus === status
-                          ? "bg-blue-500 text-white shadow-lg shadow-blue-500/50 border border-blue-400"
-                          : "bg-slate-700 hover:bg-slate-600 text-slate-300 border border-slate-600 hover:border-slate-500"
-                      }`}
-                    >
-                      {status}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
           )}
 

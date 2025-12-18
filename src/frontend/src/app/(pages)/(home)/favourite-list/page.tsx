@@ -1,100 +1,112 @@
 "use client";
-import React, { useState } from "react";
-import { Search, ListFilter, LayoutGrid, List } from "lucide-react";
+import React, { useEffect, useState } from "react";
 import MangaCard from "@/app/components/client/MangaCard";
+import { useRouter } from "next/navigation";
+import { Heart, BookHeart } from "lucide-react";
 
-// Giả lập dữ liệu cho Favourite List
-const MOCK_FAVOURITES = [
-  {
-    manga_id: "1",
-    manga_name: "Berserk",
-    author: "Kentaro Miura",
-    original_language: "japanese",
-    genre: "Action, Drama, Fantasy, Adventure",
-    status: "Continuous",
-    coverUrl: "https://example.com/berserk.jpg",
-    rating: 9.32,
-    totalChapters: 368,
-  },
-  // Thêm các item khác...
-];
+type Manga = {
+  manga_id: string;
+  title: string;
+  author_name: string;
+  original_language: string;
+  genres: string[];
+  status: string;
+  cover_image: string;
+  rating: number;
+  total_chapters: number;
+};
 
 export default function FavouriteList() {
-  const [activeTab, setActiveTab] = useState("Favourite");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [items, setItems] = useState(MOCK_FAVOURITES); // Giả sử list đang có data
+  const [items, setItems] = useState<Manga[]>([]);
+  const router = useRouter();
 
-  const tabs = ["Reading", "Want to read", "Stalled", "Dropped", "Won't read", "Favourite"];
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/favorite-list`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.code === "success") {
+          setItems(data.data);
+        } else {
+          setItems([]);
+        }
+      });
+  }, []);
 
   return (
-    <div className="min-h-screen p-6 text-gray-300">
-      {/* 1. Top Navigation Tabs */}
-      <div className="flex flex-wrap justify-center gap-2 mb-8">
-        {tabs.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-8 py-1.5 rounded-full text-sm font-medium transition-all duration-200 border
-              ${
-                activeTab === tab
-                  ? "bg-sky-700 text-white border-sky-600 shadow-lg shadow-sky-900/20"
-                  : "bg-white text-gray-700 border-gray-200 hover:bg-gray-100"
-              }`}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
-
-      {/* 2. Search & Toolbar Bar */}
-      <div className="flex items-center gap-4 mb-8">
-        <div className="relative flex-1 group">
-          <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-            <Search className="w-4 h-4 text-gray-400 group-focus-within:text-sky-500" />
-          </div>
-          <input
-            type="text"
-            placeholder="Search here"
-            className="w-full bg-white text-gray-800 text-sm rounded-full py-2.5 pl-10 pr-12 focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-sm"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <div className="absolute inset-y-0 right-3 flex items-center border-l border-gray-200 pl-2">
-            <ListFilter className="w-4 h-4 text-gray-400 cursor-pointer hover:text-sky-600" />
+    <div className="p-6 space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
+      {/* Header Section */}
+      <section>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-gradient-to-br from-pink-500 to-rose-500 rounded-xl shadow-lg">
+              <Heart className="w-6 h-6 text-white fill-white" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                Danh sách yêu thích
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {items.length} truyện đã lưu
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* View Toggle Buttons */}
-        <div className="flex gap-2">
-          <button className="p-2 bg-white rounded shadow-sm text-gray-600 hover:text-sky-600">
-            <List className="w-5 h-5" />
-          </button>
-          <button className="p-2 bg-sky-700 rounded shadow-sm text-white">
-            <LayoutGrid className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
-
-      {/* 3. Content Area */}
-      {items.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {items.map((manga) => (
-            <MangaCard key={manga.manga_id} {...manga} />
-          ))}
-        </div>
-      ) : (
-        /* 4. Empty State (Như hình số 2 bạn gửi) */
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="relative w-48 h-48 mb-6 opacity-50">
-             {/* Logo hoặc Illustration dấu hỏi như hình */}
-             <div className="text-9xl font-bold text-gray-700 select-none">雪</div>
-             <div className="absolute top-0 right-0 text-4xl animate-bounce">?</div>
+        {/* Content Area */}
+        {items.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {items.map((manga) => (
+              <div
+                key={manga.manga_id}
+                onClick={() => router.push(`/read/${manga.manga_id}`)}
+                className="cursor-pointer group"
+              >
+                <MangaCard
+                  manga_id={manga.manga_id}
+                  manga_name={manga.title}
+                  author={manga.author_name}
+                  original_language={manga?.original_language}
+                  genre={manga?.genres?.join(" - ")}
+                  status={manga?.status}
+                  coverUrl={manga.cover_image}
+                  rating={manga.rating || 4.5}
+                  totalChapters={manga?.total_chapters}
+                />
+              </div>
+            ))}
           </div>
-          <div className="bg-white px-10 py-3 rounded shadow-sm text-gray-600 font-medium">
-            You have no elements in your "{activeTab}" list.
+        ) : (
+          /* Empty State */
+          <div className="flex flex-col items-center justify-center py-20 text-center bg-white dark:bg-gray-800 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-700">
+            <div className="relative mb-6">
+              <div className="p-6 bg-gradient-to-br from-pink-100 to-rose-100 dark:from-pink-900/20 dark:to-rose-900/20 rounded-full">
+                <BookHeart className="w-20 h-20 text-pink-500 dark:text-pink-400" />
+              </div>
+              <div className="absolute -top-2 -right-2 animate-bounce">
+                <Heart className="w-8 h-8 text-rose-500 fill-rose-500" />
+              </div>
+            </div>
+            <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">
+              Chưa có truyện yêu thích
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md">
+              Hãy khám phá và thêm những bộ truyện yêu thích của bạn vào đây!
+            </p>
+            <button
+              onClick={() => router.push("/explore")}
+              className="px-6 py-3 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              Khám phá ngay
+            </button>
           </div>
-        </div>
-      )}
+        )}
+      </section>
     </div>
   );
 }

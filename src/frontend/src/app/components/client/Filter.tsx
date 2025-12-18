@@ -1,15 +1,12 @@
-// components/MangaFilterPanel.tsx
 "use client";
 
-import Loadable from "next/dist/shared/lib/loadable.shared-runtime";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 export type MangaFilterValues = {
   chaptersMin: number;
   chaptersMax: number;
-  state: "all" | "complete" | "continuous";
-  type: "all" | "manga" | "manhua" | "manhwa";
-  categories: string[];
+  state: string;        // m.status hoặc "all"
+  categories: string[]; // genre_name[]
 };
 
 interface MangaFilterPanelProps {
@@ -18,149 +15,185 @@ interface MangaFilterPanelProps {
   onCancel?: () => void;
 }
 
-const MAX_CATEGORIES = 20;
-
-const ALL_CATEGORIES = [
-  "Action",
-  "Adventure",
-  "Comedy",
-  "Drama",
-  "Fantasy",
-  "Horror",
-  "Mystery",
-];
-
-const ALL_TYPES = [
-              { value: "all", label: "All" },
-              { value: "manga", label: "Manga" },
-              { value: "manhua", label: "Manhua" },
-              { value: "manhwa", label: "Manhwa" },
-                  ];
-
-
-const ALL_STATES = [
-              {value: "completed", label: "Completed" },
-              {value: "continuous", label: "Continuous"},
-              {value: "all", label: "All"},
-                   ];
+type FilterPanelData = {
+  status: { status: string | null }[];
+  genres: { genre_id?: number | string | null; genre_name?: string | null }[];
+};
 
 const MIN_CHAPTERS_LIMIT = 0;
 const MAX_CHAPTERS_LIMIT = 2000;
+const MAX_CATEGORIES = 20;
 
 export default function Filter({
   initialValues,
   onApply,
   onCancel,
 }: MangaFilterPanelProps) {
-  const [chaptersMin, setChaptersMin] = useState(
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+
+  const [loading, setLoading] = useState(true);
+  const [panelData, setPanelData] = useState<FilterPanelData>({
+    status: [],
+    genres: [],
+  });
+
+  // ---- local values
+  const [chaptersMin, setChaptersMin] = useState<number>(
     initialValues?.chaptersMin ?? 0
   );
-  const [chaptersMax, setChaptersMax] = useState(
+  const [chaptersMax, setChaptersMax] = useState<number>(
     initialValues?.chaptersMax ?? 255
   );
-  const [state, setState] = useState<MangaFilterValues["state"]>(
-    initialValues?.state ?? "all"
-  );
-  const [type, setType] = useState<MangaFilterValues["type"]>(
-    initialValues?.type ?? "all"
-  );
+
+  const [state, setState] = useState<string>(initialValues?.state ?? "all");
+
   const [selectedCategories, setSelectedCategories] = useState<string[]>(
-    initialValues?.categories ?? ALL_CATEGORIES.slice(0, 1)
+    initialValues?.categories ?? []
   );
+
   const [categorySearch, setCategorySearch] = useState("");
+  const [shouldSliderChangeMin, setShouldSliderChangeMin] = useState(false);
 
-  // filter categories theo search
-  const visibleCategories = useMemo(() => {
+  // ---- fetch filter panel data
+  useEffect(() => {
+    if (!API_URL) {
+      setLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setLoading(true);
+
+    fetch(`${API_URL}/manga/filterPanelData`, {
+      signal: controller.signal,
+      credentials: "include",
+    })
+      .then(async (r) => {
+        const json = await r.json().catch(() => null);
+        return { ok: r.ok, json };
+      })
+      .then(({ ok, json }) => {
+        if (ok && json?.code === "success" && json?.data) {
+          // ✅ chỉ lấy đúng 2 field cần dùng
+          setPanelData({
+            status: Array.isArray(json.data.status) ? json.data.status : [],
+            genres: Array.isArray(json.data.genres) ? json.data.genres : [],
+          });
+        } else {
+          setPanelData({ status: [], genres: [] });
+        }
+      })
+      .catch((e) => {
+        if (e?.name !== "AbortError") setPanelData({ status: [], genres: [] });
+      })
+      .finally(() => setLoading(false));
+
+    return () => controller.abort();
+  }, [API_URL]);
+
+  // ---- options normalize
+  const statusOptions = useMemo(() => {
+    const list = (panelData.status || [])
+      .map((x) => x?.status?.trim())
+      .filter((x): x is string => !!x);
+    return Array.from(new Set(list));
+  }, [panelData.status]);
+
+  const genreOptions = useMemo(() => {
+    const list = (panelData.genres || [])
+      .map((g) => g?.genre_name?.trim())
+      .filter((x): x is string => !!x);
+    return Array.from(new Set(list));
+  }, [panelData.genres]);
+
+  const visibleGenres = useMemo(() => {
     const q = categorySearch.trim().toLowerCase();
-    if (!q) return ALL_CATEGORIES;
-    return ALL_CATEGORIES.filter((c) =>
-      c.toLowerCase().includes(q.toLowerCase())
-    );
-  }, [categorySearch]);
+    if (!q) return genreOptions;
+    return genreOptions.filter((name) => name.toLowerCase().includes(q));
+  }, [genreOptions, categorySearch]);
 
+  // ---- actions
   const toggleCategory = (name: string) => {
     setSelectedCategories((prev) =>
-      prev.includes(name)
-        ? prev.filter((c) => c !== name)
-        : [...prev, name]
+      prev.includes(name) ? prev.filter((x) => x !== name) : [...prev, name]
     );
   };
 
   const handleApply = () => {
-    const values: MangaFilterValues = {
+    const cleanedCategories = Array.from(
+      new Set(selectedCategories.map((x) => x.trim()).filter(Boolean))
+    );
+
+    onApply({
       chaptersMin,
       chaptersMax,
       state,
-      type,
-      categories: selectedCategories,
-    };
-    onApply(values);
+      categories: cleanedCategories,
+    });
   };
 
-  const handleCancel = () => {
-    // tuỳ bạn muốn reset hay giữ state hiện tại
-    if (onCancel) onCancel();
-  };
-
-  // helpers cho input number & slider
   const handleMinChange = (val: string) => {
-    let num = Number(val) || 0;
+    let num = Number(val);
+    if (!Number.isFinite(num)) num = 0;
     if (num < MIN_CHAPTERS_LIMIT) num = MIN_CHAPTERS_LIMIT;
     if (num > chaptersMax) num = chaptersMax;
     setChaptersMin(num);
   };
 
   const handleMaxChange = (val: string) => {
-    let num = Number(val) || 0;
+    let num = Number(val);
+    if (!Number.isFinite(num)) num = 0;
     if (num > MAX_CHAPTERS_LIMIT) num = MAX_CHAPTERS_LIMIT;
     if (num < chaptersMin) num = chaptersMin;
     setChaptersMax(num);
   };
 
-  const [shouldSliderChangeMin, setShouldSliderChangeMin] = useState(false)
-
   return (
     <div className="w-full max-w-5xl mx-auto bg-white text-gray-900 rounded-xl shadow-lg border border-gray-200 p-6 space-y-8">
+      {loading && (
+        <div className="text-sm text-gray-500">Đang tải bộ lọc...</div>
+      )}
+
       {/* Chapters */}
       <section>
         <h2 className="font-semibold mb-3">Number of Chapters -</h2>
 
         <div className="flex flex-col gap-4">
-          {/* min / max input */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 text-sm">
               <span className="text-gray-500">min</span>
               <input
                 type="number"
-                className="w-20 border border-gray-300 rounded-md px-2 py-1 text-sm"
+                className="w-24 border border-gray-300 rounded-md px-2 py-1 text-sm"
                 value={chaptersMin}
                 onChange={(e) => handleMinChange(e.target.value)}
-                onClick={() => {setShouldSliderChangeMin(true)}}
+                onClick={() => setShouldSliderChangeMin(true)}
               />
             </div>
+
             <div className="flex items-center gap-2 text-sm">
               <span className="text-gray-500">max</span>
               <input
                 type="number"
-                className="w-20 border border-gray-300 rounded-md px-2 py-1 text-sm"
+                className="w-24 border border-gray-300 rounded-md px-2 py-1 text-sm"
                 value={chaptersMax}
                 onChange={(e) => handleMaxChange(e.target.value)}
-                onClick={() => {setShouldSliderChangeMin(false)}}
+                onClick={() => setShouldSliderChangeMin(false)}
               />
             </div>
           </div>
 
-          {/* slider + current value */}
           <div className="space-y-2">
-            <div className="text-center text-sm font-semibold">
-              {/* {chaptersMax} */}
-            </div>
             <input
               type="range"
               min={MIN_CHAPTERS_LIMIT}
               max={MAX_CHAPTERS_LIMIT}
               value={shouldSliderChangeMin ? chaptersMin : chaptersMax}
-              onChange={(e) => {shouldSliderChangeMin ? handleMinChange(e.target.value) : handleMaxChange(e.target.value)}}
+              onChange={(e) =>
+                shouldSliderChangeMin
+                  ? handleMinChange(e.target.value)
+                  : handleMaxChange(e.target.value)
+              }
               className="w-full"
             />
             <div className="flex justify-between text-xs text-gray-500">
@@ -171,51 +204,31 @@ export default function Filter({
         </div>
       </section>
 
-      {/* State & Type */}
+      {/* Status */}
       <section className="flex flex-wrap gap-8">
-        {/* State */}
         <div className="space-y-3">
           <h2 className="font-semibold">State -</h2>
-          <div className="flex gap-3">
-            {ALL_STATES.map((s) => {
-              const active = state === s.value;
-              return (
-                <button
-                  key={s.value}
-                  type="button"
-                  onClick={() =>
-                    setState(
-                      state === s.value ? "all" : (s.value as any)
-                    )
-                  }
-                  className={
-                    "px-4 py-2 rounded-md border text-sm transition " +
-                    (active
-                      ? "bg-[#1e6091] text-white border-[#1e6091]"
-                      : "bg-white text-gray-800 border-gray-300 hover:bg-gray-50")
-                  }
-                >
-                  {s.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className="hidden md:block h-16 w-px bg-gray-300 self-center" />
-
-        {/* Type */}
-        <div className="space-y-3">
-          <h2 className="font-semibold">Type -</h2>
           <div className="flex flex-wrap gap-3">
-            {ALL_TYPES.map((t) => {
-              const active = type === t.value;
+            <button
+              type="button"
+              onClick={() => setState("all")}
+              className={
+                "px-4 py-2 rounded-md border text-sm transition " +
+                (state === "all"
+                  ? "bg-[#1e6091] text-white border-[#1e6091]"
+                  : "bg-white text-gray-800 border-gray-300 hover:bg-gray-50")
+              }
+            >
+              All
+            </button>
+
+            {statusOptions.map((s) => {
+              const active = state === s;
               return (
                 <button
-                  key={t.value}
+                  key={s}
                   type="button"
-                  onClick={() => setType(t.value as any)}
+                  onClick={() => setState(s)}
                   className={
                     "px-4 py-2 rounded-md border text-sm transition " +
                     (active
@@ -223,7 +236,7 @@ export default function Filter({
                       : "bg-white text-gray-800 border-gray-300 hover:bg-gray-50")
                   }
                 >
-                  {t.label}
+                  {s}
                 </button>
               );
             })}
@@ -235,18 +248,18 @@ export default function Filter({
       <section className="space-y-3">
         <h2 className="font-semibold">Categories -</h2>
 
-        {/* selected pills */}
         <div className="flex flex-wrap gap-3 mb-2">
-          {selectedCategories.slice(0, MAX_CATEGORIES).map((cat) => (
+          {selectedCategories.slice(0, MAX_CATEGORIES).map((name) => (
             <button
-              key={cat}
+              key={name}
               type="button"
-              onClick={() => toggleCategory(cat)}
+              onClick={() => toggleCategory(name)}
               className="px-4 py-1.5 rounded-md text-xs font-semibold bg-[#1e6091] text-white border-b-4 border-[#f6aa1c] shadow-sm"
             >
-              {cat}
+              {name}
             </button>
           ))}
+
           {selectedCategories.length === 0 && (
             <span className="text-xs text-gray-400">
               Chưa chọn category nào.
@@ -254,27 +267,23 @@ export default function Filter({
           )}
         </div>
 
-        {/* search box */}
-        <div className="w-full">
-          <input
-            type="text"
-            placeholder="Search here"
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-            value={categorySearch}
-            onChange={(e) => setCategorySearch(e.target.value)}
-          />
-        </div>
+        <input
+          type="text"
+          placeholder="Search here"
+          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+          value={categorySearch}
+          onChange={(e) => setCategorySearch(e.target.value)}
+        />
 
-        {/* category chips list */}
         <div className="max-h-40 overflow-y-auto mt-2 border border-gray-200 rounded-md p-2">
           <div className="flex flex-wrap gap-2">
-            {visibleCategories.map((cat) => {
-              const active = selectedCategories.includes(cat);
+            {visibleGenres.map((name) => {
+              const active = selectedCategories.includes(name);
               return (
                 <button
-                  key={cat}
+                  key={name}
                   type="button"
-                  onClick={() => toggleCategory(cat)}
+                  onClick={() => toggleCategory(name)}
                   className={
                     "px-4 py-1.5 rounded-md text-xs border transition " +
                     (active
@@ -282,7 +291,7 @@ export default function Filter({
                       : "bg-white text-gray-800 border-gray-300 hover:bg-gray-50")
                   }
                 >
-                  {cat}
+                  {name}
                 </button>
               );
             })}
@@ -294,7 +303,7 @@ export default function Filter({
       <section className="flex justify-end gap-4 pt-4 border-t border-gray-200">
         <button
           type="button"
-          onClick={handleCancel}
+          onClick={onCancel}
           className="min-w-[120px] px-4 py-2 rounded-md border border-[#f6aa1c] text-sm font-semibold bg-white hover:bg-gray-50"
         >
           Cancel

@@ -9,32 +9,31 @@ const rateLimit = (limit = 100, windowMs = 60000) => {
   return (req, res, next) => {
     const key = req.ip || req.connection.remoteAddress;
     const now = Date.now();
-    
+
     if (!rateLimitMap.has(key)) {
       rateLimitMap.set(key, { count: 1, resetTime: now + windowMs });
       return next();
     }
-    
+
     const record = rateLimitMap.get(key);
-    
+
     if (now > record.resetTime) {
       record.count = 1;
       record.resetTime = now + windowMs;
       return next();
     }
-    
+
     if (record.count >= limit) {
-      return res.status(429).json({ 
-        code: "error", 
-        message: "Too many requests, please try again later" 
+      return res.status(429).json({
+        code: "error",
+        message: "Too many requests, please try again later",
       });
     }
-    
+
     record.count++;
     next();
   };
 };
-
 
 // Configure multer for memory storage (to handle zip processing)
 const upload = multer({ storage: multer.memoryStorage() });
@@ -73,6 +72,34 @@ route.get("/detail/:id", mangaController.getMangaDetailOfClient);
 
 route.get("/chapter/:id/pages", mangaController.getChapterPages);
 
+route.get("/page-image/:pageId", mangaController.getPageImage); // fix dong nay de truyen doc duoc vi no ngu
+
 route.get("/detail", mangaController.getMangaAndSpecificChapter);
+
+route.get("/filter", rateLimit(50, 60000), mangaController.filterMangas);
+
+route.get(
+  "/filterPanelData",
+  rateLimit(50, 60000),
+  mangaController.getFilterPanelData
+);
+
+route.post(
+  "/favorite",
+  authMiddleware.clientAuth,
+  mangaController.favoriteManga
+);
+
+route.get(
+  "/favorite-list",
+  authMiddleware.clientAuth,
+  mangaController.getFavoriteMangaList
+);
+
+route.get(
+  "/check-favorite/:mangaId",
+  authMiddleware.clientAuth,
+  mangaController.checkFavoriteManga
+);
 
 module.exports = route;
