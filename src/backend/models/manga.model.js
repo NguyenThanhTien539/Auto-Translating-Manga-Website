@@ -19,7 +19,7 @@ module.exports.getMangaById = async (id) => {
 };
 
 module.exports.getChaptersByMangaId = async (mangaId) => {
-  return db("chapters").where("manga_id", mangaId);
+  return db("chapters").where("manga_id", mangaId).orderBy("chapter_number", "asc");
 };
 
 module.exports.getMangasByUploader = async (uploaderId) => {

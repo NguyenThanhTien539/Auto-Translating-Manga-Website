@@ -40,6 +40,10 @@ const getChapterStatusBadge = (status?: string) => {
       label: "Đã duyệt",
       cls: "bg-emerald-50 text-emerald-700 border-emerald-200",
     },
+    published: {
+      label: "Đã duyệt",
+      cls: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    },
     rejected: {
       label: "Từ chối",
       cls: "bg-red-50 text-red-700 border-red-200",
@@ -99,6 +103,16 @@ const getMangaStatusBadge = (status?: string) => {
       {picked.label}
     </span>
   );
+};
+
+const mapChapterStatusToOption = (
+  status?: string
+): "Pending" | "Published" | "Rejected" => {
+  const s = (status || "pending").toLowerCase();
+  if (s === "pending") return "Pending";
+  if (s === "approved" || s === "published") return "Published";
+  if (s === "rejected") return "Rejected";
+  return "Pending";
 };
 
 const decodeHtml = (html: string) => {
@@ -231,7 +245,7 @@ export default function ReadPage() {
             <button
               onClick={() => {
                 setActiveTab("edit-status");
-                setStatusDraft((mangaDetail?.manga.status || "").toLowerCase());
+                setStatusDraft((mangaDetail?.manga.status).toLowerCase());
                 // initialize chapter drafts from current chapter statuses
                 setChapterDrafts(
                   (mangaDetail?.chapters || []).reduce((acc, c) => {
@@ -392,38 +406,30 @@ export default function ReadPage() {
               </h2>
 
               <div className="max-w-md">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Trạng thái
-                </label>
-                <select
-                  value={statusDraft}
-                  onChange={(e) => setStatusDraft(e.target.value)}
-                  className="w-full border rounded-lg p-2.5 bg-white text-sm"
-                >
-                  <option value="Pending">Chờ duyệt</option>
-                  <option value="Ongoing">Đang diễn ra</option>
-                  <option value="Completed">Hoàn thành</option>
-                  <option value="Dropped">Tạm ngưng</option>
-                  <option value="Rejected">Từ chối</option>
-                </select>
+                <div className="flex items-end gap-3">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Trạng thái
+                    </label>
+                    <select
+                      value={statusDraft}
+                      onChange={(e) => setStatusDraft(e.target.value)}
+                      className="w-full border rounded-lg p-2.5 bg-white text-sm"
+                    >
+                      <option value="Pending">Chờ duyệt</option>
+                      <option value="Ongoing">Đang diễn ra</option>
+                      <option value="Completed">Hoàn thành</option>
+                      <option value="Dropped">Tạm ngưng</option>
+                      <option value="Rejected">Từ chối</option>
+                    </select>
+                  </div>
 
-                <div className="mt-4 flex items-center gap-3">
-                  <button className="px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors">
+                  <button className="h-[42px] px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors">
                     Lưu
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setStatusDraft(
-                        (mangaDetail?.manga.status || "").toLowerCase()
-                      );
-                    }}
-                    className="px-3 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
-                  >
-                    Hủy
                   </button>
                 </div>
               </div>
+
               {/* Chapters moderation */}
               <div className="mt-6">
                 <h3 className="text-md font-semibold text-gray-900 mb-3">
@@ -431,11 +437,10 @@ export default function ReadPage() {
                 </h3>
                 <div className="space-y-3">
                   {(mangaDetail.chapters || []).map((ch) => {
+                    const originalOption = mapChapterStatusToOption(ch.status);
                     const draft =
-                      chapterDrafts[ch.chapter_id] ||
-                      (ch.status || "pending").toLowerCase();
-                    const changed =
-                      draft !== (ch.status || "pending").toLowerCase();
+                      chapterDrafts[ch.chapter_id] ?? originalOption;
+                    const changed = draft !== originalOption;
                     return (
                       <div
                         key={ch.chapter_id}
@@ -475,22 +480,53 @@ export default function ReadPage() {
                                 ? "bg-blue-600 text-white hover:bg-blue-700"
                                 : "bg-gray-100 text-gray-700"
                             }`}
+                            onClick={async () => {
+                              if (!changed) return;
+                              try {
+                                const res = await fetch(
+                                  `${process.env.NEXT_PUBLIC_API_URL}/manga/chapter/status/${ch.chapter_id}`,
+                                  {
+                                    method: "PATCH",
+                                    credentials: "include",
+                                    headers: {
+                                      "Content-Type": "application/json",
+                                    },
+                                    body: JSON.stringify({ status: draft }),
+                                  }
+                                );
+                                const data = await res.json();
+                                if (data?.code === "success") {
+                                  toast.success(
+                                    "Cập nhật trạng thái chương thành công"
+                                  );
+                                  setMangaDetail((prev) =>
+                                    prev
+                                      ? {
+                                          ...prev,
+                                          chapters: prev.chapters.map((cc) =>
+                                            cc.chapter_id === ch.chapter_id
+                                              ? { ...cc, status: draft }
+                                              : cc
+                                          ),
+                                        }
+                                      : prev
+                                  );
+                                  // update originalOption in drafts
+                                  setChapterDrafts((prev) => ({
+                                    ...prev,
+                                    [ch.chapter_id]: draft,
+                                  }));
+                                } else {
+                                  toast.error(
+                                    data?.message || "Cập nhật thất bại"
+                                  );
+                                }
+                              } catch (err) {
+                                toast.error("Lỗi kết nối server");
+                              }
+                            }}
                           >
                             Lưu
-                          </button>
-
-                          <button
-                            onClick={() =>
-                              setChapterDrafts((prev) => ({
-                                ...prev,
-                                [ch.chapter_id]: (
-                                  ch.status || "pending"
-                                ).toLowerCase(),
-                              }))
-                            }
-                            className="px-3 py-1.5 rounded-lg bg-white border text-sm text-gray-700"
-                          >
-                            Hủy
                           </button>
                         </div>
                       </div>
