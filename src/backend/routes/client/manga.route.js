@@ -72,6 +72,8 @@ route.get("/detail/:id", mangaController.getMangaDetailOfClient);
 
 route.get("/chapter/:id/pages", mangaController.getChapterPages);
 
+route.get("/page-image/:pageId", mangaController.getPageImage); // fix dong nay de truyen doc duoc vi no ngu
+
 route.get("/detail", mangaController.getMangaAndSpecificChapter);
 
 route.get("/filter", rateLimit(50, 60000), mangaController.filterMangas);
