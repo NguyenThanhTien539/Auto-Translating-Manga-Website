@@ -113,10 +113,8 @@ module.exports.updateChapterStatus = async (chapterId, status) => {
   return db("chapters").where("chapter_id", chapterId).update({ status });
 };
 
-module.exports.getChapterByChapterId = async ( chapterId) => {
-  return db("chapters")
-    .where("chapter_id", chapterId)
-    .first();
+module.exports.getChapterByChapterId = async (chapterId) => {
+  return db("chapters").where("chapter_id", chapterId).first();
 };
 
 module.exports.getFilterPanelData = async () => {
@@ -148,8 +146,12 @@ module.exports.filterMangas = async (filters = {}) => {
     )
   );
 
-  const minCh = Number.isFinite(Number(chaptersMin)) ? Number(chaptersMin) : null;
-  const maxCh = Number.isFinite(Number(chaptersMax)) ? Number(chaptersMax) : null;
+  const minCh = Number.isFinite(Number(chaptersMin))
+    ? Number(chaptersMin)
+    : null;
+  const maxCh = Number.isFinite(Number(chaptersMax))
+    ? Number(chaptersMax)
+    : null;
 
   const qb = db("mangas as m")
     .leftJoin("authors as a", "a.author_id", "m.author_id")
@@ -203,11 +205,27 @@ module.exports.filterMangas = async (filters = {}) => {
       "m.created_at"
     )
     .modify((q) => {
-      if (minCh !== null) q.havingRaw("COUNT(DISTINCT c.chapter_id) >= ?", [minCh]);
-      if (maxCh !== null) q.havingRaw("COUNT(DISTINCT c.chapter_id) <= ?", [maxCh]);
+      if (minCh !== null)
+        q.havingRaw("COUNT(DISTINCT c.chapter_id) >= ?", [minCh]);
+      if (maxCh !== null)
+        q.havingRaw("COUNT(DISTINCT c.chapter_id) <= ?", [maxCh]);
     })
     .orderBy("m.created_at", "desc");
 
   return qb;
 };
 
+module.exports.addFavoriteManga = async (userId, mangaId) => {
+  return db("favorites").insert({ user_id: userId, manga_id: mangaId });
+};
+
+module.exports.removeFavoriteManga = async (userId, mangaId) => {
+  return db("favorites").where({ user_id: userId, manga_id: mangaId }).del();
+};
+
+module.exports.getFavoriteMangasByUserId = async (userId) => {
+  return db("favorites")
+    .join("mangas", "favorites.manga_id", "mangas.manga_id")
+    .where("favorites.user_id", userId)
+    .select("mangas.*");
+};

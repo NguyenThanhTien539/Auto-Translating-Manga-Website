@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Eye, MessageCircle, Download, Star } from "lucide-react";
+import { MessageCircle, Star, Heart } from "lucide-react";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 interface Chapter {
   chapter_id: string;
@@ -35,7 +36,7 @@ export default function ReadPage() {
   const [activeTab, setActiveTab] = useState<"overview" | "chapters">(
     "overview"
   );
-  const [myListStatus, setMyListStatus] = useState("Want to read");
+  const [isFavorite, setIsFavorite] = useState(false);
 
   const decodeHtml = (html: string) => {
     const txt = document.createElement("textarea");
@@ -107,9 +108,51 @@ export default function ReadPage() {
 
               {/* Manga Info */}
               <div className="md:col-span-3 text-white">
-                <h1 className="text-5xl font-black mb-2 bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
-                  {mangaDetail?.manga.title}
-                </h1>
+                <div className="flex items-start justify-between gap-4 mb-2">
+                  <h1 className="text-5xl font-black bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
+                    {mangaDetail?.manga.title}
+                  </h1>
+                  <button
+                    onClick={() => {
+                      setIsFavorite(!isFavorite);
+                      fetch(
+                        `${process.env.NEXT_PUBLIC_API_URL}/manga/favorite`,
+                        {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                          },
+                          credentials: "include",
+                          body: JSON.stringify({
+                            manga_id: mangaDetail?.manga.manga_id,
+                            type: isFavorite ? "remove" : "add",
+                          }),
+                        }
+                      )
+                        .then((response) => response.json())
+                        .then((data) => {
+                          if (data.code === "success") {
+                            toast.success(data.message);
+                          } else {
+                            toast.error("Đã có lỗi xảy ra");
+                          }
+                        });
+                    }}
+                    className="group p-3 bg-slate-700/50 hover:bg-slate-700 rounded-xl border border-slate-600 hover:border-pink-500/50 transition-all duration-300 hover:scale-110"
+                    title={
+                      isFavorite ? "Xóa khỏi yêu thích" : "Thêm vào yêu thích"
+                    }
+                  >
+                    <Heart
+                      size={28}
+                      className={`transition-all duration-300 ${
+                        isFavorite
+                          ? "fill-pink-500 text-pink-500"
+                          : "text-slate-400 group-hover:text-pink-400"
+                      }`}
+                    />
+                  </button>
+                </div>
                 <p className="text-lg text-slate-300 mb-6">
                   {mangaDetail?.manga.author_name}
                 </p>
@@ -183,32 +226,6 @@ export default function ReadPage() {
               </div>
 
               {/* Reading Status */}
-              <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-xl p-8">
-                <h2 className="text-2xl font-bold text-white mb-6">
-                  Danh sách của tôi
-                </h2>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                  {[
-                    "Reading",
-                    "Want to read",
-                    "Stalled",
-                    "Dropped",
-                    "Won't read",
-                  ].map((status) => (
-                    <button
-                      key={status}
-                      onClick={() => setMyListStatus(status)}
-                      className={`px-4 py-3 rounded-lg font-semibold transition-all text-sm ${
-                        myListStatus === status
-                          ? "bg-blue-500 text-white shadow-lg shadow-blue-500/50 border border-blue-400"
-                          : "bg-slate-700 hover:bg-slate-600 text-slate-300 border border-slate-600 hover:border-slate-500"
-                      }`}
-                    >
-                      {status}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
           )}
 

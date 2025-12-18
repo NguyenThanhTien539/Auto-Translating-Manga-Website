@@ -618,7 +618,7 @@ module.exports.getMangaAndSpecificChapter = async (req, res) => {
 
 module.exports.getFilterPanelData = async (req, res) => {
   try {
-    const values = await Manga.getFilterPanelData(); 
+    const values = await Manga.getFilterPanelData();
     res.json({ code: "success", data: values });
     console.log(values);
   } catch (error) {
@@ -627,11 +627,9 @@ module.exports.getFilterPanelData = async (req, res) => {
   }
 };
 
-
 module.exports.filterMangas = async (req, res) => {
   try {
     let { chaptersMin, chaptersMax, state } = req.query;
-
 
     // normalize state nếu bị array
     if (Array.isArray(state)) state = state[0];
@@ -657,3 +655,33 @@ module.exports.filterMangas = async (req, res) => {
   }
 };
 
+module.exports.favoriteManga = async (req, res) => {
+  try {
+    const user_id = req.infoUser.user_id;
+    const { manga_id } = req.body;
+    const { type } = req.body;
+    if (type === "add") {
+      await Manga.addFavoriteManga(user_id, manga_id);
+    } else if (type === "remove") {
+      await Manga.removeFavoriteManga(user_id, manga_id);
+    }
+    res.json({
+      code: "success",
+      message: "Cập nhật danh sách yêu thích thành công",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ code: "error", message: "Lỗi server" });
+  }
+};
+
+module.exports.getFavoriteMangaList = async (req, res) => {
+  try {
+    const user_id = req.infoUser.user_id;
+    const mangas = await Manga.getFavoriteMangasByUserId(user_id);
+    res.json({ code: "success", data: mangas });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ code: "error", message: "Lỗi server" });
+  }
+};
