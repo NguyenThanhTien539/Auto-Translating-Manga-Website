@@ -53,6 +53,20 @@ async function requireAdmin(request: NextRequest) {
   return NextResponse.next();
 }
 
+async function requireUploader(request: NextRequest) {
+  const payload = await verifyJwtFromRequest(request);
+  if (!payload) return redirectTo(request, "/account/login");
+
+  // cho admin vào luôn (optional)
+  if (payload.role === "0") return NextResponse.next();
+
+  if (payload.role !== "2") {
+    return redirectTo(request, "/profile");
+  }
+
+  return NextResponse.next();
+}
+
 // Check user chỉ cần login (không check role)
 async function requireUser(request: NextRequest) {
   const payload = await verifyJwtFromRequest(request);
@@ -80,12 +94,29 @@ export async function middleware(request: NextRequest) {
     return requireOtpToken(request);
   }
 
+  // 3) Uploader-only (PHẢI đặt trước /profile)
+
+  if (
+    pathname.startsWith("/profile/upload-manga") ||
+    pathname.startsWith("/profile/manage-manga")
+  ) {
+    return requireUploader(request);
+  }
+
   // 3. Bảo vệ route profile (user phải login)
   if (pathname.startsWith("/profile")) {
     return requireUser(request);
   }
 
-  if(pathname.startsWith("/order")){
+  if (pathname.startsWith("/order")) {
+    return requireUser(request);
+  }
+
+  if (pathname.startsWith("/favourite-list")) {
+    return requireUser(request);
+  }
+
+  if (pathname.startsWith("/comment")) {
     return requireUser(request);
   }
 
@@ -99,6 +130,8 @@ export const config = {
     "/account/verify/:path*", // check otp
     "/account/reset-password/:path*", // check otp
     "/profile/:path*", // check user
-    "/order/:path"
+    "/order/:path",
+    "/favourite-list/:path*",
+    "/comment/:path*",
   ],
 };

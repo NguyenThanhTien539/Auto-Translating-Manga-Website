@@ -310,7 +310,11 @@ module.exports.getAllMangasOfClient = async (req, res) => {
 
       const author = await Manga.getAuthorDetailByAuthorId(manga.author_id);
       manga.author_name = author ? author.author_name : "Unknown";
+
+      const averageRating = await Manga.calculateAverageRating(manga.manga_id);
+      manga.average_rating = averageRating;
     }
+
     res.json({ code: "success", mangas: mangas });
   } catch (error) {
     console.error(error);
@@ -324,10 +328,16 @@ module.exports.getMangaDetailOfClient = async (req, res) => {
     const manga = await Manga.getMangaById(mangaId);
     const genres = await Manga.getGenresByMangaId(mangaId);
     manga.genres = genres.map((g) => g.genre_name);
-
+    const author = await Manga.getAuthorDetailByAuthorId(manga.author_id);
+    manga.author_name = author ? author.author_name : "Unknown";
     const chapters = await Manga.getChaptersByMangaIdOfClient(mangaId);
     manga.totalChapters = chapters.length;
+
+    const averageRating = await Manga.calculateAverageRating(manga.manga_id);
+    manga.average_rating = averageRating;
+
     const finalDetail = { manga, chapters };
+    console.log(finalDetail);
     res.json({ code: "success", data: finalDetail });
   } catch (error) {
     console.error(error);
@@ -680,6 +690,18 @@ module.exports.getFavoriteMangaList = async (req, res) => {
     const user_id = req.infoUser.user_id;
     const mangas = await Manga.getFavoriteMangasByUserId(user_id);
     res.json({ code: "success", data: mangas });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ code: "error", message: "Lỗi server" });
+  }
+};
+
+module.exports.checkFavoriteManga = async (req, res) => {
+  try {
+    const user_id = req.infoUser.user_id;
+    const manga_id = req.params.mangaId;
+    const isFavorite = await Manga.isMangaFavoritedByUser(user_id, manga_id);
+    res.json({ code: "success", data: { isFavorite } });
   } catch (error) {
     console.error(error);
     res.status(500).json({ code: "error", message: "Lỗi server" });

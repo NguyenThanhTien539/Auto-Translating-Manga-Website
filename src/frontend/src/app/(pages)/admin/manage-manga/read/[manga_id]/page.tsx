@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
@@ -13,19 +14,20 @@ interface Chapter {
   title: string;
   views?: number;
   status?: string;
+  coin_price?: number;
 }
 
 type Manga = {
   manga_id: string;
   manga_name?: string;
-  title?: string;
-  author: string;
+  title: string;
+  author_name: string;
   cover_image: string;
   description: string;
   genres: string[];
   status: string;
   totalChapters?: number;
-  rating?: number;
+  average_rating?: number;
 };
 
 const getChapterStatusBadge = (status?: string) => {
@@ -145,6 +147,7 @@ export default function ReadPage() {
   const [chapterDrafts, setChapterDrafts] = useState<Record<string, string>>(
     {}
   );
+  const [coinDrafts, setCoinDrafts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     try {
@@ -168,6 +171,13 @@ export default function ReadPage() {
         return acc;
       }, {} as Record<string, string>)
     );
+
+    setCoinDrafts(
+      (mangaDetail.chapters || []).reduce((acc, c) => {
+        acc[c.chapter_id] = c.coin_price ?? 0;
+        return acc;
+      }, {} as Record<string, number>)
+    );
   }, [activeTab, mangaDetail]);
 
   useEffect(() => {
@@ -187,9 +197,12 @@ export default function ReadPage() {
 
     setLoading(true);
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manage-manga/detail/${mangaId}`, {
-      credentials: "include",
-    })
+    fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manage-manga/detail/${mangaId}`,
+      {
+        credentials: "include",
+      }
+    )
       .then((res) => res.json())
       .then((data) => {
         if (data?.code === "success") setMangaDetail(data.data);
@@ -267,6 +280,12 @@ export default function ReadPage() {
                     return acc;
                   }, {} as Record<string, string>)
                 );
+                setCoinDrafts(
+                  (mangaDetail?.chapters || []).reduce((acc, c) => {
+                    acc[c.chapter_id] = c.coin_price ?? 0;
+                    return acc;
+                  }, {} as Record<string, number>)
+                );
               }}
               className={`py-4 font-semibold text-sm sm:text-base transition-colors ${
                 activeTab === "edit-status"
@@ -299,7 +318,7 @@ export default function ReadPage() {
                   {mangaDetail.manga.title}
                 </h1>
                 <p className="text-sm sm:text-base text-gray-600 mt-2">
-                  {mangaDetail.manga.author}
+                  {mangaDetail.manga.author_name}
                 </p>
 
                 <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -326,7 +345,9 @@ export default function ReadPage() {
                         className="text-yellow-500 fill-yellow-500"
                       />
                       <span className="text-2xl font-bold text-yellow-600">
-                        {5}
+                        {mangaDetail.manga.average_rating
+                          ? mangaDetail.manga.average_rating.toFixed(1)
+                          : "0"}
                       </span>
                     </div>
                   </div>
@@ -521,48 +542,102 @@ export default function ReadPage() {
                     const draft =
                       chapterDrafts[ch.chapter_id] ?? originalOption;
                     const changed = draft !== originalOption;
+
+                    const originalCoin = ch.coin_price ?? 0;
+                    const coinDraft = coinDrafts[ch.chapter_id] ?? originalCoin;
+                    const coinChanged = coinDraft !== originalCoin;
+
+                    const isApproved = draft === "Published";
+
                     return (
                       <div
                         key={ch.chapter_id}
-                        className="flex items-center justify-between gap-4 p-3 border border-gray-100 rounded-lg bg-gray-50"
+                        className="flex flex-col gap-3 p-4 border border-gray-200 rounded-lg bg-white hover:border-blue-300 transition-colors"
                       >
-                        <div className="min-w-0">
-                          <div className="text-sm font-medium text-gray-900 truncate">
-                            Chương {ch.chapter_number}: {ch.title}
-                          </div>
-                          <div className="mt-1 flex items-center gap-2">
-                            <div>{getChapterStatusBadge(ch.status)}</div>
-                            <div className="text-xs text-gray-500">
-                              ID: {ch.chapter_id}
+                        {/* Header: Tiêu đề và badge */}
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm font-semibold text-gray-900 truncate">
+                              Chương {ch.chapter_number}: {ch.title}
+                            </div>
+                            <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                              {getChapterStatusBadge(ch.status)}
+                              <div className="text-xs text-gray-500">
+                                ID: {ch.chapter_id}
+                              </div>
+                              {ch.coin_price !== undefined &&
+                                ch.coin_price > 0 && (
+                                  <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                                    💰 {ch.coin_price} coin
+                                  </span>
+                                )}
                             </div>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          <select
-                            value={draft}
-                            onChange={(e) =>
-                              setChapterDrafts((prev) => ({
-                                ...prev,
-                                [ch.chapter_id]: e.target.value,
-                              }))
-                            }
-                            className="rounded-lg border px-3 py-1 text-sm bg-white"
-                          >
-                            <option value="Pending">Chờ duyệt</option>
-                            <option value="Published">Đã duyệt</option>
-                            <option value="Rejected">Từ chối</option>
-                          </select>
+                        {/* Controls: Status select + Coin input */}
+                        <div className="flex items-end gap-3 flex-wrap">
+                          {/* Status Dropdown */}
+                          <div className="flex-1 min-w-[140px]">
+                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                              Trạng thái
+                            </label>
+                            <select
+                              value={draft}
+                              onChange={(e) =>
+                                setChapterDrafts((prev) => ({
+                                  ...prev,
+                                  [ch.chapter_id]: e.target.value,
+                                }))
+                              }
+                              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            >
+                              <option value="Pending">Chờ duyệt</option>
+                              <option value="Published">Đã duyệt</option>
+                              <option value="Rejected">Từ chối</option>
+                            </select>
+                          </div>
 
+                          {/* Coin Input - Only show when approved */}
+                          {isApproved && (
+                            <div className="flex-1 min-w-[140px]">
+                              <label className="block text-xs font-medium text-gray-600 mb-1">
+                                Giá coin
+                              </label>
+                              <input
+                                type="number"
+                                min={0}
+                                value={coinDraft === 0 ? "" : coinDraft} // ✅ 0 thì để trống
+                                onChange={(e) => {
+                                  const v = e.target.value; // string
+                                  setCoinDrafts((prev) => ({
+                                    ...prev,
+                                    [ch.chapter_id]:
+                                      v === "" ? 0 : Math.max(0, Number(v)),
+                                  }));
+                                }}
+                                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="0"
+                              />
+                            </div>
+                          )}
+
+                          {/* Save Button */}
                           <button
-                            className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
-                              changed
-                                ? "bg-blue-600 text-white hover:bg-blue-700"
-                                : "bg-gray-100 text-gray-700"
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                              changed || (isApproved && coinChanged)
+                                ? "bg-blue-600 text-white hover:bg-blue-700 shadow-sm"
+                                : "bg-gray-100 text-gray-400 cursor-not-allowed"
                             }`}
                             onClick={async () => {
-                              if (!changed) return;
+                              if (!changed && !(isApproved && coinChanged))
+                                return;
                               try {
+                                const body = {
+                                  status: draft,
+                                  coin_price: isApproved ? coinDraft : 0,
+                                };
+
                                 const res = await fetch(
                                   `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manage-manga/update-chapter-status/${ch.chapter_id}`,
                                   {
@@ -571,31 +646,30 @@ export default function ReadPage() {
                                     headers: {
                                       "Content-Type": "application/json",
                                     },
-                                    body: JSON.stringify({ status: draft }),
+                                    body: JSON.stringify(body),
                                   }
                                 );
                                 const data = await res.json();
                                 if (data?.code === "success") {
-                                  toast.success(
-                                    "Cập nhật trạng thái chương thành công"
-                                  );
+                                  toast.success("Cập nhật chương thành công");
                                   setMangaDetail((prev) =>
                                     prev
                                       ? {
                                           ...prev,
                                           chapters: prev.chapters.map((cc) =>
                                             cc.chapter_id === ch.chapter_id
-                                              ? { ...cc, status: draft }
+                                              ? {
+                                                  ...cc,
+                                                  status: draft,
+                                                  coin_price: isApproved
+                                                    ? coinDraft
+                                                    : cc.coin_price,
+                                                }
                                               : cc
                                           ),
                                         }
                                       : prev
                                   );
-                                  // update originalOption in drafts
-                                  setChapterDrafts((prev) => ({
-                                    ...prev,
-                                    [ch.chapter_id]: draft,
-                                  }));
                                 } else {
                                   toast.error(
                                     data?.message || "Cập nhật thất bại"

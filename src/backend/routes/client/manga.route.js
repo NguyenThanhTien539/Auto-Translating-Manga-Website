@@ -94,4 +94,10 @@ route.get(
   mangaController.getFavoriteMangaList
 );
 
+route.get(
+  "/check-favorite/:mangaId",
+  authMiddleware.clientAuth,
+  mangaController.checkFavoriteManga
+);
+
 module.exports = route;

@@ -109,8 +109,10 @@ module.exports.updateMangaStatus = async (mangaId, status) => {
   return db("mangas").where("manga_id", mangaId).update({ status });
 };
 
-module.exports.updateChapterStatus = async (chapterId, status) => {
-  return db("chapters").where("chapter_id", chapterId).update({ status });
+module.exports.updateChapterStatus = async (chapterId, status, price) => {
+  return db("chapters")
+    .where("chapter_id", chapterId)
+    .update({ status, price: price });
 };
 
 module.exports.getChapterByChapterId = async (chapterId) => {
@@ -228,4 +230,22 @@ module.exports.getFavoriteMangasByUserId = async (userId) => {
     .join("mangas", "favorites.manga_id", "mangas.manga_id")
     .where("favorites.user_id", userId)
     .select("mangas.*");
+};
+
+module.exports.isMangaFavoritedByUser = async (userId, mangaId) => {
+  const result = await db("favorites")
+    .where({ user_id: userId, manga_id: mangaId })
+    .first();
+  return !!result;
+};
+
+module.exports.calculateAverageRating = async (mangaId) => {
+  const result = await db("mangas")
+    .join("chapters", "mangas.manga_id", "chapters.manga_id")
+    .leftJoin("comments", "chapters.chapter_id", "comments.chapter_id")
+    .where("mangas.manga_id", mangaId)
+    .avg("comments.rating as average_rating")
+    .first();
+
+  return result?.average_rating ? parseFloat(result.average_rating) : 0;
 };

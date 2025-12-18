@@ -9,7 +9,9 @@ module.exports.getListManga = async (req, res) => {
       const uploader = await accountModel.getUserById(manga.uploader_id);
       manga.uploader_name = uploader.username;
 
-      const author = await mangaModel.getAuthorDetailByAuthorId(manga.author_id);
+      const author = await mangaModel.getAuthorDetailByAuthorId(
+        manga.author_id
+      );
       manga.author = author ? author.author_name : "N/A";
     }
     res.json({
@@ -54,8 +56,8 @@ module.exports.updateStatusManga = async (req, res) => {
 module.exports.updateStatusChapter = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
-    await mangaModel.updateChapterStatus(id, status);
+    const { status, coin_price } = req.body;
+    await mangaModel.updateChapterStatus(id, status, coin_price);
     res.json({ code: "success", message: "Đã cập nhật trạng thái chương" });
   } catch (error) {
     console.error(error);
@@ -80,8 +82,13 @@ module.exports.getMangaDetail = async (req, res) => {
   try {
     const mangaId = req.params.id;
     const manga = await mangaModel.getMangaById(mangaId);
+    const author = await mangaModel.getAuthorDetailByAuthorId(manga.author_id);
+    manga.author_name = author ? author.author_name : "N/A";
     const genres = await mangaModel.getGenresByMangaId(mangaId);
     manga.genres = genres.map((g) => g.genre_name);
+
+    const averageRating = await mangaModel.calculateAverageRating(mangaId);
+    manga.average_rating = averageRating;
 
     const chapters = await mangaModel.getChaptersByMangaId(mangaId);
     const totalChaper = await mangaModel.countChaptersByMangaId(mangaId);
@@ -93,4 +100,3 @@ module.exports.getMangaDetail = async (req, res) => {
     res.status(500).json({ code: "error", message: "Lỗi server" });
   }
 };
-

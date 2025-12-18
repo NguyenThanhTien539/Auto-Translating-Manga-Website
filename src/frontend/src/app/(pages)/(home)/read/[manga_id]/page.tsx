@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { MessageCircle, Star, Heart } from "lucide-react";
+import React, { use, useEffect, useState } from "react";
+import { MessageCircle, Star, Heart, Share2 } from "lucide-react";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -22,7 +22,7 @@ type Manga = {
   genres: string[];
   status: string;
   totalChapters?: number;
-  rating?: number;
+  average_rating?: number;
 };
 
 export default function ReadPage() {
@@ -44,6 +44,66 @@ export default function ReadPage() {
     return txt.value;
   };
 
+  const handleShare = async () => {
+    const currentUrl = window.location.href;
+    const mangaTitle = mangaDetail?.manga.title || "Manga";
+    const mangaAuthor = mangaDetail?.manga.author_name || "";
+    const mangaGenres = mangaDetail?.manga.genres?.join(", ") || "";
+    const mangaDescription = decodeHtml(
+      mangaDetail?.manga.description
+        ?.replace(/<[^>]+>/g, "")
+        .substring(0, 200) || ""
+    );
+
+    // Tạo nội dung chia sẻ chi tiết
+    const shareContent = `🔥 ${mangaTitle} 🔥
+
+📚 Tác giả: ${mangaAuthor}
+🎭 Thể loại: ${mangaGenres}
+
+📖 Giới thiệu:
+${mangaDescription}${mangaDescription.length >= 200 ? "..." : ""}
+
+👉 Đọc ngay tại: ${currentUrl}
+
+#Manga #${mangaTitle.replace(/\s+/g, "")} #DocTruyen`;
+
+    try {
+      // Copy nội dung vào clipboard
+      await navigator.clipboard.writeText(shareContent);
+
+      // Mở Facebook share dialog
+      const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+        currentUrl
+      )}`;
+
+      window.open(
+        facebookShareUrl,
+        "facebook-share-dialog",
+        "width=800,height=600"
+      );
+
+      // Thông báo cho người dùng
+      toast.success("Đã copy nội dung! Nhấn Ctrl+V  để dán vào Facebook", {
+        duration: 5000,
+      });
+    } catch (error) {
+      console.error("Copy failed:", error);
+
+      // Fallback: mở Facebook share mà không copy
+      const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+        currentUrl
+      )}`;
+      window.open(
+        facebookShareUrl,
+        "facebook-share-dialog",
+        "width=800,height=600"
+      );
+
+      toast.info("Đang mở Facebook share...");
+    }
+  };
+
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/detail/${params.manga_id}`)
       .then((response) => response.json())
@@ -54,7 +114,29 @@ export default function ReadPage() {
           setMangaDetail(null);
         }
       });
-  }, []);
+  }, [params.manga_id]);
+
+  useEffect(() => {
+    fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/manga/check-favorite/${params.manga_id}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      }
+    )
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.code === "success") {
+          setIsFavorite(data.data);
+        } else {
+          setIsFavorite(false);
+        }
+      });
+  }, [params.manga_id]);
+
   return (
     mangaDetail && (
       <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
@@ -112,46 +194,58 @@ export default function ReadPage() {
                   <h1 className="text-5xl font-black bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
                     {mangaDetail?.manga.title}
                   </h1>
-                  <button
-                    onClick={() => {
-                      setIsFavorite(!isFavorite);
-                      fetch(
-                        `${process.env.NEXT_PUBLIC_API_URL}/manga/favorite`,
-                        {
-                          method: "POST",
-                          headers: {
-                            "Content-Type": "application/json",
-                          },
-                          credentials: "include",
-                          body: JSON.stringify({
-                            manga_id: mangaDetail?.manga.manga_id,
-                            type: isFavorite ? "remove" : "add",
-                          }),
-                        }
-                      )
-                        .then((response) => response.json())
-                        .then((data) => {
-                          if (data.code === "success") {
-                            toast.success(data.message);
-                          } else {
-                            toast.error("Đã có lỗi xảy ra");
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleShare}
+                      className="group p-3 bg-slate-700/50 hover:bg-slate-700 rounded-xl border border-slate-600 hover:border-blue-500/50 transition-all duration-300 hover:scale-110"
+                      title="Chia sẻ lên Facebook"
+                    >
+                      <Share2
+                        size={28}
+                        className="text-slate-400 group-hover:text-blue-400 transition-all duration-300"
+                      />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsFavorite(!isFavorite);
+                        fetch(
+                          `${process.env.NEXT_PUBLIC_API_URL}/manga/favorite`,
+                          {
+                            method: "POST",
+                            headers: {
+                              "Content-Type": "application/json",
+                            },
+                            credentials: "include",
+                            body: JSON.stringify({
+                              manga_id: mangaDetail?.manga.manga_id,
+                              type: isFavorite ? "remove" : "add",
+                            }),
                           }
-                        });
-                    }}
-                    className="group p-3 bg-slate-700/50 hover:bg-slate-700 rounded-xl border border-slate-600 hover:border-pink-500/50 transition-all duration-300 hover:scale-110"
-                    title={
-                      isFavorite ? "Xóa khỏi yêu thích" : "Thêm vào yêu thích"
-                    }
-                  >
-                    <Heart
-                      size={28}
-                      className={`transition-all duration-300 ${
-                        isFavorite
-                          ? "fill-pink-500 text-pink-500"
-                          : "text-slate-400 group-hover:text-pink-400"
-                      }`}
-                    />
-                  </button>
+                        )
+                          .then((response) => response.json())
+                          .then((data) => {
+                            if (data.code === "success") {
+                              toast.success(data.message);
+                            } else {
+                              toast.error("Đã có lỗi xảy ra");
+                            }
+                          });
+                      }}
+                      className="group p-3 bg-slate-700/50 hover:bg-slate-700 rounded-xl border border-slate-600 hover:border-pink-500/50 transition-all duration-300 hover:scale-110"
+                      title={
+                        isFavorite ? "Xóa khỏi yêu thích" : "Thêm vào yêu thích"
+                      }
+                    >
+                      <Heart
+                        size={28}
+                        className={`transition-all duration-300 ${
+                          isFavorite
+                            ? "fill-pink-500 text-pink-500"
+                            : "text-slate-400 group-hover:text-pink-400"
+                        }`}
+                      />
+                    </button>
+                  </div>
                 </div>
                 <p className="text-lg text-slate-300 mb-6">
                   {mangaDetail?.manga.author_name}
@@ -178,7 +272,9 @@ export default function ReadPage() {
                         className="fill-yellow-400 text-yellow-400"
                       />
                       <span className="text-2xl font-bold text-yellow-400">
-                        {5}
+                        {mangaDetail?.manga.average_rating
+                          ? Number(mangaDetail.manga.average_rating).toFixed(1)
+                          : "0.0"}
                       </span>
                     </div>
                   </div>

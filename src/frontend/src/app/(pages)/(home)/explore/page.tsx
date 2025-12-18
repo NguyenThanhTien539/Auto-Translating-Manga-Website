@@ -13,7 +13,7 @@ const EXPLORE_MANGA_DATA = [
     genre: "Adventure - Action - Comedy - Fantasy",
     status: "Ongoing",
     coverUrl: "/image/logo.jpg",
-    rating: 9.26,
+    average_rating: 9.26,
     totalChapters: 1100,
   },
   {
@@ -24,7 +24,7 @@ const EXPLORE_MANGA_DATA = [
     genre: "Action - Fantasy - Adventure",
     status: "Completed",
     coverUrl: "/image/logo.jpg",
-    rating: 9.15,
+    average_rating: 9.15,
     totalChapters: 179,
   },
   {
@@ -35,7 +35,7 @@ const EXPLORE_MANGA_DATA = [
     genre: "Action - Fantasy - School Life",
     status: "Ongoing",
     coverUrl: "/image/logo.jpg",
-    rating: 8.78,
+    average_rating: 8.78,
     totalChapters: 810,
   },
   {
@@ -46,7 +46,7 @@ const EXPLORE_MANGA_DATA = [
     genre: "Dark Fantasy - Drama - Horror - Action",
     status: "Continuous",
     coverUrl: "/image/logo.jpg",
-    rating: 9.32,
+    average_rating: 9.32,
     totalChapters: 374,
   },
   {
@@ -57,7 +57,7 @@ const EXPLORE_MANGA_DATA = [
     genre: "Action - Fantasy - Adventure - Drama",
     status: "Ongoing",
     coverUrl: "/image/logo.jpg",
-    rating: 9.05,
+    average_rating: 9.05,
     totalChapters: 178,
   },
   {
@@ -68,7 +68,7 @@ const EXPLORE_MANGA_DATA = [
     genre: "Action - Horror - Dark Fantasy",
     status: "Ongoing",
     coverUrl: "/image/logo.jpg",
-    rating: 8.92,
+    average_rating: 8.92,
     totalChapters: 158,
   },
   {
@@ -79,7 +79,7 @@ const EXPLORE_MANGA_DATA = [
     genre: "Action - Dark Fantasy - Supernatural",
     status: "Ongoing",
     coverUrl: "/image/logo.jpg",
-    rating: 8.88,
+    average_rating: 8.88,
     totalChapters: 245,
   },
   {
@@ -90,7 +90,7 @@ const EXPLORE_MANGA_DATA = [
     genre: "Action - Fantasy - Mystery - Drama",
     status: "Ongoing",
     coverUrl: "/image/logo.jpg",
-    rating: 8.95,
+    average_rating: 8.95,
     totalChapters: 585,
   },
   {
@@ -101,7 +101,7 @@ const EXPLORE_MANGA_DATA = [
     genre: "Action - Adventure - Fantasy - Drama",
     status: "Completed",
     coverUrl: "/image/logo.jpg",
-    rating: 8.76,
+    average_rating: 8.76,
     totalChapters: 205,
   },
   {
@@ -112,7 +112,7 @@ const EXPLORE_MANGA_DATA = [
     genre: "Action - Adventure - Superhero",
     status: "Ongoing",
     coverUrl: "/image/logo.jpg",
-    rating: 8.65,
+    average_rating: 8.65,
     totalChapters: 410,
   },
 ];
@@ -125,7 +125,7 @@ type Manga = {
   genres: string[];
   status: string;
   cover_image: string;
-  rating: number;
+  average_rating: number;
   total_chapters: number;
 };
 export default function Explore() {
@@ -172,7 +172,7 @@ export default function Explore() {
                   genre={manga?.genres?.join(" - ")}
                   status={manga?.status}
                   coverUrl={manga.cover_image}
-                  rating={4.5}
+                  average_rating={manga?.average_rating}
                   totalChapters={manga?.total_chapters}
                 />
               </div>
@@ -202,7 +202,7 @@ export default function Explore() {
                 genre={manga.genre}
                 status={manga.status}
                 coverUrl={manga.coverUrl}
-                rating={manga.rating}
+                average_rating={manga.average_rating}
                 totalChapters={manga.totalChapters}
               />
             ))}
@@ -228,7 +228,7 @@ export default function Explore() {
                 genre={manga.genre}
                 status={manga.status}
                 coverUrl={manga.coverUrl}
-                rating={manga.rating}
+                average_rating={manga.average_rating}
                 totalChapters={manga.totalChapters}
               />
             ))}
