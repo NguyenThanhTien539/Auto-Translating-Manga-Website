@@ -24,15 +24,6 @@ export default function MangaCard({
   average_rating,
   totalChapters,
 }: MangaCardProps) {
-  // const getFlagEmoji = (lang: string): string => {
-  //   const lowerLang = lang?.toLowerCase() || "";
-  //   if (lowerLang.includes("japan")) return "🇯🇵";
-  //   if (lowerLang.includes("korea")) return "🇰🇷";
-  //   if (lowerLang.includes("china")) return "🇨🇳";
-  //   if (lowerLang.includes("vietnam")) return "🇻🇳";
-  //   return "🏳️";
-  // };
-
   const formattedGenre = genre ? genre.replace(/,/g, " - ") : "";
 
   return (

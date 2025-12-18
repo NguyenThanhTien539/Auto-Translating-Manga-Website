@@ -337,7 +337,6 @@ module.exports.getMangaDetailOfClient = async (req, res) => {
     manga.average_rating = averageRating;
 
     const finalDetail = { manga, chapters };
-    console.log(finalDetail);
     res.json({ code: "success", data: finalDetail });
   } catch (error) {
     console.error(error);

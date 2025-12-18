@@ -1,10 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { toast } from "sonner";
+import { useAuth } from "@/app/hooks/useAuth";
 
 interface PageData {
   page_id: number;
@@ -16,18 +18,26 @@ interface PageData {
 
 export default function ChapterReadPage() {
   const params = useParams();
+  const { isLogin, infoUser } = useAuth();
   const [pages, setPages] = useState<PageData[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedLanguage, setSelectedLanguage] = useState<"vi" | "en">("vi");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [readingProgress, setReadingProgress] = useState(0);
+  const pageRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSavedPage = useRef(1);
 
+  // Fetch pages data
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/chapter/${params.chapter_id}/pages`)
+    fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/manga/chapter/${params.chapter_id}/pages`
+    )
       .then((response) => response.json())
       .then((data) => {
         if (data.code === "success") {
-          console.log(data.data);
           setPages(data.data);
           setLoading(false);
         }
@@ -38,6 +48,125 @@ export default function ChapterReadPage() {
       });
   }, [params.chapter_id]);
 
+  // Fetch reading history and auto-scroll to last read page
+  useEffect(() => {
+    if (!isLogin || !infoUser || pages.length === 0) return;
+
+    fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/reading-history/manga/${params.manga_id}`,
+      {
+        credentials: "include",
+      }
+    )
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.code === "success" && data.data) {
+          const lastPage = data.data.last_page_read || 1;
+          lastSavedPage.current = lastPage;
+
+          // Auto scroll to last read page after a short delay
+          setTimeout(() => {
+            const pageElement = pageRefs.current[lastPage];
+            if (pageElement) {
+              pageElement.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+            }
+          }, 200);
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching reading history:", error);
+      });
+  }, [isLogin, infoUser, pages.length, params.manga_id]);
+
+  // Save reading progress function
+  const saveReadingProgress = useCallback(
+    (pageNumber: number) => {
+      if (!isLogin || !infoUser) return;
+
+      // Clear previous timeout
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+
+      // Debounce save - only save after user stops scrolling for 2 seconds
+      saveTimeoutRef.current = setTimeout(() => {
+        if (pageNumber === lastSavedPage.current) return;
+
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/reading-history/add`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            chapterId: params.chapter_id,
+            mangaId: params.manga_id,
+            lastPageRead: pageNumber,
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.code === "success") {
+              lastSavedPage.current = pageNumber;
+              console.log(`Saved progress: page ${pageNumber}`);
+            }
+          })
+          .catch((error) => {
+            console.error("Error saving reading progress:", error);
+          });
+      }, 2000);
+    },
+    [isLogin, infoUser, params.chapter_id, params.manga_id]
+  );
+
+  // Track scroll position to update current page
+  useEffect(() => {
+    const handleScroll = () => {
+      let currentVisiblePage = 1;
+      let maxVisibility = 0;
+
+      // Find which page is most visible
+      Object.entries(pageRefs.current).forEach(([pageNum, element]) => {
+        if (!element) return;
+
+        const rect = element.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+
+        // Calculate how much of the page is visible
+        const visibleHeight =
+          Math.min(rect.bottom, viewportHeight) - Math.max(rect.top, 0);
+        const visibilityPercent = visibleHeight / rect.height;
+
+        if (visibilityPercent > maxVisibility && visibilityPercent > 0.3) {
+          maxVisibility = visibilityPercent;
+          currentVisiblePage = parseInt(pageNum);
+        }
+      });
+
+      setCurrentPage(currentVisiblePage);
+
+      // Calculate overall progress
+      const progress = (currentVisiblePage / pages.length) * 100;
+      setReadingProgress(Math.min(progress, 100));
+
+      // Save progress
+      saveReadingProgress(currentVisiblePage);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    handleScroll(); // Initial call
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [pages.length, saveReadingProgress]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -47,85 +176,135 @@ export default function ChapterReadPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
-      {/* Language Selection Button */}
-      <div className="container mx-auto px-4 pt-4">
-        <div className="max-w-4xl mx-auto flex justify-end">
-          <div className="bg-gray-800 rounded-lg p-1 flex gap-1">
-            <button
-              onClick={() => setSelectedLanguage("vi")}
-              className={`px-4 py-2 rounded-md font-medium transition-all ${
-                selectedLanguage === "vi"
-                  ? "bg-sky-600 text-white"
-                  : "text-gray-400 hover:text-white"
-              }`}
-            >
-              Tiếng Việt
-            </button>
-            <button
-              onClick={() => setSelectedLanguage("en")}
-              className={`px-4 py-2 rounded-md font-medium transition-all ${
-                selectedLanguage === "en"
-                  ? "bg-sky-600 text-white"
-                  : "text-gray-400 hover:text-white"
-              }`}
-            >
-              English
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content - Scroll View */}
-      <div className="container mx-auto px-4 pt-6 pb-6">
-        <div className="max-w-4xl mx-auto space-y-2">
-          {pages.map((page) => (
-            <div
-              key={page.page_id}
-              className="relative bg-black rounded-lg overflow-hidden shadow-lg"
-            >
-              {/* Page Number Badge */}
-              <div className="absolute top-4 left-4 bg-gray-800/90 text-white px-3 py-1 rounded-full text-sm font-medium z-10">
-                Trang {page.page_number}
+    <>
+      <div className="min-h-screen bg-gray-900">
+        {/* Main Content */}
+        <div className="container mx-auto px-4 py-6">
+          <div className="max-w-4xl mx-auto">
+            {/* Progress Bar - Sticky inside container */}
+            <div className="sticky top-4 z-40 mb-6 bg-gray-800/95 backdrop-blur-sm shadow-lg rounded-lg">
+              <div className="px-4 py-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-white font-medium">
+                      Trang {currentPage} / {pages.length}
+                    </span>
+                    <span className="text-gray-400 text-sm">
+                      ({readingProgress.toFixed(0)}%)
+                    </span>
+                  </div>
+                  {isLogin && (
+                    <span className="text-green-400 text-sm flex items-center gap-1">
+                      <svg
+                        className="w-4 h-4"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      Đang lưu tiến độ
+                    </span>
+                  )}
+                </div>
+                {/* Progress bar */}
+                <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
+                  <div
+                    className="bg-gradient-to-r from-sky-500 to-blue-600 h-full transition-all duration-300 ease-out rounded-full"
+                    style={{ width: `${readingProgress}%` }}
+                  />
+                </div>
               </div>
-
-              {/* Page Image */}
-              <Image
-                src={page.image_url}
-                alt={`Trang ${page.page_number}`}
-                width={1200}
-                height={1800}
-                className="w-full h-auto"
-                quality={100}
-                loading="lazy"
-              />
             </div>
-          ))}
-        </div>
 
-        {/* End of Chapter Message */}
-        <div className="max-w-4xl mx-auto mt-8 mb-6">
-          <div className="bg-gray-800 rounded-lg p-8 text-center">
-            <h3 className="text-white text-xl font-bold mb-4">
-              Hết chương {params.chapter_id}
-            </h3>
-            <div className="flex items-center justify-center gap-4">
-              <Link
-                href={`/read/${params.manga_id}`}
-                className="px-6 py-3 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-medium transition-colors"
-              >
-                Danh sách chương
-              </Link>
-              <Link
-                href="/"
-                className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition-colors"
-              >
-                Về trang chủ
-              </Link>
+            {/* Language Selection Button */}
+            <div className="flex justify-end mb-6">
+              <div className="bg-gray-800 rounded-lg p-1 flex gap-1 shadow-lg">
+                <button
+                  onClick={() => setSelectedLanguage("vi")}
+                  className={`px-4 py-2 rounded-md font-medium transition-all ${
+                    selectedLanguage === "vi"
+                      ? "bg-sky-600 text-white"
+                      : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  Tiếng Việt
+                </button>
+                <button
+                  onClick={() => setSelectedLanguage("en")}
+                  className={`px-4 py-2 rounded-md font-medium transition-all ${
+                    selectedLanguage === "en"
+                      ? "bg-sky-600 text-white"
+                      : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  English
+                </button>
+              </div>
+            </div>
+
+            {/* Pages */}
+            <div className="space-y-2">
+              {pages.map((page) => (
+                <div
+                  key={page.page_id}
+                  ref={(el) => {
+                    pageRefs.current[page.page_number] = el;
+                  }}
+                  className={`relative bg-black rounded-lg overflow-hidden shadow-lg transition-all ${
+                    currentPage === page.page_number
+                      ? "ring-2 ring-sky-500 ring-offset-2 ring-offset-gray-900"
+                      : ""
+                  }`}
+                >
+                  {/* Page Number Badge */}
+                  <div className="absolute top-4 left-4 bg-gray-800/90 text-white px-3 py-1 rounded-full text-sm font-medium z-10 shadow-lg">
+                    Trang {page.page_number}
+                  </div>
+
+                  {/* Page Image */}
+                  <Image
+                    src={page.image_url}
+                    alt={`Trang ${page.page_number}`}
+                    width={1200}
+                    height={1800}
+                    className="w-full h-auto"
+                    quality={100}
+                    loading="lazy"
+                  />
+                </div>
+              ))}
+
+              {/* End of Chapter Message */}
+              <div className="mt-8 mb-6">
+                <div className="bg-gray-800 rounded-lg p-8 text-center">
+                  <h3 className="text-white text-xl font-bold mb-4">
+                    Hết chương {params.chapter_id}
+                  </h3>
+
+                  <div className="flex items-center justify-center gap-4">
+                    <Link
+                      href={`/read/${params.manga_id}`}
+                      className="px-6 py-3 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-medium transition-colors"
+                    >
+                      Danh sách chương
+                    </Link>
+                    <Link
+                      href="/"
+                      className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition-colors"
+                    >
+                      Về trang chủ
+                    </Link>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
