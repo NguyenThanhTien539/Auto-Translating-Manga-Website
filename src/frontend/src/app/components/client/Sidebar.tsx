@@ -22,7 +22,7 @@ const MAIN_MENU = [
 
 const SECOND_MENU = [
   { label: "Hồ sơ", href: "/profile", icon: User },
-  { label: "Danh sách của tôi", href: "/favorite-list", icon: Heart },
+  { label: "Danh sách của tôi", href: "/favourite-list", icon: Heart },
   { label: "Cài đặt", href: "/settings", icon: Settings },
 ];
 
