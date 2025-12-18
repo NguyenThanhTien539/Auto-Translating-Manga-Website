@@ -48,7 +48,6 @@ module.exports.detail = async (req, res) => {
 
 module.exports.edit = async (req, res) => {
   try {
-    console.log("Editing genre:", req.params.id, req.body);
     const genreId = req.params.id;
     const dataUpdate = req.body;
     await GenreModel.updateGenre(genreId, dataUpdate);

@@ -3,7 +3,6 @@ const userModel = require("../../models/account.model");
 module.exports.list = async (req, res) => {
   try {
     const users = await userModel.getAllUsers();
-    console.log(users);
     res.json({ code: "success", userList: users });
   } catch (error) {
     res.json({ code: "error", message: "Failed to retrieve user list" });

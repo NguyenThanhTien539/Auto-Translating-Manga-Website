@@ -335,8 +335,6 @@ module.exports.getMangaDetailOfClient = async (req, res) => {
   }
 };
 
-
-
 module.exports.getChapterPages = async (req, res) => {
   try {
     const chapterId = req.params.id;
@@ -597,5 +595,23 @@ module.exports.uploadChapter = async (req, res) => {
       code: "error",
       message: "Lỗi server: " + error.message,
     });
+  }
+};
+
+module.exports.getMangaAndSpecificChapter = async (req, res) => {
+  try {
+    // use query parameters to get manga and chapter
+    const mangaId = req.query.manga_id;
+    const chapterId = req.query.chapter_id;
+    const manga = await Manga.getMangaById(mangaId);
+
+    const author = await Manga.getAuthorDetailByAuthorId(manga.author_id);
+    manga.author_name = author ? author.author_name : "Unknown";
+
+    const chapter = await Manga.getChapterByChapterId(mangaId, chapterId);
+    res.json({ code: "success", data: { manga, chapter } });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ code: "error", message: "Lỗi server" });
   }
 };

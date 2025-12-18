@@ -14,8 +14,8 @@ interface Chapter {
 
 type Manga = {
   manga_id: string;
-  manga_name: string;
-  author: string;
+  title: string;
+  author_name: string;
   cover_image: string;
   description: string;
   genres: string[];
@@ -108,10 +108,10 @@ export default function ReadPage() {
               {/* Manga Info */}
               <div className="md:col-span-3 text-white">
                 <h1 className="text-5xl font-black mb-2 bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
-                  {mangaDetail?.manga.manga_name}
+                  {mangaDetail?.manga.title}
                 </h1>
                 <p className="text-lg text-slate-300 mb-6">
-                  {mangaDetail?.manga.author}
+                  {mangaDetail?.manga.author_name}
                 </p>
 
                 {/* Stats Grid */}
@@ -232,17 +232,23 @@ export default function ReadPage() {
                           Chương {chapter.chapter_number}: {chapter.title}
                         </span>
                         <div className="flex items-center gap-6 text-slate-400">
-                          <button className="hover:text-blue-400 transition-colors flex items-center gap-2">
-                            <Eye size={18} />
-                            <span className="text-xs">
-                              {chapter.views?.toLocaleString()}
-                            </span>
-                          </button>
-                          <button className="hover:text-blue-400 transition-colors">
+                          <button
+                            type="button"
+                            className="hover:text-blue-400 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+
+                              const qs = new URLSearchParams({
+                                manga_id: String(
+                                  mangaDetail?.manga.manga_id ?? ""
+                                ),
+                                chapter_id: String(chapter.chapter_id),
+                              });
+
+                              router.push(`/comment?${qs.toString()}`);
+                            }}
+                          >
                             <MessageCircle size={18} />
-                          </button>
-                          <button className="hover:text-blue-400 transition-colors">
-                            <Download size={18} />
                           </button>
                         </div>
                       </div>

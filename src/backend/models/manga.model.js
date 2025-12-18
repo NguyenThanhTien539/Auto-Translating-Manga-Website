@@ -112,3 +112,9 @@ module.exports.updateMangaStatus = async (mangaId, status) => {
 module.exports.updateChapterStatus = async (chapterId, status) => {
   return db("chapters").where("chapter_id", chapterId).update({ status });
 };
+
+module.exports.getChapterByChapterId = async ( chapterId) => {
+  return db("chapters")
+    .where("chapter_id", chapterId)
+    .first();
+};
