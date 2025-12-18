@@ -18,6 +18,13 @@ module.exports.getMangaById = async (id) => {
   return db("mangas").where("manga_id", id).first();
 };
 
+module.exports.getChaptersByMangaIdOfClient = async (mangaId) => {
+  return db("chapters")
+    .where("manga_id", mangaId)
+    .andWhere("status", "Published")
+    .orderBy("chapter_number", "asc");
+};
+
 module.exports.getChaptersByMangaId = async (mangaId) => {
   return db("chapters")
     .where("manga_id", mangaId)
@@ -31,7 +38,14 @@ module.exports.getMangasByUploader = async (uploaderId) => {
 };
 
 module.exports.getAllMangas = async () => {
-  return db("mangas").select("*");
+  return db("mangas").select("*").orderBy("manga_id", "asc");
+};
+
+module.exports.getAllMangasOfClient = async () => {
+  return db("mangas")
+    .select("*")
+    .whereIn("status", ["OnGoing", "Completed", "Dropped"])
+    .orderBy("manga_id", "asc");
 };
 
 module.exports.getAllLanguages = async () => {
