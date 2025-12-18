@@ -2,40 +2,48 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 
+// Interface khớp với dữ liệu trả về từ API (Database bảng authors)
 interface AuthorCardProps {
-  author_id: string | number;
-  name: string;
-  famous_work?: string;          // ví dụ: "Berserk"
-  role?: string;                 // ví dụ: "Manga Artist"
-  nationality?: string;          // ví dụ: "Japanese"
-  born?: string;                 // ví dụ: "July 11, 1966"
-  birthplace?: string;           // ví dụ: "Japan"
-  lifespan?: string;             // ví dụ: "1966 - 2021" hoặc "1975 - Present"
-  avatarUrl: string;
+  // Các trường trực tiếp từ Database
+  author_id: number;
+  author_name: string;
+  avatar_url: string;
+  biography?: string; // Có trong DB
+
+  // Các trường bổ sung để giữ Style (có thể tính toán từ DB hoặc để default)
+  famous_work?: string;        // Ví dụ: lấy manga nổi bật nhất của tác giả
+  role?: string;               // Mặc định: "Manga Artist"
+  nationality?: string;        // Mặc định: "Japanese"
+  birthplace?: string;         
+  birth_date?: string;         // Format từ ngày sinh nếu có
+  lifespan?: string;           
 }
 
 export default function AuthorCard({
   author_id,
-  name,
+  author_name,
+  avatar_url,
+  // Các giá trị mặc định để giữ nguyên Style nếu DB chưa có dữ liệu này
   famous_work,
   role = "Manga Artist",
   nationality = "Japanese",
-  born,
   birthplace,
+  birth_date,
   lifespan,
-  avatarUrl,
 }: AuthorCardProps) {
+  
   return (
     <Link
       href={`/authors/${author_id}`}
       className="group block h-full transition-transform hover:scale-[1.02]"
     >
       <div className="h-full flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 border border-gray-200 dark:border-gray-700">
-        {/* Top image */}
+        
+        {/* Top image - Sử dụng avatar_url từ DB */}
         <div className="relative h-56 w-full bg-gray-100 dark:bg-gray-700">
           <Image
-            src={avatarUrl}
-            alt={name}
+            src={avatar_url || "/images/default-author.png"} // Fallback nếu url null
+            alt={author_name}
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-500"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
@@ -44,17 +52,17 @@ export default function AuthorCard({
           <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent" />
         </div>
 
-        {/* Blue name bar */}
+        {/* Blue name bar - Sử dụng author_name */}
         <div className="bg-sky-700 text-white px-4 py-3">
-          <h3 className="font-bold text-sm sm:text-base leading-tight truncate" title={name}>
-            {name}
+          <h3 className="font-bold text-sm sm:text-base leading-tight truncate" title={author_name}>
+            {author_name}
           </h3>
           <p className="text-sky-200 text-xs mt-0.5 truncate">
             {famous_work || "—"}
           </p>
         </div>
 
-        {/* Bottom info */}
+        {/* Bottom info - Giữ nguyên style */}
         <div className="p-4 flex-1 flex flex-col justify-between bg-white dark:bg-gray-800">
           <div className="space-y-2">
             <div className="text-gray-800 dark:text-gray-100 font-semibold text-sm">
@@ -68,10 +76,10 @@ export default function AuthorCard({
               {birthplace ? ` • ${birthplace}` : ""}
             </div>
 
-            {(born || lifespan) && (
+            {(birth_date || lifespan) && (
               <div className="text-gray-500 dark:text-gray-400 text-xs">
-                {born ? (
-                  <span>{born}</span>
+                {birth_date ? (
+                  <span>{birth_date}</span>
                 ) : (
                   <span className="italic">—</span>
                 )}
@@ -84,7 +92,7 @@ export default function AuthorCard({
             )}
           </div>
 
-          {/* Footer small accent line like the screenshot */}
+          {/* Footer small accent line */}
           <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
             <div className="h-1 w-16 rounded-full bg-sky-600/80" />
           </div>

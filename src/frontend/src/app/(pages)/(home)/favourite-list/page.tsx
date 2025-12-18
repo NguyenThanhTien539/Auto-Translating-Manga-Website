@@ -27,7 +27,7 @@ export default function FavouriteList() {
   const tabs = ["Reading", "Want to read", "Stalled", "Dropped", "Won't read", "Favourite"];
 
   return (
-    <div className="bg-[#1a1a1a] min-h-screen p-6 text-gray-300">
+    <div className="min-h-screen p-6 text-gray-300">
       {/* 1. Top Navigation Tabs */}
       <div className="flex flex-wrap justify-center gap-2 mb-8">
         {tabs.map((tab) => (
