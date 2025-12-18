@@ -18,10 +18,11 @@ module.exports.findRequestDetailById = async (request_id) => {
     .first();
 };
 
-module.exports.updateRequestStatus = async (request_id, request_status) => {
+module.exports.updateRequestStatus = async (request_id, request_status, updated_at) => {
+  // trả về user_id
   return db("uploader_requests")
     .where("request_id", request_id)
-    .update({ request_status });
+    .update({ request_status, updated_at });
 };
 
 module.exports.checkExistingRequest = async (user_id) => {

@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, CheckCircle, XCircle, BookOpen } from "lucide-react";
+import { CheckCircle, XCircle, BookOpen } from "lucide-react";
+import { ViewDetailButton } from "@/app/components/admin/Button";
 import FilterBar from "@/app/components/admin/Filter";
 import { toast } from "sonner";
 import { formatDate } from "@/utils/format";
@@ -56,51 +57,51 @@ export default function ManageMangaPage() {
     fetchMangas();
   }, []);
 
-  // ========= ACTIONS =========
-  const handleApprove = async (id: number) => {
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manga/approve/${id}`,
-        { 
-            method: "PATCH",
-            credentials: "include" 
-        }
-      );
-      const data = await res.json();
-      if (data.code === "success") {
-        toast.success("Đã duyệt truyện thành công");
-        fetchMangas(); // Reload list
-      } else {
-        toast.error(data.message || "Lỗi khi duyệt truyện");
-      }
-    } catch (error) {
-      toast.error("Lỗi kết nối server");
-    }
-  };
+  // // ========= ACTIONS =========
+  // const handleApprove = async (id: number) => {
+  //   try {
+  //     const res = await fetch(
+  //       `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manga/approve/${id}`,
+  //       {
+  //         method: "PATCH",
+  //         credentials: "include",
+  //       }
+  //     );
+  //     const data = await res.json();
+  //     if (data.code === "success") {
+  //       toast.success("Đã duyệt truyện thành công");
+  //       fetchMangas(); // Reload list
+  //     } else {
+  //       toast.error(data.message || "Lỗi khi duyệt truyện");
+  //     }
+  //   } catch (error) {
+  //     toast.error("Lỗi kết nối server");
+  //   }
+  // };
 
-  const handleReject = async (id: number) => {
-      // Có thể thêm modal nhập lý do từ chối ở đây
-      if(!confirm("Bạn có chắc muốn từ chối/ẩn truyện này?")) return;
+  // const handleReject = async (id: number) => {
+  //   // Có thể thêm modal nhập lý do từ chối ở đây
+  //   if (!confirm("Bạn có chắc muốn từ chối/ẩn truyện này?")) return;
 
-      try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manga/reject/${id}`,
-          { 
-              method: "PATCH",
-              credentials: "include" 
-          }
-        );
-        const data = await res.json();
-        if (data.code === "success") {
-          toast.success("Đã ẩn truyện thành công");
-          fetchMangas();
-        } else {
-          toast.error(data.message || "Lỗi khi ẩn truyện");
-        }
-      } catch (error) {
-        toast.error("Lỗi kết nối server");
-      }
-  };
+  //   try {
+  //     const res = await fetch(
+  //       `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manga/reject/${id}`,
+  //       {
+  //         method: "PATCH",
+  //         credentials: "include",
+  //       }
+  //     );
+  //     const data = await res.json();
+  //     if (data.code === "success") {
+  //       toast.success("Đã ẩn truyện thành công");
+  //       fetchMangas();
+  //     } else {
+  //       toast.error(data.message || "Lỗi khi ẩn truyện");
+  //     }
+  //   } catch (error) {
+  //     toast.error("Lỗi kết nối server");
+  //   }
+  // };
 
   // ========= HELPERS =========
   const resetFilters = () => {
@@ -152,14 +153,14 @@ export default function ManageMangaPage() {
       OnGoing: "bg-blue-100 text-blue-700 border-blue-200",
       Completed: "bg-green-100 text-green-700 border-green-200",
       Dropped: "bg-red-100 text-red-700 border-red-200",
-      Pending: "bg-yellow-100 text-yellow-700 border-yellow-200" // Giả sử có trạng thái chờ duyệt
+      Pending: "bg-yellow-100 text-yellow-700 border-yellow-200",
     };
 
     const labels: Record<string, string> = {
       OnGoing: "Đang tiến hành",
       Completed: "Hoàn thành",
       Dropped: "Tạm ngưng",
-      Pending: "Chờ duyệt"
+      Pending: "Chờ duyệt",
     };
 
     return (
@@ -187,6 +188,7 @@ export default function ManageMangaPage() {
           setStatusFilter={setStatusFilter}
           statusOptions={[
             { value: "all", label: "Tất cả trạng thái" },
+            { value: "Pending", label: "Chờ duyệt" },
             { value: "OnGoing", label: "Đang tiến hành" },
             { value: "Completed", label: "Hoàn thành" },
             { value: "Dropped", label: "Tạm ngưng" },
@@ -271,10 +273,15 @@ export default function ManageMangaPage() {
                             )}
                           </div>
                           <div>
-                            <div className="font-medium text-gray-900 line-clamp-1" title={manga.title}>
+                            <div
+                              className="font-medium text-gray-900 line-clamp-1"
+                              title={manga.title}
+                            >
                               {manga.title}
                             </div>
-                            <div className="text-xs text-gray-500">ID: {manga.manga_id}</div>
+                            <div className="text-xs text-gray-500">
+                              ID: {manga.manga_id}
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -285,7 +292,7 @@ export default function ManageMangaPage() {
 
                       <td className="px-6 py-4 text-center">
                         <span className="text-sm font-medium text-purple-600 bg-purple-50 px-2 py-1 rounded">
-                            {manga.uploader_name || "Unknown"}
+                          {manga.uploader_name || "Unknown"}
                         </span>
                       </td>
 
@@ -300,31 +307,11 @@ export default function ManageMangaPage() {
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-center gap-2">
                           {/* Nút xem chi tiết */}
-                          <button 
-                            onClick={() => router.push(`/admin/read/${manga.manga_id}`)}
-                            className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Xem chi tiết"
-                          >
-                            <Eye size={18} />
-                          </button>
-                          
-                          {/* Nút Duyệt */}
-                          <button 
-                            onClick={() => handleApprove(manga.manga_id)}
-                            className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
-                            title="Duyệt truyện"
-                          >
-                            <CheckCircle size={18} />
-                          </button>
 
-                          {/* Nút Từ chối/Ẩn */}
-                          <button 
-                            onClick={() => handleReject(manga.manga_id)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Ẩn/Từ chối"
-                          >
-                            <XCircle size={18} />
-                          </button>
+                          <ViewDetailButton
+                            href={`/admin/read/${manga.manga_id}`}
+                            title="Xem chi tiết"
+                          />
                         </div>
                       </td>
                     </tr>
@@ -342,48 +329,6 @@ export default function ManageMangaPage() {
             </table>
           </div>
         </div>
-        
-        {/* Mobile View (Simplified) */}
-        <div className="lg:hidden mt-4 space-y-4">
-            {filteredMangas.map(manga => (
-                <div key={manga.manga_id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                    <div className="flex gap-4">
-                        <div className="w-20 h-28 relative rounded bg-gray-100 flex-shrink-0">
-                             {manga.cover_image && (
-                              <Image
-                                src={manga.cover_image}
-                                alt={manga.title}
-                                fill
-                                className="object-cover rounded"
-                              />
-                            )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-gray-900 truncate">{manga.title}</h3>
-                            <p className="text-sm text-gray-500 mb-1">{manga.author}</p>
-                            <div className="flex flex-wrap gap-2 mb-2">
-                                {getStatusBadge(manga.status)}
-                            </div>
-                            <div className="flex gap-2 mt-2">
-                                <button 
-                                    onClick={() => handleApprove(manga.manga_id)}
-                                    className="flex-1 bg-emerald-100 text-emerald-700 py-1.5 rounded text-sm font-medium"
-                                >
-                                    Duyệt
-                                </button>
-                                <button 
-                                    onClick={() => handleReject(manga.manga_id)}
-                                    className="flex-1 bg-red-100 text-red-700 py-1.5 rounded text-sm font-medium"
-                                >
-                                    Ẩn
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            ))}
-        </div>
-
       </div>
     </div>
   );

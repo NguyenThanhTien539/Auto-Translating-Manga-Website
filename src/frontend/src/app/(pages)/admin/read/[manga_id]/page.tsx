@@ -1,7 +1,8 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Eye, MessageCircle, Download, Star } from "lucide-react";
+import { Star } from "lucide-react";
 import Image from "next/image";
 import { useParams, useRouter, usePathname } from "next/navigation";
 import { toast } from "sonner";
@@ -27,9 +28,87 @@ type Manga = {
   rating?: number;
 };
 
+const getChapterStatusBadge = (status?: string) => {
+  const s = (status || "Pending").toLowerCase();
+
+  const map: Record<string, { label: string; cls: string }> = {
+    pending: {
+      label: "Chờ duyệt",
+      cls: "bg-yellow-50 text-yellow-700 border-yellow-200",
+    },
+    approved: {
+      label: "Đã duyệt",
+      cls: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    },
+    rejected: {
+      label: "Từ chối",
+      cls: "bg-red-50 text-red-700 border-red-200",
+    },
+    active: {
+      label: "Hiển thị",
+      cls: "bg-blue-50 text-blue-700 border-blue-200",
+    },
+    inactive: {
+      label: "Ẩn",
+      cls: "bg-gray-50 text-gray-700 border-gray-200",
+    },
+  };
+
+  const picked = map[s] || {
+    label: status || "Không rõ",
+    cls: "bg-gray-50 text-gray-700 border-gray-200",
+  };
+
+  return (
+    <span
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${picked.cls}`}
+    >
+      {picked.label}
+    </span>
+  );
+};
+
+const getMangaStatusBadge = (status?: string) => {
+  const s = (status || "").toLowerCase();
+  const map: Record<string, { label: string; cls: string }> = {
+    ongoing: {
+      label: "Đang tiến hành",
+      cls: "bg-blue-50 text-blue-700 border-blue-200",
+    },
+    completed: {
+      label: "Hoàn thành",
+      cls: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    },
+    dropped: {
+      label: "Tạm ngưng",
+      cls: "bg-red-50 text-red-700 border-red-200",
+    },
+    pending: {
+      label: "Chờ duyệt",
+      cls: "bg-yellow-50 text-yellow-700 border-yellow-200",
+    },
+  };
+  const picked = map[s] || {
+    label: status || "Không rõ",
+    cls: "bg-gray-50 text-gray-700 border-gray-200",
+  };
+  return (
+    <span
+      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${picked.cls}`}
+    >
+      {picked.label}
+    </span>
+  );
+};
+
+const decodeHtml = (html: string) => {
+  const txt = document.createElement("textarea");
+  txt.innerHTML = html;
+  return txt.value;
+};
+
 export default function ReadPage() {
   const router = useRouter();
-  const pathname = usePathname();
   const params = useParams<{ manga_id?: string }>();
 
   const mangaId = useMemo(() => {
@@ -44,12 +123,13 @@ export default function ReadPage() {
 
   const [loading, setLoading] = useState(true);
   const [showFullDescription, setShowFullDescription] = useState(false);
-  const [activeTab, setActiveTab] = useState<"overview" | "chapters">("overview");
-
-  const isAdminRoute = pathname?.startsWith("/admin");
-
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
-  const ADMIN_PATH = process.env.NEXT_PUBLIC_PATH_ADMIN || "";
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "chapters" | "edit-status"
+  >("overview");
+  const [statusDraft, setStatusDraft] = useState<string>("");
+  const [chapterDrafts, setChapterDrafts] = useState<Record<string, string>>(
+    {}
+  );
 
   useEffect(() => {
     if (!mangaId) {
@@ -58,14 +138,11 @@ export default function ReadPage() {
       return;
     }
 
-    const controller = new AbortController();
-
-    // Bạn đang dùng endpoint client
-    const detailUrl = `${API_URL}/manga/detail/${mangaId}`;
-
     setLoading(true);
 
-    fetch(detailUrl, { credentials: "include", signal: controller.signal })
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/detail/${mangaId}`, {
+      credentials: "include",
+    })
       .then((res) => res.json())
       .then((data) => {
         if (data?.code === "success") setMangaDetail(data.data);
@@ -81,53 +158,7 @@ export default function ReadPage() {
         }
       })
       .finally(() => setLoading(false));
-
-    return () => controller.abort();
-  }, [mangaId, isAdminRoute, API_URL, ADMIN_PATH]);
-
-  const getChapterStatusBadge = (status?: string) => {
-    const s = (status || "Pending").toLowerCase();
-
-    const map: Record<string, { label: string; cls: string }> = {
-      pending: { label: "Chờ duyệt", cls: "bg-yellow-50 text-yellow-700 border-yellow-200" },
-      approved: { label: "Đã duyệt", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-      rejected: { label: "Từ chối", cls: "bg-red-50 text-red-700 border-red-200" },
-      active: { label: "Hiển thị", cls: "bg-blue-50 text-blue-700 border-blue-200" },
-      inactive: { label: "Ẩn", cls: "bg-gray-50 text-gray-700 border-gray-200" },
-    };
-
-    const picked = map[s] || { label: status || "Không rõ", cls: "bg-gray-50 text-gray-700 border-gray-200" };
-
-    return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${picked.cls}`}>
-        {picked.label}
-      </span>
-    );
-  };
-
-  const getMangaStatusBadge = (status?: string) => {
-    const s = (status || "").toLowerCase();
-    const map: Record<string, { label: string; cls: string }> = {
-      ongoing: { label: "Đang tiến hành", cls: "bg-blue-50 text-blue-700 border-blue-200" },
-      completed: { label: "Hoàn thành", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-      dropped: { label: "Tạm ngưng", cls: "bg-red-50 text-red-700 border-red-200" },
-      pending: { label: "Chờ duyệt", cls: "bg-yellow-50 text-yellow-700 border-yellow-200" },
-    };
-    const picked = map[s] || { label: status || "Không rõ", cls: "bg-gray-50 text-gray-700 border-gray-200" };
-    return (
-      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${picked.cls}`}>
-        {picked.label}
-      </span>
-    );
-  };
-
-  const goToChapter = (chapterId: string) => {
-    if (isAdminRoute) {
-      router.push(`/admin/read/${mangaId}/${chapterId}`);
-      return;
-    }
-    router.push(`/read/${mangaId}/${chapterId}`);
-  };
+  }, [mangaId]);
 
   if (loading) {
     return (
@@ -153,17 +184,12 @@ export default function ReadPage() {
     );
   }
 
-  const mangaTitle = mangaDetail.manga.manga_name || mangaDetail.manga.title || "Untitled";
-  const safeDesc = (mangaDetail.manga.description || "").replace(/<[^>]+>/g, "");
-  const totalChapters = mangaDetail.manga.totalChapters ?? mangaDetail.chapters.length;
-  const rating = mangaDetail.manga.rating ?? 5;
-
   return (
     <div className="w-full min-h-screen bg-gray-50 px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
       <div className="max-w-[1400px] mx-auto">
         {/* Tabs */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="grid grid-cols-2">
+          <div className="grid grid-cols-3">
             <button
               onClick={() => setActiveTab("overview")}
               className={`py-4 font-semibold text-sm sm:text-base transition-colors ${
@@ -184,6 +210,26 @@ export default function ReadPage() {
             >
               Chương
             </button>
+            <button
+              onClick={() => {
+                setActiveTab("edit-status");
+                setStatusDraft((mangaDetail?.manga.status || "").toLowerCase());
+                // initialize chapter drafts from current chapter statuses
+                setChapterDrafts(
+                  (mangaDetail?.chapters || []).reduce((acc, c) => {
+                    acc[c.chapter_id] = (c.status || "pending").toLowerCase();
+                    return acc;
+                  }, {} as Record<string, string>)
+                );
+              }}
+              className={`py-4 font-semibold text-sm sm:text-base transition-colors ${
+                activeTab === "edit-status"
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-50 text-gray-500 hover:bg-gray-100"
+              }`}
+            >
+              Chỉnh sửa trạng thái
+            </button>
           </div>
         </div>
 
@@ -193,13 +239,22 @@ export default function ReadPage() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="md:col-span-1 flex justify-center md:justify-start">
                 <div className="relative w-40 h-60 sm:w-48 sm:h-72 rounded-xl overflow-hidden border border-gray-200 bg-gray-100 shadow-sm">
-                  <Image src={mangaDetail.manga.cover_image} alt="manga cover" fill className="object-cover" />
+                  <Image
+                    src={mangaDetail.manga.cover_image}
+                    alt="manga cover"
+                    fill
+                    className="object-cover"
+                  />
                 </div>
               </div>
 
               <div className="md:col-span-3">
-                <h1 className="text-3xl sm:text-4xl font-bold text-gray-900">{mangaTitle}</h1>
-                <p className="text-sm sm:text-base text-gray-600 mt-2">{mangaDetail.manga.author}</p>
+                <h1 className="text-3xl sm:text-4xl font-bold text-gray-900">
+                  {mangaDetail.manga.title}
+                </h1>
+                <p className="text-sm sm:text-base text-gray-600 mt-2">
+                  {mangaDetail.manga.author}
+                </p>
 
                 <div className="mt-5 flex flex-wrap items-center gap-3">
                   {getMangaStatusBadge(mangaDetail.manga.status)}
@@ -207,15 +262,26 @@ export default function ReadPage() {
 
                 <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
                   <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                    <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Chương</p>
-                    <p className="text-2xl font-bold text-blue-700">{totalChapters}+</p>
+                    <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">
+                      Chương
+                    </p>
+                    <p className="text-2xl font-bold text-blue-700">
+                      {mangaDetail.manga.totalChapters}+
+                    </p>
                   </div>
 
                   <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                    <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Đánh giá</p>
+                    <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">
+                      Đánh giá
+                    </p>
                     <div className="flex items-center gap-2">
-                      <Star size={18} className="text-yellow-500 fill-yellow-500" />
-                      <span className="text-2xl font-bold text-yellow-600">{rating}</span>
+                      <Star
+                        size={18}
+                        className="text-yellow-500 fill-yellow-500"
+                      />
+                      <span className="text-2xl font-bold text-yellow-600">
+                        {5}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -229,9 +295,17 @@ export default function ReadPage() {
           {activeTab === "overview" && (
             <div className="space-y-4">
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8">
-                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3">Nội dung</h2>
-                <p className={`text-gray-700 leading-relaxed ${!showFullDescription ? "line-clamp-4" : ""}`}>
-                  {safeDesc}
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3">
+                  Nội dung
+                </h2>
+                <p
+                  className={`text-gray-700 leading-relaxed ${
+                    !showFullDescription ? "line-clamp-4" : ""
+                  }`}
+                >
+                  {decodeHtml(
+                    mangaDetail?.manga.description.replace(/<[^>]+>/g, "")
+                  )}
                 </p>
                 <button
                   onClick={() => setShowFullDescription((v) => !v)}
@@ -242,7 +316,9 @@ export default function ReadPage() {
               </div>
 
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8">
-                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Danh mục</h2>
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">
+                  Danh mục
+                </h2>
                 <div className="flex flex-wrap gap-2">
                   {(mangaDetail.manga.genres || []).map((genre) => (
                     <span
@@ -264,7 +340,11 @@ export default function ReadPage() {
                   <div
                     key={chapter.chapter_id}
                     className="px-5 sm:px-6 py-4 hover:bg-blue-50/50 cursor-pointer transition-colors"
-                    onClick={() => goToChapter(chapter.chapter_id)}
+                    onClick={() =>
+                      router.push(
+                        `/${process.env.NEXT_PUBLIC_PATH_ADMIN}/read/${mangaDetail.manga.manga_id}/${chapter.chapter_id}`
+                      )
+                    }
                   >
                     <div className="flex items-center justify-between gap-4">
                       {/* Title + status badge */}
@@ -274,44 +354,132 @@ export default function ReadPage() {
                         </div>
                         {getChapterStatusBadge(chapter.status)}
                       </div>
-
-                      {/* Actions */}
-                      <div className="flex items-center gap-3 text-gray-500">
-                        <button
-                          type="button"
-                          onClick={(e) => e.stopPropagation()}
-                          className="p-2 rounded-lg hover:bg-white hover:text-blue-600 transition-colors flex items-center gap-2"
-                          title="Lượt xem"
-                        >
-                          <Eye size={18} />
-                          <span className="text-xs">{chapter.views?.toLocaleString?.() ?? "—"}</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={(e) => e.stopPropagation()}
-                          className="p-2 rounded-lg hover:bg-white hover:text-blue-600 transition-colors"
-                          title="Bình luận"
-                        >
-                          <MessageCircle size={18} />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={(e) => e.stopPropagation()}
-                          className="p-2 rounded-lg hover:bg-white hover:text-blue-600 transition-colors"
-                          title="Tải xuống"
-                        >
-                          <Download size={18} />
-                        </button>
-                      </div>
                     </div>
                   </div>
                 ))}
 
                 {mangaDetail.chapters.length === 0 && (
-                  <div className="p-8 text-center text-gray-500">Chưa có chương nào.</div>
+                  <div className="p-8 text-center text-gray-500">
+                    Chưa có chương nào.
+                  </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === "edit-status" && (
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3">
+                Chỉnh sửa trạng thái truyện
+              </h2>
+
+              <div className="max-w-md">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Trạng thái
+                </label>
+                <select
+                  value={statusDraft}
+                  onChange={(e) => setStatusDraft(e.target.value)}
+                  className="w-full border rounded-lg p-2.5 bg-white text-sm"
+                >
+                  <option value="pending">Chờ duyệt</option>
+                  <option value="ongoing">Đang tiến hành</option>
+                  <option value="completed">Hoàn thành</option>
+                  <option value="dropped">Tạm ngưng</option>
+                </select>
+
+                <div className="mt-4 flex items-center gap-3">
+                  <button className="px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors">
+                    Lưu
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setStatusDraft(
+                        (mangaDetail?.manga.status || "").toLowerCase()
+                      );
+                    }}
+                    className="px-3 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                  >
+                    Hủy
+                  </button>
+                </div>
+              </div>
+              {/* Chapters moderation */}
+              <div className="mt-6">
+                <h3 className="text-md font-semibold text-gray-900 mb-3">
+                  Danh sách chương
+                </h3>
+                <div className="space-y-3">
+                  {(mangaDetail.chapters || []).map((ch) => {
+                    const draft =
+                      chapterDrafts[ch.chapter_id] ||
+                      (ch.status || "pending").toLowerCase();
+                    const changed =
+                      draft !== (ch.status || "pending").toLowerCase();
+                    return (
+                      <div
+                        key={ch.chapter_id}
+                        className="flex items-center justify-between gap-4 p-3 border border-gray-100 rounded-lg bg-gray-50"
+                      >
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium text-gray-900 truncate">
+                            Chương {ch.chapter_number}: {ch.title}
+                          </div>
+                          <div className="mt-1 flex items-center gap-2">
+                            <div>{getChapterStatusBadge(ch.status)}</div>
+                            <div className="text-xs text-gray-500">
+                              ID: {ch.chapter_id}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={draft}
+                            onChange={(e) =>
+                              setChapterDrafts((prev) => ({
+                                ...prev,
+                                [ch.chapter_id]: e.target.value,
+                              }))
+                            }
+                            className="rounded-lg border px-3 py-1 text-sm bg-white"
+                          >
+                            <option value="pending">Chờ duyệt</option>
+                            <option value="approved">Đã duyệt</option>
+                            <option value="rejected">Từ chối</option>
+                            <option value="active">Hiển thị</option>
+                            <option value="inactive">Ẩn</option>
+                          </select>
+
+                          <button
+                            className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
+                              changed
+                                ? "bg-blue-600 text-white hover:bg-blue-700"
+                                : "bg-gray-100 text-gray-700"
+                            }`}
+                          >
+                            Lưu
+                          </button>
+
+                          <button
+                            onClick={() =>
+                              setChapterDrafts((prev) => ({
+                                ...prev,
+                                [ch.chapter_id]: (
+                                  ch.status || "pending"
+                                ).toLowerCase(),
+                              }))
+                            }
+                            className="px-3 py-1.5 rounded-lg bg-white border text-sm text-gray-700"
+                          >
+                            Hủy
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}

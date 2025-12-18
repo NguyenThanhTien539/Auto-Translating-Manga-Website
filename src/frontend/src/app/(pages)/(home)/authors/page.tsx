@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -105,7 +107,7 @@ export default function AuthorsPage() {
   }
 
   return (
-    <div className="p-6 bg-gray-50 dark:bg-gray-500">
+    <div className="min-h-screen p-6 bg-gray-50 dark:bg-gray-500">
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {authorsForUI.map((a: any) => (
           <div

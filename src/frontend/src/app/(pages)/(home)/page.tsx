@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/app/(site)/(home)/page.tsx
 "use client";
 
@@ -43,26 +44,6 @@ const HIGHLIGHT_ITEMS: HighlightItem[] = [
   },
 ];
 
-const CATEGORIES = [
-  "All category",
-  "Shonen",
-  "Shojo",
-  "Seinen",
-  "Josei",
-  "Kodomonuke",
-  "One Shot",
-  "Action",
-  "Adventure",
-  "Fantasy",
-  "Dark Fantasy",
-  "Ecchi",
-  "Romance",
-  "Horror",
-  "Parody",
-  "Mistery",
-];
-
-// Dữ liệu giả cho MangaCard
 const MOCK_MANGA_DATA = [
   {
     manga_id: "1",
@@ -135,9 +116,22 @@ export default function Home() {
   const handleNext = () => {
     setActiveIndex((prev) => (prev + 1) % HIGHLIGHT_ITEMS.length);
   };
+  const [genres, setGenres] = useState([]);
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/genres`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.code === "success") {
+          setGenres(data.data);
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching languages:", error);
+      });
+  }, []);
 
   return (
-    <div className=" px-3 space-y-6">
+    <div className=" px-3 space-y-6 ">
       {/* ---- OUT NOW + HIGHLIGHT SLIDER ---- */}
       <section className="space-y-2">
         <div className="flex items-center gap-2">
@@ -227,9 +221,9 @@ export default function Home() {
           Hot Categories
         </h3>
         <div className="flex flex-wrap gap-2 rounded-xl bg-amber-300/80 px-4 py-10">
-          {CATEGORIES.map((cat, idx) => (
+          {(genres as any[]).map((genre, idx) => (
             <button
-              key={cat}
+              key={genre.genre_id}
               className={`rounded-full border px-3 py-1 text-xs font-medium shadow-sm
               ${
                 idx === 0
@@ -237,7 +231,7 @@ export default function Home() {
                   : "border-amber-200 bg-amber-50 text-slate-800 hover:bg-amber-100"
               }`}
             >
-              {cat}
+              {genre.genre_name}
             </button>
           ))}
         </div>

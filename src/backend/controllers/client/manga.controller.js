@@ -335,7 +335,6 @@ module.exports.getChapterPages = async (req, res) => {
   try {
     const chapterId = req.params.id;
     const pages = await Manga.getChapterPages(chapterId);
-    
     // Get base URL from request or use default
     const protocol = req.protocol;
     const host = req.get('host');

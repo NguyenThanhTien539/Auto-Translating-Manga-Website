@@ -1,4 +1,6 @@
 const registerUploader = require("../../models/registration-uploader");
+const accountModel = require("../../models/account.model");
+const roleModel = require("../../models/role.model");
 
 module.exports.list = async (req, res) => {
   const requestList = await registerUploader.findAllRequestDetails();
@@ -33,7 +35,18 @@ module.exports.updateStatus = async (req, res) => {
   const { id } = req.params;
   const { request_status } = req.body;
   try {
-    await registerUploader.updateRequestStatus(id, request_status);
+    const updated_at = new Date();
+    await registerUploader.updateRequestStatus(id, request_status, updated_at);
+
+    if (request_status === "accepted") {
+      const requestDetail = await registerUploader.findRequestDetailById(id);
+      const uploaderRole = await roleModel.findByCode("UPL"); // assuming role_code "uploader" is for uploader
+      await accountModel.updateRoleById(
+        requestDetail.user_id,
+        uploaderRole.role_id
+      );
+    }
+
     res.json({
       code: "success",
       message: "Cập nhật trạng thái thành công",

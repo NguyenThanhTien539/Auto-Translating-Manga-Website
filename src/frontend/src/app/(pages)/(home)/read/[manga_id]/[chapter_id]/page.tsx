@@ -23,9 +23,7 @@ export default function ChapterReadPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
-    fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/manga/chapter/${params.chapter_id}/pages`
-    )
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/chapter/${params.chapter_id}/pages`)
       .then((response) => response.json())
       .then((data) => {
         if (data.code === "success") {
