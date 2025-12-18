@@ -74,5 +74,8 @@ route.get("/detail/:id", mangaController.getMangaDetailOfClient);
 route.get("/chapter/:id/pages", mangaController.getChapterPages);
 
 route.get("/detail", mangaController.getMangaAndSpecificChapter);
+route.get("/filter", rateLimit(50, 60000), mangaController.filterMangas);
+
+route.get("/filterPanelData", rateLimit(50, 60000), mangaController.getFilterPanelData);
 
 module.exports = route;

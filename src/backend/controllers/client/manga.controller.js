@@ -615,3 +615,45 @@ module.exports.getMangaAndSpecificChapter = async (req, res) => {
     res.status(500).json({ code: "error", message: "Lỗi server" });
   }
 };
+
+module.exports.getFilterPanelData = async (req, res) => {
+  try {
+    const values = await Manga.getFilterPanelData(); 
+    res.json({ code: "success", data: values });
+    console.log(values);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ code: "error", message: "Lỗi server" });
+  }
+};
+
+
+module.exports.filterMangas = async (req, res) => {
+  try {
+    let { chaptersMin, chaptersMax, state } = req.query;
+
+
+    // normalize state nếu bị array
+    if (Array.isArray(state)) state = state[0];
+
+    // categories: string | string[]
+    let categories = req.query.categories;
+    if (categories == null) categories = [];
+    if (!Array.isArray(categories)) categories = [categories];
+    categories = categories.map((x) => String(x).trim()).filter(Boolean);
+
+    const filters = {
+      chaptersMin: chaptersMin !== undefined ? Number(chaptersMin) : undefined,
+      chaptersMax: chaptersMax !== undefined ? Number(chaptersMax) : undefined,
+      state: state ?? "all",
+      categories,
+    };
+
+    const mangas = await Manga.filterMangas(filters);
+    return res.json({ code: "success", data: mangas });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ code: "error", message: "Lỗi server" });
+  }
+};
+
