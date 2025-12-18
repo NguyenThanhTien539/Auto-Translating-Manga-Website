@@ -36,7 +36,7 @@ export default function ManageMangaPage() {
   // Fetch Manga List
   const fetchMangas = () => {
     fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manga/list`,
+      `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manage-manga/list`,
       { credentials: "include" }
     )
       .then((res) => res.json())

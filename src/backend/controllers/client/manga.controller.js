@@ -323,7 +323,6 @@ module.exports.getMangaDetail = async (req, res) => {
     const totalChaper = await Manga.countChaptersByMangaId(mangaId);
     manga.totalChapters = totalChaper;
     const finalDetail = { manga, chapters };
-
     res.json({ code: "success", data: finalDetail });
   } catch (error) {
     console.error(error);

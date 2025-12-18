@@ -1,12 +1,25 @@
 const route = require("express").Router();
-const controller = require("../../controllers/admin/manga.controller");
+const mangaController = require("../../controllers/admin/manga.controller");
 const authMiddleware = require("../../middlewares/auth.middleware");
 
-// Áp dụng middleware adminAuth cho tất cả các route này
-route.get("/list", authMiddleware.adminAuth, controller.getListManga);
+route.get("/list", authMiddleware.adminAuth, mangaController.getListManga);
 
-route.patch("/approve/:id", authMiddleware.adminAuth, controller.approveManga);
+route.patch(
+  "/update-manga-status/:id",
+  authMiddleware.adminAuth,
+  mangaController.updateStatusManga
+);
 
-route.patch("/reject/:id", authMiddleware.adminAuth, controller.rejectManga);
+route.patch(
+  "/update-chapter-status/:id",
+  authMiddleware.adminAuth,
+  mangaController.updateStatusChapter
+);
+
+route.patch(
+  "/reject/:id",
+  authMiddleware.adminAuth,
+  mangaController.rejectManga
+);
 
 module.exports = route;

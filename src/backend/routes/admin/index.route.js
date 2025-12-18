@@ -10,6 +10,6 @@ route.use("/genre", genreRoutes);
 
 route.use("/registration-uploader", registerUploaderRoutes);
 
-route.use("/manga", mangaRoutes);
+route.use("/manage-manga", mangaRoutes);
 
 module.exports = route;

@@ -19,7 +19,9 @@ module.exports.getMangaById = async (id) => {
 };
 
 module.exports.getChaptersByMangaId = async (mangaId) => {
-  return db("chapters").where("manga_id", mangaId).orderBy("chapter_number", "asc");
+  return db("chapters")
+    .where("manga_id", mangaId)
+    .orderBy("chapter_number", "asc");
 };
 
 module.exports.getMangasByUploader = async (uploaderId) => {
@@ -87,4 +89,12 @@ module.exports.getAuthorDetailByAuthorId = async (authorId) => {
 
 module.exports.getPageById = async (pageId) => {
   return db("pages").where("page_id", pageId).first();
+};
+
+module.exports.updateMangaStatus = async (mangaId, status) => {
+  return db("mangas").where("manga_id", mangaId).update({ status });
+};
+
+module.exports.updateChapterStatus = async (chapterId, status) => {
+  return db("chapters").where("chapter_id", chapterId).update({ status });
 };

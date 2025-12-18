@@ -141,6 +141,7 @@ export default function ReadPage() {
     "overview" | "chapters" | "edit-status"
   >("overview");
   const [statusDraft, setStatusDraft] = useState<string>("");
+
   const [chapterDrafts, setChapterDrafts] = useState<Record<string, string>>(
     {}
   );
@@ -154,6 +155,20 @@ export default function ReadPage() {
       }
     } catch (err) {}
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== "edit-status") return;
+    if (!mangaDetail) return;
+
+    setStatusDraft(mangaDetail.manga.status ?? "Pending");
+
+    setChapterDrafts(
+      (mangaDetail.chapters || []).reduce((acc, c) => {
+        acc[c.chapter_id] = c.status ?? "Pending";
+        return acc;
+      }, {} as Record<string, string>)
+    );
+  }, [activeTab, mangaDetail]);
 
   useEffect(() => {
     try {
@@ -245,11 +260,10 @@ export default function ReadPage() {
             <button
               onClick={() => {
                 setActiveTab("edit-status");
-                setStatusDraft((mangaDetail?.manga.status).toLowerCase());
-                // initialize chapter drafts from current chapter statuses
+                setStatusDraft(mangaDetail.manga.status);
                 setChapterDrafts(
                   (mangaDetail?.chapters || []).reduce((acc, c) => {
-                    acc[c.chapter_id] = (c.status || "pending").toLowerCase();
+                    acc[c.chapter_id] = c.status || "pending";
                     return acc;
                   }, {} as Record<string, string>)
                 );
@@ -417,14 +431,80 @@ export default function ReadPage() {
                       className="w-full border rounded-lg p-2.5 bg-white text-sm"
                     >
                       <option value="Pending">Chờ duyệt</option>
-                      <option value="Ongoing">Đang diễn ra</option>
+                      <option value="OnGoing">Đang diễn ra</option>
                       <option value="Completed">Hoàn thành</option>
                       <option value="Dropped">Tạm ngưng</option>
                       <option value="Rejected">Từ chối</option>
                     </select>
                   </div>
 
-                  <button className="h-[42px] px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors">
+                  <button
+                    onClick={async () => {
+                      try {
+                        const res = await fetch(
+                          `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manage-manga/update-manga-status/${mangaDetail.manga.manga_id}`,
+                          {
+                            method: "PATCH",
+                            credentials: "include",
+                            headers: {
+                              "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({ status: statusDraft }),
+                          }
+                        );
+                        const data = await res.json();
+                        if (data.code === "success") {
+                          toast.success(
+                            "Cập nhật trạng thái truyện thành công"
+                          );
+
+                          setMangaDetail((prev) => {
+                            if (!prev) return prev;
+
+                            const nextChapterStatus =
+                              statusDraft === "OnGoing"
+                                ? "Published"
+                                : statusDraft === "Rejected"
+                                ? "Rejected"
+                                : null;
+
+                            return {
+                              ...prev,
+                              manga: { ...prev.manga, status: statusDraft },
+                              chapters: nextChapterStatus
+                                ? prev.chapters.map((c) => ({
+                                    ...c,
+                                    status: nextChapterStatus,
+                                  }))
+                                : prev.chapters,
+                            };
+                          });
+
+                          if (
+                            statusDraft === "OnGoing" ||
+                            statusDraft === "Rejected"
+                          ) {
+                            const next =
+                              statusDraft === "OnGoing"
+                                ? "Published"
+                                : "Rejected";
+                            setChapterDrafts((prev) => {
+                              const copy = { ...prev };
+                              (mangaDetail?.chapters || []).forEach(
+                                (c) => (copy[c.chapter_id] = next)
+                              );
+                              return copy;
+                            });
+                          }
+                        } else {
+                          toast.error(data?.message || "Cập nhật thất bại");
+                        }
+                      } catch (err) {
+                        toast.error("Lỗi kết nối server");
+                      }
+                    }}
+                    className="h-[42px] px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors"
+                  >
                     Lưu
                   </button>
                 </div>
@@ -484,7 +564,7 @@ export default function ReadPage() {
                               if (!changed) return;
                               try {
                                 const res = await fetch(
-                                  `${process.env.NEXT_PUBLIC_API_URL}/manga/chapter/status/${ch.chapter_id}`,
+                                  `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manage-manga/update-chapter-status/${ch.chapter_id}`,
                                   {
                                     method: "PATCH",
                                     credentials: "include",
