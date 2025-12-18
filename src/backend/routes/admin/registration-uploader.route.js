@@ -15,4 +15,11 @@ route.get(
   registrationUploaderController.detail
 );
 
+route.patch(
+  "/update-status/:id",
+  authMiddleware.adminAuth,
+  registrationUploaderController.updateStatus
+);
+
+
 module.exports = route;

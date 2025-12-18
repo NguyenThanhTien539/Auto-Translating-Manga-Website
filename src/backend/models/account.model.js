@@ -39,3 +39,26 @@ module.exports.checkUsernameExists = async (username) => {
   return db("users").select("*").where({ username }).first();
 };
 
+module.exports.getAllUsers = async () => {
+  const result = await db("users")
+    .select("*")
+    .join("role", "users.role_id", "role.role_id")
+    .whereNot("role.role_name", "Admin");
+  return result;
+};
+
+module.exports.getUserById = async (user_id) => {
+  return db("users")
+    .select("*")
+    .join("role", "users.role_id", "role.role_id")
+    .where({ user_id })
+    .first();
+};
+
+module.exports.updateUserById = async (user_id, data) => {
+  return db("users").where({ user_id: user_id }).update(data);
+};
+
+module.exports.updateRoleById = async (user_id, role_id) => {
+  return db("users").where({ user_id: user_id }).update({ role_id: role_id });
+};

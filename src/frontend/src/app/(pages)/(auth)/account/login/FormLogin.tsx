@@ -8,7 +8,7 @@ import { toast } from "sonner";
 const roleRedirectMap: Record<string, string> = {
   0: "/admin/dashboard",
   1: "/", // tuỳ bạn đặt
-  2: "/uploader", // có thể là "/explore"
+  2: "/", // có thể là "/explore"
 };
 
 export default function FormLogin() {
@@ -58,7 +58,6 @@ export default function FormLogin() {
               toast.success("Đăng nhập thành công!");
 
               const role = data.role as string;
-              console.log(role);
               const target = roleRedirectMap[role] ?? "/";
 
               router.push(target);
