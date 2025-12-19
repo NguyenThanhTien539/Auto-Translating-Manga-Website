@@ -70,6 +70,16 @@ export default function Sidebar() {
       </Link>
 
       <Link
+        href="/admin/authors"
+        className={`${baseClass} ${
+          pathname === "/admin/authors" ? activeClass : normalClass
+        }`}
+      >
+        <Box className="w-4 h-4" />
+        <span>Quản lý tác giả</span>
+      </Link>
+
+      <Link
         href="/admin/registration/list"
         className={`${baseClass} ${
           pathname === "/admin/registration/list" ? activeClass : normalClass
