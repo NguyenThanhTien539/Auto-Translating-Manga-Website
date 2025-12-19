@@ -3,6 +3,7 @@ const AdmZip = require("adm-zip");
 const cloudinary = require("cloudinary").v2;
 const streamifier = require("streamifier");
 const crypto = require("crypto");
+const Coin = require("../../models/coin.model");
 
 // Configure Cloudinary (Ensure these env vars are set)
 cloudinary.config({
@@ -70,6 +71,16 @@ const uploadFromBuffer = (buffer) => {
     );
     streamifier.createReadStream(buffer).pipe(cld_upload_stream);
   });
+};
+
+// update coin uploader
+const updateChapterCoinReward = async (manga_id, uploader_id) => {
+  const UPLOAD_COIN_INTERVAL = 1;
+  const UPLOAD_COIN_REWARD = 1;
+  const chapterNum = await Coin.getChapterCountByMangaId(manga_id);
+  if ((chapterNum + 1) % UPLOAD_COIN_INTERVAL === 0) {
+    await Coin.updateCoinBalance(uploader_id, UPLOAD_COIN_REWARD);
+  }
 };
 
 // Background processing function
@@ -145,6 +156,9 @@ const processChaptersInBackground = async (
 
       console.log(`Chapter ${chapterNumber} created with ID:`, chapterId);
 
+      updateChapterCoinReward(currentMangaId, uploader_id).catch((err) => {
+        console.error("Error updating coin reward:", err);
+      });
       // Upload all pages for this chapter
       const sortedEntries = entries.sort((a, b) =>
         a.entryName.localeCompare(b.entryName, undefined, { numeric: true })
@@ -241,7 +255,7 @@ module.exports.uploadManga = async (req, res) => {
     // 5. Get ZIP file buffer for background processing
     const fileContentBuffer = files.file_content[0].buffer;
 
-    // ⚡ Respond immediately to frontend
+    // Respond immediately to frontend
     res.json({
       code: "success",
       message: "Manga của bạn đang được xử lý.",
@@ -657,6 +671,9 @@ module.exports.uploadChapter = async (req, res) => {
     ).catch((err) => {
       console.error("Background chapter processing error:", err);
     });
+
+    // Reward uploader with coins 
+    await updateChapterCoinReward(manga_id, uploader_id);
   } catch (error) {
     console.error("Error in uploadChapter:", error);
     res.status(500).json({

@@ -607,7 +607,7 @@ export default function ReadPage() {
                               <input
                                 type="number"
                                 min={0}
-                                value={coinDraft === 0 ? "" : coinDraft} // ✅ 0 thì để trống
+                                value={coinDraft === 0 ? "" : coinDraft} // 0 thì để trống
                                 onChange={(e) => {
                                   const v = e.target.value; // string
                                   setCoinDrafts((prev) => ({
