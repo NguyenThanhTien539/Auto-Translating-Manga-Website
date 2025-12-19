@@ -96,13 +96,15 @@ export default function Home() {
         <div className="relative overflow-hidden rounded-xl bg-slate-900 text-white shadow-md h-64 sm:h-72">
           {/* Ảnh nằm bên phải (mobile thì trải full, desktop thì nằm bên phải) */}
           <div className="absolute inset-0 sm:inset-y-0 sm:right-0 sm:left-auto sm:w-[340px]">
-            <Image
-              src={current?.cover_image || "/image.png"}
-              alt={current?.title ?? "Manga highlight"}
-              fill
-              className="object-cover object-center"
-              priority
-            />
+            {current?.cover_image ? (
+              <Image
+                src={current.cover_image}
+                alt={current.title ?? "Manga highlight"}
+                fill
+                className="object-cover object-center"
+                priority
+              />
+            ) : null}
             {/* lớp phủ để chữ bên trái đọc được */}
             <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/55 to-black/10 sm:to-black/0" />
           </div>
