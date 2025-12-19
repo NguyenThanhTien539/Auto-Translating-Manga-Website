@@ -347,7 +347,40 @@ module.exports.getMangaDetailOfClient = async (req, res) => {
 module.exports.getChapterPages = async (req, res) => {
   try {
     const chapterId = req.params.id;
-    const pages = await Manga.getChapterPages(chapterId);
+    const { language } = req.query; // Get language from query parameter
+    
+    let pages;
+    
+    if (language) {
+      // Get pages for specific language
+      pages = await Manga.getChapterPagesByLanguage(chapterId, language);
+      
+      // If no pages found for this language, get original pages
+      if (pages.length === 0) {
+        pages = await Manga.getChapterPages(chapterId);
+      } else {
+        // Get all original pages to compare
+        const allOriginalPages = await Manga.getChapterPages(chapterId);
+        const originalPageNumbers = allOriginalPages.map(p => p.page_number);
+        const translatedPageNumbers = pages.map(p => p.page_number);
+        
+        // Find missing pages
+        const missingPageNumbers = originalPageNumbers.filter(
+          num => !translatedPageNumbers.includes(num)
+        );
+        
+        // Add missing pages from original
+        const missingPages = allOriginalPages.filter(
+          p => missingPageNumbers.includes(p.page_number)
+        );
+        
+        pages = [...pages, ...missingPages].sort((a, b) => a.page_number - b.page_number);
+      }
+    } else {
+      // Get all pages (original language)
+      pages = await Manga.getChapterPages(chapterId);
+    }
+    
     // Get base URL from request or use default
     const protocol = req.protocol;
     const host = req.get("host");
@@ -356,12 +389,38 @@ module.exports.getChapterPages = async (req, res) => {
     // Return proxy URLs with signed tokens (expires in 1 hour)
     const securePages = pages.map((page) => {
       const token = generateSignedToken(page.page_id, 3600); // 1 hour
+      
+      // Determine translation status
+      let translationStatus = "original";
+      
+      if (language) {
+        // If language is requested and page.language matches it
+        if (page.language === language) {
+          if (page.image_url === "processing") {
+            translationStatus = "processing";
+          } else if (page.image_url === "" || !page.image_url) {
+            translationStatus = "not_translated";
+          } else {
+            translationStatus = "translated";
+          }
+        } else {
+          // Page is in different language (original), needs translation
+          translationStatus = "original";
+        }
+      } else {
+        // No language filter, all pages are original
+        translationStatus = "original";
+      }
+      
       return {
         page_id: page.page_id,
         page_number: page.page_number,
         language: page.language,
         chapter_id: page.chapter_id,
-        image_url: `${baseUrl}/manga/page-image/${page.page_id}?token=${token}`,
+        translation_status: translationStatus,
+        image_url: page.image_url && page.image_url !== "processing" && page.image_url !== ""
+          ? `${baseUrl}/manga/page-image/${page.page_id}?token=${token}`
+          : null,
       };
     });
 

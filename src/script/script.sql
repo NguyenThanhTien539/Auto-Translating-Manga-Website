@@ -66,11 +66,10 @@ CREATE TABLE public.comments (
 CREATE TABLE public.deposit_transactions (
   deposit_id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id integer,
-  amount_vnd numeric NOT NULL,
-  coins_earned integer NOT NULL,
   payment_method character varying NOT NULL,
   status character varying DEFAULT 'Pending'::character varying CHECK (status::text = ANY (ARRAY['Pending'::character varying, 'Success'::character varying, 'Failed'::character varying]::text[])),
   created_at timestamp with time zone DEFAULT now(),
+  coin_package_id integer,
   CONSTRAINT deposit_transactions_pkey PRIMARY KEY (deposit_id),
   CONSTRAINT deposit_transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(user_id)
 );
@@ -84,27 +83,38 @@ CREATE TABLE public.favorites (
 );
 CREATE TABLE public.genres (
   genre_id integer NOT NULL DEFAULT nextval('genres_genre_id_seq'::regclass),
-  name character varying NOT NULL UNIQUE,
+  genre_name character varying NOT NULL UNIQUE,
   slug character varying NOT NULL UNIQUE,
   CONSTRAINT genres_pkey PRIMARY KEY (genre_id)
+);
+CREATE TABLE public.languages (
+  language_id smallint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  language_name text NOT NULL,
+  language_code character varying NOT NULL UNIQUE,
+  CONSTRAINT languages_pkey PRIMARY KEY (language_id)
+);
+CREATE TABLE public.manga_genre (
+  manga_id integer NOT NULL,
+  genre_id integer NOT NULL,
+  CONSTRAINT manga_genre_pkey PRIMARY KEY (manga_id, genre_id),
+  CONSTRAINT fk_manga_genre_manga FOREIGN KEY (manga_id) REFERENCES public.mangas(manga_id),
+  CONSTRAINT fk_manga_genre_genre FOREIGN KEY (genre_id) REFERENCES public.genres(genre_id)
 );
 CREATE TABLE public.mangas (
   manga_id integer NOT NULL DEFAULT nextval('mangas_manga_id_seq'::regclass),
   title character varying NOT NULL,
-  author character varying,
   description text,
   cover_image text,
-  status character varying CHECK (status::text = ANY (ARRAY['OnGoing'::character varying, 'Completed'::character varying, 'Dropped'::character varying]::text[])),
+  status character varying DEFAULT 'Pending'::character varying CHECK (status::text = ANY (ARRAY['Pending'::character varying, 'OnGoing'::character varying, 'Completed'::character varying, 'Dropped'::character varying, 'Rejected'::character varying]::text[])),
   is_highlighted boolean DEFAULT false,
   highlight_end_at timestamp with time zone,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   author_id integer,
-  genres integer,
   uploader_id integer,
+  original_language text,
   CONSTRAINT mangas_pkey PRIMARY KEY (manga_id),
   CONSTRAINT mangas_author_id_fkey FOREIGN KEY (author_id) REFERENCES public.authors(author_id),
-  CONSTRAINT mangas_genres_fkey FOREIGN KEY (genres) REFERENCES public.genres(genre_id),
   CONSTRAINT mangas_uploader_id_fkey FOREIGN KEY (uploader_id) REFERENCES public.users(user_id)
 );
 CREATE TABLE public.otp_codes (

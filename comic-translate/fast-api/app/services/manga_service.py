@@ -224,6 +224,12 @@ class MockMainPage:
 class MangaTranslationService:
     """Service for manga translation operations without GUI dependencies."""
     
+    # Class-level model cache (shared across all instances)
+    _shared_detector_cache = {}
+    _shared_ocr_cache = {}
+    _shared_translator_cache = {}
+    _shared_inpainter_cache = {}
+    
     # Default font search paths (prioritize Vietnamese-friendly fonts)
     DEFAULT_FONTS = [
         # Windows fonts (Unicode support)
@@ -269,6 +275,51 @@ class MangaTranslationService:
                 return font_path
         logger.warning("No default font found in standard locations")
         return None
+    
+    def _get_or_create_translator(self, main_page: MockMainPage, source_lang: str, target_lang: str) -> Translator:
+        """Get or create translator with shared cache."""
+        translator_key = f"{main_page.settings_page.get_tool_selection('translator')}_{source_lang}_{target_lang}"
+        
+        # Check shared cache
+        if translator_key in self._shared_translator_cache:
+            logger.debug(f"Reusing cached translator: {translator_key}")
+            return self._shared_translator_cache[translator_key]
+        
+        # Create new translator
+        logger.info(f"Creating new translator: {translator_key}")
+        translator = Translator(main_page, source_lang, target_lang)
+        
+        # Store in shared cache
+        self._shared_translator_cache[translator_key] = translator
+        self.translator_cache = translator
+        
+        logger.info(f"Translator cached: {translator_key}")
+        return translator
+    
+    def _get_or_create_inpainter(self, inpainter_name: str, use_gpu: bool):
+        """Get or create inpainter with shared cache."""
+        inpainter_key = f"{inpainter_name}_{use_gpu}"
+        
+        # Check shared cache
+        if inpainter_key in self._shared_inpainter_cache:
+            logger.debug(f"Reusing cached inpainter: {inpainter_key}")
+            return self._shared_inpainter_cache[inpainter_key]
+        
+        # Ensure model is downloaded (only once)
+        self._ensure_inpainting_model(inpainter_name)
+        
+        # Create new inpainter
+        logger.info(f"Creating new inpainter: {inpainter_key}")
+        device = resolve_device(use_gpu)
+        InpainterClass = inpaint_map[inpainter_name]
+        inpainter = InpainterClass(device, backend='onnx')
+        
+        # Store in shared cache
+        self._shared_inpainter_cache[inpainter_key] = inpainter
+        self.inpainter_cache = inpainter
+        
+        logger.info(f"Inpainter cached: {inpainter_key}")
+        return inpainter
     
     def _ensure_core_models(self):
         """Ensure core models are downloaded at startup."""
@@ -336,25 +387,55 @@ class MangaTranslationService:
             logger.warning(f"Error ensuring inpainting model: {e}")
     
     def _get_or_create_detector(self, settings: MockSettingsPage) -> TextBlockDetector:
-        """Get or create text block detector."""
-        detector_key = settings.get_tool_selection('detector')
-        if self.detector_cache is None or self.cached_settings.get('detector') != detector_key:
-            logger.info(f"Creating new detector: {detector_key}")
-            
-            # Ensure detector model is available
-            if detector_key == "RT-DETR-V2":
-                ModelDownloader.get(ModelID.RTDETRV2_ONNX)
-            
-            self.detector_cache = TextBlockDetector(settings)
-            self.cached_settings['detector'] = detector_key
-        return self.detector_cache
+        """Get or create text block detector with shared cache."""
+        detector_key = f"{settings.get_tool_selection('detector')}_{settings.is_gpu_enabled()}"
+        
+        # Check shared cache first
+        if detector_key in self._shared_detector_cache:
+            logger.debug(f"Reusing cached detector: {detector_key}")
+            return self._shared_detector_cache[detector_key]
+        
+        # Create new detector
+        logger.info(f"Creating new detector: {detector_key}")
+        detector_name = settings.get_tool_selection('detector')
+        
+        # Ensure detector model is available (only once)
+        if detector_name == "RT-DETR-V2":
+            ModelDownloader.get(ModelID.RTDETRV2_ONNX)
+        
+        detector = TextBlockDetector(settings)
+        
+        # Store in shared cache
+        self._shared_detector_cache[detector_key] = detector
+        self.detector_cache = detector
+        self.cached_settings['detector'] = detector_key
+        
+        logger.info(f"Detector cached: {detector_key}")
+        return detector
     
-    def _get_or_create_ocr(self) -> OCRProcessor:
-        """Get or create OCR processor."""
-        if self.ocr_cache is None:
-            logger.info("Creating new OCR processor")
-            self.ocr_cache = OCRProcessor()
-        return self.ocr_cache
+    def _get_or_create_ocr(self, main_page: MockMainPage, source_lang: str) -> OCRProcessor:
+        """Get or create OCR processor with shared cache."""
+        ocr_key = f"{main_page.settings_page.get_tool_selection('ocr')}_{source_lang}_{main_page.settings_page.is_gpu_enabled()}"
+        
+        # Check shared cache
+        if ocr_key in self._shared_ocr_cache:
+            logger.debug(f"Reusing cached OCR: {ocr_key}")
+            processor = self._shared_ocr_cache[ocr_key]
+            # Re-initialize with current settings (lightweight operation)
+            processor.initialize(main_page, source_lang)
+            return processor
+        
+        # Create new OCR processor
+        logger.info(f"Creating new OCR processor: {ocr_key}")
+        processor = OCRProcessor()
+        processor.initialize(main_page, source_lang)
+        
+        # Store in shared cache
+        self._shared_ocr_cache[ocr_key] = processor
+        self.ocr_cache = processor
+        
+        logger.info(f"OCR cached: {ocr_key}")
+        return processor
     
     def _textblocks_to_dict(self, blk_list: List[TextBlock]) -> List[Dict[str, Any]]:
         """Convert TextBlock objects to dictionary representation."""
@@ -485,9 +566,8 @@ class MangaTranslationService:
             detection_result = self.detect_text_blocks(image, use_gpu=use_gpu)
             blk_list = self._dict_to_textblocks(detection_result['blocks'])
         
-        # Perform OCR
-        ocr_processor = self._get_or_create_ocr()
-        ocr_processor.initialize(main_page, source_lang)
+        # Perform OCR with cached processor
+        ocr_processor = self._get_or_create_ocr(main_page, source_lang)
         ocr_processor.process(image, blk_list)
         
         logger.info(f"OCR completed for {len(blk_list)} blocks")
@@ -542,16 +622,15 @@ class MangaTranslationService:
             # If blocks don't have text, perform OCR
             if not all(blk.text for blk in blk_list):
                 logger.info("Blocks provided without OCR text, performing OCR")
-                ocr_processor = self._get_or_create_ocr()
-                ocr_processor.initialize(main_page, source_lang)
+                ocr_processor = self._get_or_create_ocr(main_page, source_lang)
                 ocr_processor.process(image, blk_list)
         else:
             logger.info("No blocks provided, performing detection and OCR")
             ocr_result = self.perform_ocr(image, source_lang=source_lang, use_gpu=use_gpu)
             blk_list = self._dict_to_textblocks(ocr_result['blocks'])
         
-        # Perform translation
-        translator_obj = Translator(main_page, source_lang, target_lang)
+        # Perform translation with cached translator
+        translator_obj = self._get_or_create_translator(main_page, source_lang, target_lang)
         translator_obj.translate(blk_list, image, extra_context)
         
         logger.info(f"Translation completed for {len(blk_list)} blocks")
@@ -638,18 +717,11 @@ class MangaTranslationService:
                 x1, y1, x2, y2 = map(int, bbox)
                 mask[y1:y2, x1:x2] = 255
         
-        # Perform inpainting
-        device = resolve_device(use_gpu)
-        InpainterClass = inpaint_map[inpainter]
-        
-        inpainter_key = f"{inpainter}_{use_gpu}"
-        if self.inpainter_cache is None or self.cached_settings.get('inpainter') != inpainter_key:
-            logger.info(f"Creating new inpainter: {inpainter}")
-            self.inpainter_cache = InpainterClass(device, backend='onnx')
-            self.cached_settings['inpainter'] = inpainter_key
+        # Perform inpainting with cached inpainter
+        inpainter_obj = self._get_or_create_inpainter(inpainter, use_gpu)
         
         config = Config()
-        inpainted_image = self.inpainter_cache(image, mask, config)
+        inpainted_image = inpainter_obj(image, mask, config)
         inpainted_image = imk.convert_scale_abs(inpainted_image)
         
         logger.info("Inpainting completed")
@@ -881,3 +953,45 @@ class MangaTranslationService:
         logger.info("Full translation pipeline completed")
         
         return result
+    
+    @classmethod
+    def cleanup_all_caches(cls):
+        """Clean up all shared model caches (call on server shutdown)."""
+        logger.info("Cleaning up all shared model caches")
+        cls._shared_detector_cache.clear()
+        cls._shared_ocr_cache.clear()
+        cls._shared_translator_cache.clear()
+        cls._shared_inpainter_cache.clear()
+        
+        import gc
+        gc.collect()
+        
+        try:
+            import torch
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+        except:
+            pass
+        
+        logger.info("All caches cleared")
+    
+    @classmethod
+    def cleanup_all_caches(cls):
+        """Clean up all shared model caches (call on server shutdown)."""
+        logger.info("Cleaning up all shared model caches")
+        cls._shared_detector_cache.clear()
+        cls._shared_ocr_cache.clear()
+        cls._shared_translator_cache.clear()
+        cls._shared_inpainter_cache.clear()
+        
+        import gc
+        gc.collect()
+        
+        try:
+            import torch
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+        except:
+            pass
+        
+        logger.info("All caches cleared")

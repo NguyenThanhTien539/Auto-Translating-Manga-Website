@@ -1,6 +1,7 @@
 const route = require("express").Router();
 const multer = require("multer");
 const mangaController = require("../../controllers/client/manga.controller");
+const translateController = require("../../controllers/client/request_translate_manga.controller");
 const authMiddleware = require("../../middlewares/auth.middleware");
 
 // Simple in-memory rate limiter
@@ -100,6 +101,13 @@ route.get(
   "/check-favorite/:mangaId",
   authMiddleware.clientAuth,
   mangaController.checkFavoriteManga
+);
+
+// Translation endpoint
+route.post(
+  "/translate-page",
+  rateLimit(10, 60000), // Limit to 10 requests per minute
+  translateController.translateSinglePage
 );
 
 module.exports = route;

@@ -3,8 +3,8 @@ API routes for manga translation operations.
 """
 
 import logging
-from fastapi import APIRouter, File, UploadFile, Form, HTTPException
-from typing import Optional
+from fastapi import APIRouter, File, UploadFile, Form, HTTPException, Request
+from typing import Optional, List
 import numpy as np
 from PIL import Image
 import io
@@ -50,9 +50,19 @@ async def root():
             "ocr": "/api/v1/ocr",
             "translation": "/api/v1/translation",
             "inpainting": "/api/v1/inpainting",
+            "render": "/api/v1/render",
             "full_pipeline": "/api/v1/translate",
+            "batch_submit": "/api/v1/translate/batch/submit",
+            "batch_submit_multi": "/api/v1/translate/batch/multi",
+            "batch_status": "/api/v1/translate/batch/status/{request_id}",
+            "batch_info": "/api/v1/translate/batch/{batch_id}",
             "models": "/api/v1/models",
             "download_models": "/api/v1/models/download"
+        },
+        "features": {
+            "batch_processing": "Submit up to 6 pages at once for efficient translation",
+            "auto_batching": "Pages are automatically grouped and processed together",
+            "concurrent": "Multiple batches processed in parallel"
         }
     }
 
@@ -463,4 +473,187 @@ async def download_models(
         
     except Exception as e:
         logger.error(f"Error downloading models: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# Batch Processing Endpoints
+# ============================================================================
+
+@router.post("/api/v1/translate/batch/submit")
+async def submit_batch_translation(
+    request: Request,
+    file: UploadFile = File(..., description="Manga page image"),
+    source_lang: str = Form("Japanese", description="Source language"),
+    target_lang: str = Form("English", description="Target language"),
+    detector: Optional[str] = Form(None, description="Detection model"),
+    ocr_model: Optional[str] = Form(None, description="OCR model"),
+    translator: Optional[str] = Form(None, description="Translation service"),
+    inpainter: Optional[str] = Form(None, description="Inpainting model"),
+    font_path: Optional[str] = Form(None, description="Custom font file path"),
+    init_font_size: Optional[int] = Form(60, description="Initial font size for rendering"),
+    min_font_size: Optional[int] = Form(16, description="Minimum font size"),
+    bbox_expand_ratio: Optional[float] = Form(1.15, description="Bounding box expansion ratio")
+):
+    """
+    Submit a manga page to batch translation queue.
+    
+    Pages are automatically grouped into batches of 5-6 pages and processed together
+    for better efficiency. Returns a request_id to track the status.
+    
+    Batch processing features:
+    - Automatic batching: Groups up to 6 pages per batch
+    - Smart timeout: Processes partial batch after 2 seconds if not full
+    - Concurrent batching: Handles multiple batches in parallel
+    - Memory efficient: Prevents overload with memory limits
+    
+    Use /api/v1/translate/batch/status/{request_id} to check progress.
+    """
+    try:
+        batch_processor = request.app.state.batch_processor
+        
+        # Read image data
+        image_data = await file.read()
+        
+        # Submit to batch queue
+        request_id = await batch_processor.submit_request(
+            image_data=image_data,
+            source_lang=source_lang,
+            target_lang=target_lang,
+            detector=detector,
+            ocr_model=ocr_model,
+            translator=translator,
+            inpainter=inpainter,
+            font_path=font_path,
+            init_font_size=init_font_size,
+            min_font_size=min_font_size,
+            bbox_expand_ratio=bbox_expand_ratio
+        )
+        
+        logger.info(f"Batch request submitted: {request_id}")
+        
+        return {
+            "status": "queued",
+            "request_id": request_id,
+            "message": "Request added to batch queue. Check status with /api/v1/translate/batch/status/{request_id}"
+        }
+        
+    except Exception as e:
+        logger.error(f"Batch submission error: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/api/v1/translate/batch/status/{request_id}")
+async def get_batch_request_status(request: Request, request_id: str):
+    """
+    Get the status of a batch translation request.
+    
+    Returns:
+    - status: pending/queued/processing/completed/failed
+    - result: Translation result if completed
+    - error: Error message if failed
+    - batch_id: Associated batch identifier
+    """
+    try:
+        batch_processor = request.app.state.batch_processor
+        status = await batch_processor.get_request_status(request_id)
+        
+        if not status:
+            raise HTTPException(status_code=404, detail=f"Request {request_id} not found")
+        
+        return status
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting request status: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/api/v1/translate/batch/{batch_id}")
+async def get_batch_status(request: Request, batch_id: str):
+    """
+    Get the status of an entire batch.
+    
+    Returns:
+    - batch_id: Batch identifier
+    - status: pending/processing/completed/failed
+    - total_requests: Total number of pages in batch
+    - completed_requests: Number of completed pages
+    - failed_requests: Number of failed pages
+    - requests: List of all requests with their individual status
+    """
+    try:
+        batch_processor = request.app.state.batch_processor
+        status = await batch_processor.get_batch_status(batch_id)
+        
+        if not status:
+            raise HTTPException(status_code=404, detail=f"Batch {batch_id} not found")
+        
+        return status
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting batch status: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/api/v1/translate/batch/multi")
+async def submit_multiple_pages_batch(
+    request: Request,
+    files: List[UploadFile] = File(..., description="Multiple manga page images"),
+    source_lang: str = Form("Japanese", description="Source language"),
+    target_lang: str = Form("English", description="Target language"),
+    detector: Optional[str] = Form(None, description="Detection model"),
+    ocr_model: Optional[str] = Form(None, description="OCR model"),
+    translator: Optional[str] = Form(None, description="Translation service"),
+    inpainter: Optional[str] = Form(None, description="Inpainting model"),
+    font_path: Optional[str] = Form(None, description="Custom font file path"),
+    init_font_size: Optional[int] = Form(60, description="Initial font size"),
+    min_font_size: Optional[int] = Form(16, description="Minimum font size"),
+    bbox_expand_ratio: Optional[float] = Form(1.15, description="Bounding box expansion ratio")
+):
+    """
+    Submit multiple manga pages at once for batch translation.
+    
+    Useful for uploading an entire chapter. All pages are added to the batch queue
+    and processed efficiently in groups of 5-6 pages.
+    
+    Returns a list of request_ids for tracking each page.
+    """
+    try:
+        batch_processor = request.app.state.batch_processor
+        request_ids = []
+        
+        for file in files:
+            image_data = await file.read()
+            
+            request_id = await batch_processor.submit_request(
+                image_data=image_data,
+                source_lang=source_lang,
+                target_lang=target_lang,
+                detector=detector,
+                ocr_model=ocr_model,
+                translator=translator,
+                inpainter=inpainter,
+                font_path=font_path,
+                init_font_size=init_font_size,
+                min_font_size=min_font_size,
+                bbox_expand_ratio=bbox_expand_ratio
+            )
+            
+            request_ids.append(request_id)
+        
+        logger.info(f"Submitted {len(request_ids)} pages to batch queue")
+        
+        return {
+            "status": "queued",
+            "total_pages": len(request_ids),
+            "request_ids": request_ids,
+            "message": f"Successfully queued {len(request_ids)} pages for batch translation"
+        }
+        
+    except Exception as e:
+        logger.error(f"Multi-page batch submission error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

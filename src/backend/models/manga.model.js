@@ -249,3 +249,29 @@ module.exports.calculateAverageRating = async (mangaId) => {
 
   return result?.average_rating ? parseFloat(result.average_rating) : 0;
 };
+
+// Translation-related functions
+module.exports.getPageByChapterAndLanguage = async (chapterId, pageNumber, language) => {
+  return db("pages")
+    .where({
+      chapter_id: chapterId,
+      page_number: pageNumber,
+      language: language,
+    })
+    .first();
+};
+
+module.exports.updatePageImageUrl = async (pageId, imageUrl) => {
+  return db("pages")
+    .where("page_id", pageId)
+    .update({ image_url: imageUrl });
+};
+
+module.exports.getChapterPagesByLanguage = async (chapterId, language) => {
+  return db("pages")
+    .where({
+      chapter_id: chapterId,
+      language: language,
+    })
+    .orderBy("page_number", "asc");
+};

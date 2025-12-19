@@ -12,8 +12,13 @@ interface PageData {
   page_id: number;
   chapter_id: number;
   page_number: number;
-  image_url: string;
+  image_url: string | null;
   language: string;
+  translation_status: "original" | "translated" | "not_translated" | "processing";
+}
+
+interface TranslatingPage {
+  [pageId: number]: boolean;
 }
 
 export default function ChapterReadPage() {
@@ -24,6 +29,7 @@ export default function ChapterReadPage() {
   const [selectedLanguage, setSelectedLanguage] = useState<"vi" | "en">("vi");
   const [currentPage, setCurrentPage] = useState(1);
   const [readingProgress, setReadingProgress] = useState(0);
+  const [translatingPages, setTranslatingPages] = useState<TranslatingPage>({});
   const pageRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedPage = useRef(1);
@@ -33,11 +39,13 @@ export default function ChapterReadPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/manga/chapter/${params.chapter_id}/pages`
+      `${process.env.NEXT_PUBLIC_API_URL}/manga/chapter/${params.chapter_id}/pages?language=${selectedLanguage}`
     )
       .then((response) => response.json())
       .then((data) => {
         if (data.code === "success") {
+          console.log("Pages data:", data.data);
+          console.log("First page translation_status:", data.data[0]?.translation_status);
           setPages(data.data);
           setLoading(false);
         }
@@ -46,7 +54,7 @@ export default function ChapterReadPage() {
         console.error("Error fetching chapter pages:", error);
         setLoading(false);
       });
-  }, [params.chapter_id]);
+  }, [params.chapter_id, selectedLanguage]);
 
   // Fetch reading history and auto-scroll to last read page
   useEffect(() => {
@@ -121,6 +129,55 @@ export default function ChapterReadPage() {
     },
     [isLogin, infoUser, params.chapter_id, params.manga_id]
   );
+
+  // Translate page function
+  const translatePage = async (pageId: number) => {
+    try {
+      setTranslatingPages((prev) => ({ ...prev, [pageId]: true }));
+      toast.loading(`Đang dịch trang...`, { id: `translate-${pageId}` });
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/manga/translate-page`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            pageId: pageId,
+            targetLanguage: selectedLanguage,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.code === "success") {
+        toast.success("Dịch trang thành công!", { id: `translate-${pageId}` });
+
+        // Refresh pages to get the new translated image
+        const pagesResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/manga/chapter/${params.chapter_id}/pages?language=${selectedLanguage}`
+        );
+        const pagesData = await pagesResponse.json();
+
+        if (pagesData.code === "success") {
+          setPages(pagesData.data);
+        }
+      } else if (data.code === "processing") {
+        toast.info("Trang này đang được dịch...", { id: `translate-${pageId}` });
+      } else {
+        toast.error(data.message || "Dịch trang thất bại", {
+          id: `translate-${pageId}`,
+        });
+      }
+    } catch (error) {
+      console.error("Error translating page:", error);
+      toast.error("Có lỗi xảy ra khi dịch trang", { id: `translate-${pageId}` });
+    } finally {
+      setTranslatingPages((prev) => ({ ...prev, [pageId]: false }));
+    }
+  };
 
   // Track scroll position to update current page
   useEffect(() => {
@@ -265,16 +322,107 @@ export default function ChapterReadPage() {
                     Trang {page.page_number}
                   </div>
 
+                  {/* Translation Status Badge */}
+                  {page.translation_status === "processing" && (
+                    <div className="absolute top-4 right-4 bg-yellow-600/90 text-white px-3 py-1 rounded-full text-sm font-medium z-10 shadow-lg flex items-center gap-2">
+                      <svg
+                        className="animate-spin h-4 w-4"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Đang dịch...
+                    </div>
+                  )}
+
+                  {/* Translate Button - Show for untranslated pages */}
+                  {page.translation_status === "original" && (
+                    <div className="absolute top-16 left-4 z-10">
+                      <button
+                        onClick={() => translatePage(page.page_id)}
+                        disabled={translatingPages[page.page_id]}
+                        className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white px-4 py-2 rounded-lg font-medium shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        {translatingPages[page.page_id] ? (
+                          <>
+                            <svg
+                              className="animate-spin h-4 w-4"
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                              ></circle>
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                              ></path>
+                            </svg>
+                            {selectedLanguage === "vi" ? "Đang dịch..." : "Translating..."}
+                          </>
+                        ) : (
+                          <>
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"
+                              />
+                            </svg>
+                            {selectedLanguage === "vi" 
+                              ? "Dịch sang Tiếng Việt" 
+                              : "Translate to English"}
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+
                   {/* Page Image */}
-                  <Image
-                    src={page.image_url}
-                    alt={`Trang ${page.page_number}`}
-                    width={1200}
-                    height={1800}
-                    className="w-full h-auto"
-                    quality={100}
-                    loading="lazy"
-                  />
+                  {page.image_url ? (
+                    <Image
+                      src={page.image_url}
+                      alt={`Trang ${page.page_number}`}
+                      width={1200}
+                      height={1800}
+                      className="w-full h-auto"
+                      quality={100}
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-full h-96 flex items-center justify-center bg-gray-800 text-gray-400">
+                      {page.translation_status === "processing"
+                        ? "Đang xử lý..."
+                        : "Không có ảnh"}
+                    </div>
+                  )}
                 </div>
               ))}
 
