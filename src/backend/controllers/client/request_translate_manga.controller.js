@@ -74,9 +74,11 @@ module.exports.translateSinglePage = async (req, res) => {
     // 3. Create/Update page record with "processing" status
     let translatedPageId;
     if (existingTranslation) {
+      console.log("Updating existing translation, page_id:", existingTranslation.page_id);
       await Manga.updatePageImageUrl(existingTranslation.page_id, "processing");
       translatedPageId = existingTranslation.page_id;
     } else {
+      console.log("Creating new page for translation");
       const newPageData = {
         chapter_id: originalPage.chapter_id,
         page_number: originalPage.page_number,
@@ -84,7 +86,9 @@ module.exports.translateSinglePage = async (req, res) => {
         language: targetLanguage,
       };
       const result = await Manga.createPages([newPageData]);
-      translatedPageId = result[0];
+      console.log("Created page result:", result);
+      translatedPageId = result[0].page_id;
+      console.log("New translated page ID:", translatedPageId);
     }
 
     // 4. Get manga info for language mapping
@@ -167,6 +171,7 @@ module.exports.translateSinglePage = async (req, res) => {
 
     // 6. Upload translated image to Cloudinary
     console.log("Uploading translated image to Cloudinary...");
+    console.log("Translated page ID:", translatedPageId);
     const uploadResult = await new Promise((resolve, reject) => {
       cloudinary.uploader.upload(
         `data:image/png;base64,${renderedImageBase64}`,

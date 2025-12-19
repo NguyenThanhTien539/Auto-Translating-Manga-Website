@@ -11,7 +11,7 @@ module.exports.createChapter = async (data) => {
 };
 
 module.exports.createPages = async (data) => {
-  return db("pages").insert(data);
+  return db("pages").insert(data).returning('page_id');
 };
 
 module.exports.getMangaById = async (id) => {
