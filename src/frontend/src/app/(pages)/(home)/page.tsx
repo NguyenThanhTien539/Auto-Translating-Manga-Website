@@ -5,116 +5,68 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import MangaCard from "@/app/components/client/MangaCard";
+import { useRouter } from "next/navigation";
 
-type HighlightItem = {
-  id: number;
+
+type Manga = {
+  manga_id: string;
   title: string;
+  author_name: string;
+  original_language: string;
+  genres: string[];
+  status: string;
+  cover_image: string;
   description: string;
-  image: string;
-  chapter: string;
   type: string;
+  chapter: string;
+  average_rating: number;
+  total_chapters: number;
+  is_highlighted: boolean;
 };
 
-const HIGHLIGHT_ITEMS: HighlightItem[] = [
-  {
-    id: 1,
-    title: "One Piece",
-    description:
-      "Kid so focused on building a bird out of scrap-metal, he doesn’t realize his head just turned into a bird’s nest.",
-    image: "/mock/onepiece.jpg",
-    chapter: "Chương 1012",
-    type: "Manga",
-  },
-  {
-    id: 2,
-    title: "Solo Leveling",
-    description:
-      "The weakest hunter becomes the strongest through mysterious power.",
-    image: "/mock/solo-leveling.jpg",
-    chapter: "Chương 124",
-    type: "Manhwa",
-  },
-  {
-    id: 3,
-    title: "Berserk",
-    description: "A dark fantasy tale of revenge, fate and struggle.",
-    image: "/mock/berserk.jpg",
-    chapter: "Chương 368",
-    type: "Manga",
-  },
-];
-
-const MOCK_MANGA_DATA = [
-  {
-    manga_id: "1",
-    manga_name: "Berserk - Guide book",
-    author: "Kentaro Miura",
-    original_language: "Japan",
-    genre: "Dark Fantasy - Drama - Fantasy - Adventure",
-    status: "Continuous",
-    coverUrl: "/image/logo.jpg",
-    rating: 8.91,
-    totalChapters: 4,
-  },
-  {
-    manga_id: "2",
-    manga_name: "Solo Leveling",
-    author: "Chugong",
-    original_language: "Korea",
-    genre: "Action - Fantasy - Adventure",
-    status: "Completed",
-    coverUrl: "/image/logo.jpg",
-    rating: 9.15,
-    totalChapters: 124,
-  },
-  {
-    manga_id: "3",
-    manga_name: "One Piece",
-    author: "Eiichiro Oda",
-    original_language: "Japan",
-    genre: "Adventure - Action - Comedy - Fantasy",
-    status: "Ongoing",
-    coverUrl: "/image/logo.jpg",
-    rating: 9.32,
-    totalChapters: 1012,
-  },
-  {
-    manga_id: "4",
-    manga_name: "The Beginning After The End",
-    author: "TurtleMe",
-    original_language: "Korea",
-    genre: "Action - Fantasy - Adventure - Drama",
-    status: "Ongoing",
-    coverUrl: "/image/logo.jpg",
-    rating: 9.05,
-    totalChapters: 112,
-  },
-];
 
 export default function Home() {
+  const router = useRouter();
   const [activeIndex, setActiveIndex] = useState(0);
+
+  const [mangas, setMangas] = useState<Manga[]>([]);
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/all`)
+      .then((res) => res.json())
+      .then(data => {
+        if (data.code === "success") {
+          setMangas(data.mangas);
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching languages:", error);
+      });
+  }, []);
+
+  // get mangas is highlighted
+  const highlighted_mangas = mangas.filter((manga) => manga.is_highlighted);
 
   // Auto slide 3s
   useEffect(() => {
-    if (HIGHLIGHT_ITEMS.length <= 1) return;
+    if (mangas.length <= 1) return;
 
     const timer = setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % HIGHLIGHT_ITEMS.length);
+      setActiveIndex((prev) => (prev + 1) % mangas.length);
     }, 3000);
 
     return () => clearInterval(timer);
   }, []);
 
-  const current = HIGHLIGHT_ITEMS[activeIndex];
+  const current = mangas[activeIndex];
 
   const handlePrev = () => {
     setActiveIndex((prev) =>
-      prev === 0 ? HIGHLIGHT_ITEMS.length - 1 : prev - 1
+      prev === 0 ? mangas.length - 1 : prev - 1
     );
   };
 
   const handleNext = () => {
-    setActiveIndex((prev) => (prev + 1) % HIGHLIGHT_ITEMS.length);
+    setActiveIndex((prev) => (prev + 1) % mangas.length);
   };
   const [genres, setGenres] = useState([]);
   useEffect(() => {
@@ -130,6 +82,9 @@ export default function Home() {
       });
   }, []);
 
+  
+
+
   return (
     <div className=" px-3 space-y-6 ">
       {/* ---- OUT NOW + HIGHLIGHT SLIDER ---- */}
@@ -138,75 +93,90 @@ export default function Home() {
           <h2 className="text-lg font-semibold text-slate-900">Out now 🎉</h2>
         </div>
 
-        <div className="relative overflow-hidden rounded-xl bg-slate-900 text-white shadow-md">
-          {/* Ảnh nền */}
-          <div className="relative h-60 w-full">
+        <div className="relative overflow-hidden rounded-xl bg-slate-900 text-white shadow-md h-64 sm:h-72">
+          {/* Ảnh nằm bên phải (mobile thì trải full, desktop thì nằm bên phải) */}
+          <div className="absolute inset-0 sm:inset-y-0 sm:right-0 sm:left-auto sm:w-[340px]">
             <Image
-              src={"/image/logo.jpg"}
-              alt={current.title}
+              src={current?.cover_image || "/image.png"}
+              alt={current?.title ?? "Manga highlight"}
               fill
-              className="object-cover"
+              className="object-cover object-center"
+              priority
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-black/10" />
+            {/* lớp phủ để chữ bên trái đọc được */}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/55 to-black/10 sm:to-black/0" />
           </div>
 
-          {/* Nội dung overlay */}
-          <div className="absolute inset-0 flex flex-col justify-between p-6">
+          {/* Nội dung (chừa chỗ cho panel ảnh bên phải ở sm+) */}
+          <div className="relative z-10 flex h-full flex-col p-6 sm:pr-[380px]">
+            {/* top badges */}
             <div className="flex items-center justify-between text-xs text-slate-100">
-              <span className="bg-black/40 px-3 py-1 rounded-full">
-                New chapter
-              </span>
+              <span className="bg-black/40 px-3 py-1 rounded-full">New chapter</span>
+
               <span className="flex items-center gap-1 bg-black/40 px-2 py-1 rounded-full text-[11px]">
                 <span className="h-2 w-2 rounded-full bg-red-500" />
-                {current.type}
+                {current?.type ?? "Manga"}
               </span>
             </div>
 
-            <div>
-              <h3 className="text-3xl font-bold drop-shadow-sm">
-                {current.title}
+            {/* content block (không được đẩy mất footer) */}
+            <div className="mt-3 flex-1 min-h-0">
+              <h3 className="text-2xl sm:text-3xl font-bold drop-shadow-sm line-clamp-2">
+                {current?.title ?? "Đang tải..."}
               </h3>
-              <p className="mt-2 max-w-xl text-sm text-slate-100">
-                {current.description}
+
+              {/* Description: clamp + ... */}
+              <p className="mt-2 max-w-xl text-sm text-slate-100 line-clamp-3">
+                {current?.description || "Đang tải..."}
               </p>
 
-              <button className="mt-4 inline-flex items-center justify-center rounded-full bg-sky-600 px-6 py-2 text-sm font-semibold text-white hover:bg-sky-700">
-                Đọc
-              </button>
-
-              <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-black/50 px-3 py-1 text-xs">
-                <span className="uppercase tracking-wide">Chương</span>
-                <span className="font-semibold">{current.chapter}</span>
+              {/* Đọc + Chương luôn nằm dưới description */}
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <button onClick={() => {
+                  if (!current?.manga_id) return;
+                  router.push(`/read/${current.manga_id}`); 
+                }} 
+                className="inline-flex items-center justify-center rounded-full bg-sky-600 px-6 py-2 text-sm font-semibold text-white hover:bg-sky-700">
+                  Đọc
+                </button>
+                {/* 
+                <div className="inline-flex items-center gap-2 rounded-full bg-black/50 px-3 py-1 text-xs">
+                  <span className="uppercase tracking-wide">Chương</span>
+                  <span className="font-semibold">{current?.chapter ?? "?"}</span>
+                </div> */}
               </div>
             </div>
 
-            {/* Nút điều hướng + dots */}
-            <div className="flex items-center justify-between mt-4">
+            {/* Footer: nút điều hướng + dots luôn nằm đáy */}
+            <div className="mt-auto flex items-center justify-between pt-4">
               <div className="flex gap-2">
                 <button
                   onClick={handlePrev}
-                  className="h-7 w-7 rounded-full bg-black/40 text-xs hover:bg-black/60"
+                  className="relative z-20 h-8 w-8 rounded-full bg-black/40 text-sm hover:bg-black/60"
+                  aria-label="Previous"
                 >
                   ‹
                 </button>
                 <button
                   onClick={handleNext}
-                  className="h-7 w-7 rounded-full bg-black/40 text-xs hover:bg-black/60"
+                  className="relative z-20 h-8 w-8 rounded-full bg-black/40 text-sm hover:bg-black/60"
+                  aria-label="Next"
                 >
                   ›
                 </button>
               </div>
 
               <div className="flex gap-2">
-                {HIGHLIGHT_ITEMS.map((item, index) => (
+                {mangas.map((item, index) => (
                   <button
-                    key={item.id}
+                    key={item.manga_id}
                     onClick={() => setActiveIndex(index)}
                     className={`h-2 w-2 rounded-full ${
                       index === activeIndex
                         ? "bg-white"
                         : "bg-white/40 hover:bg-white/80"
                     }`}
+                    aria-label={`Go to slide ${index + 1}`}
                   />
                 ))}
               </div>
@@ -244,18 +214,18 @@ export default function Home() {
             Nổi bật <span className="text-amber-300">trong tháng</span>
           </h3>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-            {MOCK_MANGA_DATA.map((manga) => (
+            {highlighted_mangas.map((manga) => (
               <MangaCard
                 key={manga.manga_id}
                 manga_id={manga.manga_id}
-                manga_name={manga.manga_name}
-                author={manga.author}
+                manga_name={manga.title}
+                author={manga.author_name}
                 original_language={manga.original_language}
-                genre={manga.genre}
+                genre={manga.genres.join("-")}
                 status={manga.status}
-                coverUrl={manga.coverUrl}
-                rating={manga.rating}
-                totalChapters={manga.totalChapters}
+                coverUrl={manga.cover_image}
+                average_rating={manga.average_rating}
+                totalChapters={manga.total_chapters}
               />
             ))}
           </div>
