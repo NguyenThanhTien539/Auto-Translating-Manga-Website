@@ -88,8 +88,7 @@ export default function AuthorsPage() {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/authors/all`)
       .then((res) => res.json())
       .then((data) => {
-        if (data?.code === "success") setAuthors(data.authors || []);
-        else setAuthors([]);
+        setAuthors(data || []);
       })
       .catch(() => setAuthors([]))
       .finally(() => setLoading(false));
@@ -117,14 +116,9 @@ export default function AuthorsPage() {
           >
             <AuthorCard
               author_id={a.author_id}
-              name={a.name}
+              author_name={a.author_name}
               famous_work={a.famous_work}
-              role={a.role}
-              nationality={a.nationality}
-              born={a.born}
-              birthplace={a.birthplace}
-              lifespan={a.lifespan}
-              avatarUrl={a.avatar_url || a.avatarUrl}
+              avatar_url={a.avatar_url}
             />
           </div>
         ))}

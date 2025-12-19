@@ -6,6 +6,7 @@ const userRoute = require("./user.route");
 const mangaRoute = require("./manga.route");
 const orderRoute = require("./order.route");
 const commentRoute = require("./comment.route");
+const authorRoute = require("./author.route");
 const readingHistoryRoute = require("./reading_history.route");
 
 route.use("/", homeRoute);
@@ -22,6 +23,7 @@ route.use("/manga", mangaRoute);
 
 route.use("/comments", commentRoute);
 
+route.use("/authors", authorRoute);
 route.use("/reading-history", readingHistoryRoute);
 
 module.exports = route;
