@@ -705,7 +705,6 @@ module.exports.getFilterPanelData = async (req, res) => {
   try {
     const values = await Manga.getFilterPanelData();
     res.json({ code: "success", data: values });
-    console.log(values);
   } catch (error) {
     console.error(error);
     res.status(500).json({ code: "error", message: "Lỗi server" });

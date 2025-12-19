@@ -133,7 +133,7 @@ module.exports.getFilterPanelData = async () => {
   return { status, languages, genres };
 };
 
-// model
+// filter manga
 module.exports.filterMangas = async (filters = {}) => {
   let { chaptersMin, chaptersMax, state, categories } = filters;
 
@@ -274,4 +274,46 @@ module.exports.getChapterPagesByLanguage = async (chapterId, language) => {
       language: language,
     })
     .orderBy("page_number", "asc");
+};
+
+module.exports.searchMangaBySlug = async ({ slug, limit = 20, offset = 0 }) => {
+  const pattern = `%${slug}%`;
+
+  const rows = await db("mangas as m")
+    .leftJoin("authors as a", "a.author_id", "m.author_id")
+    .leftJoin("manga_genre as mg", "mg.manga_id", "m.manga_id")
+    .leftJoin("genres as g", "g.genre_id", "mg.genre_id")
+    .leftJoin("chapters as c", "c.manga_id", "m.manga_id")
+    .whereRaw("m.slug ILIKE ?", [pattern])
+    .groupBy(
+      "m.manga_id",
+      "m.title",
+      "m.slug",
+      "m.description",
+      "m.cover_image",
+      "m.status",
+      "m.original_language",
+      "m.created_at",
+      "m.updated_at",
+      "a.author_name"
+    )
+    .select(
+      "m.manga_id",
+      "m.title",
+      "m.slug",
+      "m.description",
+      "m.cover_image",
+      "m.status",
+      "m.original_language",
+      "m.created_at",
+      "m.updated_at",
+      db.raw("COALESCE(a.author_name, 'Unknown') as author_name"),
+      db.raw("COUNT(DISTINCT c.chapter_id)::int as total_chapters"),
+      db.raw("ARRAY_REMOVE(ARRAY_AGG(DISTINCT g.genre_name), NULL) as genres")
+    )
+    .orderByRaw("m.updated_at DESC NULLS LAST")
+    .limit(limit)
+    .offset(offset);
+
+  return rows; // trả thẳng list mangas có đủ field
 };

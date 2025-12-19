@@ -15,7 +15,6 @@ export default function Header() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const handleOpenFilter = () => setIsFilterOpen(true);
   const handleCloseFilter = () => setIsFilterOpen(false);
-
   const handleSearch = (keyword: string) => {
     router.push(`/search?keyword=${encodeURIComponent(keyword)}`);
   };

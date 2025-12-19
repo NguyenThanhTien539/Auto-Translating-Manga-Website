@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, KeyboardEvent } from "react";
+import { useState, KeyboardEvent, useEffect } from "react";
 
 type SearchBarProps = {
   onSearch: (keyword: string) => void;  // Header truyền logic search
@@ -10,10 +10,16 @@ type SearchBarProps = {
 export function SearchBar({ onSearch, onOpenFilter }: SearchBarProps) {
   const [keyword, setKeyword] = useState("");
 
+  // delete keyword when reload page
+  useEffect(() => {
+    setKeyword("");
+  }, []);
+
   const handleSearch = () => {
     const q = keyword.trim();
     if (!q) return;
     onSearch(q);
+    setKeyword("");
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -38,7 +44,7 @@ export function SearchBar({ onSearch, onOpenFilter }: SearchBarProps) {
         {/* Input */}
         <input
           type="text"
-          placeholder="Tìm ở đây"
+          placeholder="Tìm theo tên truyện"
           className="flex-1 border-none bg-transparent text-sm outline-none placeholder:text-gray-400"
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
