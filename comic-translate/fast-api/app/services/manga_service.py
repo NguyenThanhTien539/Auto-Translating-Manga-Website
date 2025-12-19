@@ -22,140 +22,94 @@ import os
 
 logger = logging.getLogger(__name__)
 
-
 def simple_draw_text(image: np.ndarray, blk_list, font_pth: str, colour: str = "#000", 
-                     init_font_size: int = 40, min_font_size=10, outline: bool = True):
-    """
-    Simplified text rendering without PySide6 dependency.
-    Uses PIL to draw translated text on image.
-    """
+                     init_font_size: int = 40, min_font_size=10, outline: bool = True,
+                     bbox_expand_ratio: float = 1.15):
     from PIL import Image, ImageFont, ImageDraw
-    
-    logger.info(f"Starting text rendering for {len(blk_list)} blocks")
-    
-    # Convert numpy array to PIL Image
+    import textwrap
+
     if isinstance(image, np.ndarray):
         pil_image = Image.fromarray(image)
     else:
         pil_image = image
     
     draw = ImageDraw.Draw(pil_image)
-    rendered_count = 0
     
-    for idx, blk in enumerate(blk_list):
+    for blk in blk_list:
         x1, y1, x2, y2 = blk.xyxy
-        width = int(x2 - x1)
-        height = int(y2 - y1)
-        tbbox_top_left = (int(x1), int(y1))
+        # Mở rộng bbox theo ratio
+        w_center, h_center = (x1 + x2) / 2, (y1 + y2) / 2
+        width = (x2 - x1) * bbox_expand_ratio
+        height = (y2 - y1) * bbox_expand_ratio
         
-        translation = blk.translation
-        logger.info(f"Block {idx}: translation='{translation}', bbox={blk.xyxy}")
+        target_x1 = max(0, int(w_center - width / 2))
+        target_y1 = max(0, int(h_center - height / 2))
+        target_width = int(width)
+        target_height = int(height)
+
+        text = blk.translation if blk.translation else ""
+        if not text: continue
+
+        # 1. Tìm Font size phù hợp nhất bằng Binary Search (hoặc giảm dần)
+        best_font_size = init_font_size
+        best_lines = []
         
-        if not translation or len(translation) <= 1:
-            logger.info(f"Block {idx}: Skipping (no translation or too short)")
-            continue
-        
-        # Use block-specific settings if available
-        current_min = min_font_size
-        current_init = init_font_size
-        current_colour = colour
-        
-        if blk.min_font_size > 0:
-            current_min = blk.min_font_size
-        if blk.max_font_size > 0:
-            current_init = blk.max_font_size
-        if blk.font_color:
-            current_colour = blk.font_color
-        
-        # Simple word wrap and font sizing with multiline support
-        font_size = current_init
-        lines = []
-        
-        # Try to fit text by reducing font size and wrapping
-        while font_size >= current_min:
-            font = ImageFont.truetype(font_pth, font_size)
+        # Thêm padding để text không sát mép bbox
+        pad = 5
+        avail_w = target_width - (2 * pad)
+        avail_h = target_height - (2 * pad)
+
+        for fs in range(init_font_size, min_font_size - 1, -2):
+            font = ImageFont.truetype(font_pth, fs)
             
-            # Try to wrap text to fit width
-            words = translation.split()
-            lines = []
-            current_line = []
+            # Ước lượng số ký tự trên 1 dòng dựa trên chiều rộng trung bình
+            # (Hoặc dùng textwrap dựa trên width của bbox)
+            avg_char_w = draw.textbbox((0, 0), "A", font=font)[2]
+            if avg_char_w == 0: avg_char_w = fs / 2
             
-            for word in words:
-                test_line = ' '.join(current_line + [word])
-                bbox = draw.textbbox((0, 0), test_line, font=font)
-                text_width = bbox[2] - bbox[0]
-                
-                if text_width <= width - 10:  # 10px padding
-                    current_line.append(word)
-                else:
-                    if current_line:
-                        lines.append(' '.join(current_line))
-                        current_line = [word]
-                    else:
-                        lines.append(word)
+            max_chars = max(1, int(avail_w / avg_char_w))
             
-            if current_line:
-                lines.append(' '.join(current_line))
+            # Tự động wrap text
+            lines = textwrap.wrap(text, width=max_chars)
             
-            # Check if all lines fit in height
-            full_text = '\n'.join(lines)
-            bbox = draw.textbbox((0, 0), full_text, font=font)
-            text_height = bbox[3] - bbox[1]
+            # Tính tổng chiều cao của khối text sau khi wrap
+            line_heights = [draw.textbbox((0, 0), line, font=font)[3] for line in lines]
+            total_h = sum(line_heights) + (len(lines) - 1) * (fs // 5)
             
-            if text_height <= height - 10:  # 10px padding
+            # Nếu vừa cả chiều rộng và chiều cao thì chọn size này
+            max_line_w = max([draw.textbbox((0, 0), l, font=font)[2] for l in lines]) if lines else 0
+            
+            if total_h <= avail_h and max_line_w <= avail_w:
+                best_font_size = fs
+                best_lines = lines
                 break
+            else:
+                # Lưu lại kết quả tệ nhất (size nhỏ nhất) để dùng nếu không size nào vừa
+                best_font_size = fs
+                best_lines = lines
+
+        # 2. Vẽ Text đã được wrap và scale
+        final_font = ImageFont.truetype(font_pth, best_font_size)
+        line_h = draw.textbbox((0, 0), "hg", font=final_font)[3] 
+        spacing = best_font_size // 5
+        
+        # Tính toán vị trí bắt đầu để căn giữa theo chiều dọc
+        total_text_h = len(best_lines) * line_h + (len(best_lines) - 1) * spacing
+        current_y = target_y1 + (target_height - total_text_h) // 2
+
+        for line in best_lines:
+            # Căn giữa theo chiều ngang
+            line_w = draw.textbbox((0, 0), line, font=final_font)[2]
+            current_x = target_x1 + (target_width - line_w) // 2
             
-            font_size -= 2
-            if font_size < current_min:
-                # Use single line if can't fit
-                lines = [translation]
-                break
-        
-        wrapped_text = '\n'.join(lines)
-        
-        # Center the text in the bounding box
-        bbox = draw.textbbox(tbbox_top_left, wrapped_text, font=font)
-        text_width = bbox[2] - bbox[0]
-        text_height = bbox[3] - bbox[1]
-        
-        # Calculate centered position
-        x_offset = (width - text_width) // 2
-        y_offset = (height - text_height) // 2
-        text_position = (tbbox_top_left[0] + x_offset, tbbox_top_left[1] + y_offset)
-        
-        logger.info(f"Block {idx}: Using font size {font_size}, {len(lines)} lines, color={current_colour}")
-        
-        # Draw text with outline for visibility
-        if outline:
-            # Draw thick white outline for better visibility
-            outline_width = max(2, font_size // 10)
-            for dx in range(-outline_width, outline_width + 1):
-                for dy in range(-outline_width, outline_width + 1):
-                    if dx != 0 or dy != 0:
-                        draw.multiline_text(
-                            (text_position[0] + dx, text_position[1] + dy),
-                            wrapped_text,
-                            font=font,
-                            fill="#FFFFFF",
-                            align='center',
-                            spacing=2
-                        )
-        
-        # Draw main text
-        draw.multiline_text(
-            text_position,
-            wrapped_text,
-            fill=current_colour,
-            font=font,
-            align='center',
-            spacing=2
-        )
-        
-        rendered_count += 1
-    
-    logger.info(f"Rendered {rendered_count} text blocks")
-    
-    # Convert back to numpy array
+            if outline:
+                # Vẽ viền (Stroke) giúp text nổi bật trên nền manga
+                draw.text((current_x, current_y), line, font=final_font, fill="#FFFFFF", 
+                          stroke_width=2, stroke_fill="#FFFFFF")
+            
+            draw.text((current_x, current_y), line, font=final_font, fill=colour)
+            current_y += line_h + spacing
+
     return np.array(pil_image)
 
 
@@ -171,7 +125,16 @@ class MockSettingsPage:
         self.inpainter = inpainter
         self.use_gpu = use_gpu
         self.ui = self  # Mock ui reference
-        self._credentials = credentials or {}
+        
+        # Load credentials from environment or use provided ones
+        from config.settings import settings
+        default_credentials = {}
+        if settings.google_gemini_api_key:
+            default_credentials["Google Gemini"] = {"api_key": settings.google_gemini_api_key}
+        if settings.google_cloud_vision_api_key:
+            default_credentials["Google Cloud"] = {"api_key": settings.google_cloud_vision_api_key}
+        
+        self._credentials = {**default_credentials, **(credentials or {})}
         
     def get_tool_selection(self, tool_type: str) -> str:
         """Get the selected tool for a given type."""
@@ -261,16 +224,51 @@ class MockMainPage:
 class MangaTranslationService:
     """Service for manga translation operations without GUI dependencies."""
     
-    def __init__(self):
+    # Default font search paths (prioritize Vietnamese-friendly fonts)
+    DEFAULT_FONTS = [
+        # Windows fonts (Unicode support)
+        "C:/Windows/Fonts/Arial.ttf",
+        "C:/Windows/Fonts/ArialUni.ttf",
+        "C:/Windows/Fonts/segoeui.ttf",  # Segoe UI - good Vietnamese support
+        "C:/Windows/Fonts/times.ttf",
+        "C:/Windows/Fonts/verdana.ttf",
+        # Linux fonts
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
+        # macOS fonts
+        "/System/Library/Fonts/Helvetica.ttc",
+        "/System/Library/Fonts/SFNSText.ttf",
+    ]
+    
+    def __init__(self, default_font_path: Optional[str] = None):
         self.detector_cache = None
         self.ocr_cache = None
         self.translator_cache = None
         self.inpainter_cache = None
         self.cached_settings = {}
+        
+        # Set default font from parameter or environment variable
+        self.default_font_path = (
+            default_font_path or 
+            os.environ.get('MANGA_TRANSLATE_DEFAULT_FONT') or
+            self._find_default_font()
+        )
+        
         logger.info("MangaTranslationService initialized")
+        logger.info(f"Default font: {self.default_font_path}")
         
         # Ensure mandatory models are available
         self._ensure_core_models()
+    
+    def _find_default_font(self) -> Optional[str]:
+        """Find the first available default font from the list."""
+        for font_path in self.DEFAULT_FONTS:
+            if os.path.exists(font_path):
+                logger.info(f"Found default font: {font_path}")
+                return font_path
+        logger.warning("No default font found in standard locations")
+        return None
     
     def _ensure_core_models(self):
         """Ensure core models are downloaded at startup."""
@@ -607,10 +605,27 @@ class MangaTranslationService:
             detection_result = self.detect_text_blocks(image, use_gpu=use_gpu)
             blk_list = self._dict_to_textblocks(detection_result['blocks'])
         
-        # Create mask from text blocks
-        mask = np.zeros(image.shape[:2], dtype=np.uint8)
+        # Filter blocks: only inpaint blocks that have text and translation
+        # Skip blocks with empty text or empty translation to preserve image quality
+        blocks_to_inpaint = []
+        skipped_count = 0
         
         for blk in blk_list:
+            has_text = hasattr(blk, 'text') and blk.text and len(blk.text.strip()) > 0
+            has_translation = hasattr(blk, 'translation') and blk.translation and len(blk.translation.strip()) > 0
+            
+            if has_text or has_translation:
+                blocks_to_inpaint.append(blk)
+            else:
+                skipped_count += 1
+                logger.info(f"Skipping inpainting for block (no text/translation): bbox={blk.xyxy}")
+        
+        logger.info(f"Inpainting {len(blocks_to_inpaint)} blocks, skipped {skipped_count} empty blocks")
+        
+        # Create mask from filtered text blocks
+        mask = np.zeros(image.shape[:2], dtype=np.uint8)
+        
+        for blk in blocks_to_inpaint:
             # Get inpaint bboxes or use text bbox
             if blk.inpaint_bboxes is not None and len(blk.inpaint_bboxes) > 0:
                 bboxes = blk.inpaint_bboxes
@@ -652,6 +667,8 @@ class MangaTranslationService:
         return {
             'inpainted_image': image_base64,
             'blocks_count': len(blk_list),
+            'blocks_inpainted': len(blocks_to_inpaint),
+            'blocks_skipped': skipped_count,
             'image_shape': inpainted_image.shape
         }
     
@@ -663,7 +680,8 @@ class MangaTranslationService:
         font_color: str = "#000000",
         init_font_size: int = 60,
         min_font_size: int = 16,
-        outline: bool = True
+        outline: bool = True,
+        bbox_expand_ratio: float = 1.15
     ) -> Dict[str, Any]:
         """
         Render translated text onto the image.
@@ -673,9 +691,10 @@ class MangaTranslationService:
             blocks_json: JSON string of text blocks with translations
             font_path: Path to font file (optional, uses default if not provided)
             font_color: Color of the text in hex format
-            init_font_size: Initial font size to try
+            init_font_size: Initial font size to try (auto-calculated if not optimal)
             min_font_size: Minimum font size allowed
             outline: Whether to add white outline for better readability
+            bbox_expand_ratio: Ratio to expand bounding box (1.15 = 15% larger for longer translations)
             
         Returns:
             Dictionary with rendered image
@@ -695,24 +714,24 @@ class MangaTranslationService:
         else:
             raise ValueError("blocks_json is required for rendering")
         
-        # Use default font if not provided
+        # Use provided font or fall back to service default
         if not font_path:
-            # Try to find a system font
-            possible_fonts = [
-                "C:/Windows/Fonts/arial.ttf",
-                "C:/Windows/Fonts/ArialUni.ttf",
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-                "/System/Library/Fonts/Helvetica.ttc"
-            ]
-            for font in possible_fonts:
-                if os.path.exists(font):
-                    font_path = font
-                    break
-            
-            if not font_path:
-                raise ValueError("No suitable font found. Please provide font_path parameter.")
+            if self.default_font_path:
+                font_path = self.default_font_path
+                logger.info(f"Using service default font: {font_path}")
+            else:
+                raise ValueError(
+                    "No font available. Please either:\n"
+                    "1. Provide font_path parameter, or\n"
+                    "2. Set MANGA_TRANSLATE_DEFAULT_FONT environment variable, or\n"
+                    "3. Install a Unicode font in system font directories"
+                )
+        else:
+            logger.info(f"Using provided font: {font_path}")
         
-        logger.info(f"Using font: {font_path}")
+        # Verify font exists
+        if not os.path.exists(font_path):
+            raise ValueError(f"Font file not found: {font_path}")
         
         # Render text on image
         rendered_image = simple_draw_text(
@@ -722,7 +741,8 @@ class MangaTranslationService:
             colour=font_color,
             init_font_size=init_font_size,
             min_font_size=min_font_size,
-            outline=outline
+            outline=outline,
+            bbox_expand_ratio=bbox_expand_ratio
         )
         
         logger.info("Text rendering completed")
@@ -755,7 +775,10 @@ class MangaTranslationService:
         use_gpu: bool = False,
         extra_context: str = "",
         render_text: bool = False,
-        font_path: Optional[str] = None
+        font_path: Optional[str] = None,
+        init_font_size: int = 60,
+        min_font_size: int = 16,
+        bbox_expand_ratio: float = 1.15
     ) -> Dict[str, Any]:
         """
         Run complete translation pipeline: detection -> OCR -> translation -> optional inpainting.
@@ -770,6 +793,11 @@ class MangaTranslationService:
             inpainter: Inpainting model (optional)
             use_gpu: Whether to use GPU acceleration
             extra_context: Additional translation context
+            render_text: Whether to render text on image
+            font_path: Path to custom font file
+            init_font_size: Initial/maximum font size
+            min_font_size: Minimum font size
+            bbox_expand_ratio: Bounding box expansion ratio
             
         Returns:
             Dictionary with complete pipeline results
@@ -842,7 +870,10 @@ class MangaTranslationService:
                 rendering_result = self.render_translated_text(
                     image=inpainted_np,
                     blocks_json=json.dumps(translation_result['blocks']),
-                    font_path=font_path
+                    font_path=font_path,
+                    init_font_size=init_font_size,
+                    min_font_size=min_font_size,
+                    bbox_expand_ratio=bbox_expand_ratio
                 )
                 result['rendered_image'] = rendering_result['rendered_image']
                 result['pipeline_steps'].append('rendering')

@@ -1,5 +1,6 @@
 import json
 import hashlib
+from typing import List
 
 from modules.utils.device import resolve_device, torch_available
 from .base import OCREngine
@@ -10,6 +11,7 @@ from .ppocr import PPOCRv5Engine
 from .manga_ocr.onnx_engine import MangaOCREngineONNX
 from .pororo.onnx_engine import PororoOCREngineONNX  
 from .gemini_ocr import GeminiOCR
+from .vietocr_engine import VietOCREngine
 
 class OCRFactory:
     """Factory for creating appropriate OCR engines based on settings."""
@@ -144,6 +146,16 @@ class OCRFactory:
             'Italian': lambda s: cls._create_ppocr(s, 'latin'),
             'German': lambda s: cls._create_ppocr(s, 'latin'),
             'Dutch': lambda s: cls._create_ppocr(s, 'latin'),
+            'Vietnamese': lambda s: cls._create_vietocr(s, backend),  # VietOCR for Vietnamese
+            'Portuguese': lambda s: cls._create_ppocr(s, 'latin'),
+            'Brazilian Portuguese': lambda s: cls._create_ppocr(s, 'latin'),
+            'Polish': lambda s: cls._create_ppocr(s, 'latin'),
+            'Turkish': lambda s: cls._create_ppocr(s, 'latin'),
+            'Thai': lambda s: cls._create_easyocr(s, ['th'], backend),  # Thai also uses EasyOCR
+            'Indonesian': lambda s: cls._create_ppocr(s, 'latin'),
+            'Hungarian': lambda s: cls._create_ppocr(s, 'latin'),
+            'Finnish': lambda s: cls._create_ppocr(s, 'latin'),
+            'Arabic': lambda s: cls._create_easyocr(s, ['ar'], backend),  # Arabic uses EasyOCR
         }
         
         # Check if we have a specific model factory
@@ -151,10 +163,16 @@ class OCRFactory:
             return general[ocr_model](settings)
         
         # For Default, use language-specific engines
-        if ocr_model == 'Default' and source_lang_english in language_factories:
-            return language_factories[source_lang_english](settings)
+        if ocr_model == 'Default':
+            if source_lang_english in language_factories:
+                return language_factories[source_lang_english](settings)
+            else:
+                # Fallback to English PPOCRv5 for unsupported languages
+                print(f"Warning: No OCR engine found for language '{source_lang_english}', falling back to English")
+                return cls._create_ppocr(settings, 'en')
         
-        return 
+        # If nothing matches, return None (should not happen with proper configuration)
+        raise ValueError(f"No OCR engine found for model '{ocr_model}' and language '{source_lang_english}'") 
     
     @staticmethod
     def _create_microsoft_ocr(settings) -> OCREngine:
@@ -222,3 +240,30 @@ class OCRFactory:
         engine = GeminiOCR()
         engine.initialize(settings, model)
         return engine
+    
+    @staticmethod
+    def _create_vietocr(settings, backend: str = 'onnx') -> OCREngine:
+        """
+        Create VietOCR engine for Vietnamese text recognition.
+        Falls back to PPOCRv5 Latin if VietOCR is not available.
+        
+        Args:
+            settings: Settings object
+            backend: Backend type (ignored, VietOCR uses its own backend)
+            
+        Returns:
+            VietOCREngine instance or PPOCRv5 fallback
+        """
+        try:
+            # Try to import and use VietOCR
+            from .vietocr_engine import VietOCREngine
+            
+            device = resolve_device(settings.is_gpu_enabled(), 'torch')
+            engine = VietOCREngine()
+            engine.initialize(device=device)
+            return engine
+            
+        except ImportError as e:
+            # VietOCR not installed - fallback to PPOCRv5 Latin
+            print(f"Warning: VietOCR not available ({e}), using PPOCRv5 Latin as fallback for Vietnamese")
+            return OCRFactory._create_ppocr(settings, 'latin')

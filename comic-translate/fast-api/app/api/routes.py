@@ -14,6 +14,7 @@ from app.models.schemas import (
     OCRResponse,
     TranslationResponse,
     InpaintingResponse,
+    RenderResponse,
     FullPipelineResponse,
 )
 from app.services.manga_service import MangaTranslationService
@@ -192,19 +193,28 @@ async def inpaint_image(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/api/v1/render")
+@router.post("/api/v1/render", response_model=RenderResponse)
 async def render_text_on_image(
     file: UploadFile = File(..., description="Image (usually inpainted)"),
     blocks: str = Form(..., description="JSON string of text blocks with translations"),
+    font_path: Optional[str] = Form(None, description="Path to custom font file. If not provided, uses auto-detected system font (Arial, Segoe UI, etc.). For Vietnamese, ensure Unicode-compatible font."),
     font_color: Optional[str] = Form("#000000", description="Text color in hex format"),
-    init_font_size: Optional[int] = Form(40, description="Initial font size"),
-    min_font_size: Optional[int] = Form(10, description="Minimum font size"),
-    outline: Optional[bool] = Form(True, description="Add white outline to text")
+    init_font_size: Optional[int] = Form(60, description="Initial/maximum font size to try"),
+    min_font_size: Optional[int] = Form(16, description="Minimum font size allowed"),
+    outline: Optional[bool] = Form(True, description="Add white outline to text for better readability"),
+    bbox_expand_ratio: Optional[float] = Form(1.15, description="Ratio to expand bounding box (1.15 = 15% larger for longer translations)")
 ):
     """
     Render translated text onto an image.
     
     Typically used after inpainting to add translated text.
+    Font size is automatically calculated based on bounding box dimensions and text length.
+    
+    **Font handling:**
+    - If `font_path` is provided, uses that font
+    - If not provided, auto-detects system fonts (Arial, Segoe UI, DejaVu Sans, etc.)
+    - For Vietnamese text, ensure using Unicode-compatible fonts
+    - Set `MANGA_TRANSLATE_DEFAULT_FONT` environment variable to override default font
     """
     try:
         logger.info("Rendering text request received")
@@ -213,10 +223,12 @@ async def render_text_on_image(
         result = manga_service.render_translated_text(
             image=image,
             blocks_json=blocks,
+            font_path=font_path,
             font_color=font_color,
             init_font_size=init_font_size,
             min_font_size=min_font_size,
-            outline=outline
+            outline=outline,
+            bbox_expand_ratio=bbox_expand_ratio
         )
         
         logger.info("Rendering completed")
@@ -239,12 +251,22 @@ async def full_translation_pipeline(
     gpu: Optional[bool] = Form(False, description="Use GPU acceleration"),
     extra_context: Optional[str] = Form("", description="Additional translation context"),
     include_inpainted: Optional[bool] = Form(False, description="Include inpainted image in response"),
-    render_text: Optional[bool] = Form(True, description="Render translated text on inpainted image (requires inpainting)")
+    render_text: Optional[bool] = Form(True, description="Render translated text on inpainted image (requires inpainting)"),
+    font_path: Optional[str] = Form(None, description="Custom font path for rendering. Auto-detected if not provided (Arial, Segoe UI, etc.)"),
+    init_font_size: Optional[int] = Form(60, description="Initial/maximum font size for rendering"),
+    min_font_size: Optional[int] = Form(16, description="Minimum font size for rendering"),
+    bbox_expand_ratio: Optional[float] = Form(1.15, description="Bounding box expansion ratio (1.15 = 15% larger)")
 ):
     """
     Complete manga translation pipeline: detection -> OCR -> translation.
     
     Optionally includes inpainting of the original text and rendering of translated text.
+    Font size is automatically calculated to fit the bounding boxes.
+    
+    **Font handling for rendering:**
+    - Auto-detects Unicode fonts from system (Arial, Segoe UI, DejaVu, etc.)
+    - Provide `font_path` for custom fonts (recommended for better Vietnamese support)
+    - Use `MANGA_TRANSLATE_DEFAULT_FONT` environment variable for server-wide default
     """
     try:
         logger.info(f"Full pipeline request - {source_lang} to {target_lang}")
@@ -260,7 +282,11 @@ async def full_translation_pipeline(
             inpainter=inpainter if include_inpainted else None,
             use_gpu=gpu,
             extra_context=extra_context,
-            render_text=render_text if include_inpainted else False
+            render_text=render_text if include_inpainted else False,
+            font_path=font_path,
+            init_font_size=init_font_size,
+            min_font_size=min_font_size,
+            bbox_expand_ratio=bbox_expand_ratio
         )
         
         logger.info(f"Full pipeline completed - processed {len(result['blocks'])} blocks")

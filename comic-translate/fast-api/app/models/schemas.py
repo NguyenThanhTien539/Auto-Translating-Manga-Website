@@ -44,7 +44,16 @@ class TranslationResponse(BaseModel):
 class InpaintingResponse(BaseModel):
     """Response schema for inpainting."""
     inpainted_image: str = Field(..., description="Base64 encoded inpainted image")
-    blocks_count: int = Field(..., description="Number of blocks inpainted")
+    blocks_count: int = Field(..., description="Total number of blocks")
+    blocks_inpainted: int = Field(..., description="Number of blocks actually inpainted")
+    blocks_skipped: int = Field(..., description="Number of blocks skipped (empty text/translation)")
+    image_shape: List[int] = Field(..., description="Image dimensions [height, width, channels]")
+
+
+class RenderResponse(BaseModel):
+    """Response schema for text rendering."""
+    rendered_image: str = Field(..., description="Base64 encoded image with rendered translated text")
+    blocks_count: int = Field(..., description="Number of text blocks rendered")
     image_shape: List[int] = Field(..., description="Image dimensions [height, width, channels]")
 
 

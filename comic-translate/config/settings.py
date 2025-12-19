@@ -47,8 +47,14 @@ class Settings(BaseSettings):
     enable_caching: bool = True
     cache_ttl: int = 3600  # 1 hour
     
+    # API Keys
+    google_gemini_api_key: Optional[str] = None
+    google_cloud_vision_api_key: Optional[str] = None
+    
     class Config:
-        env_file = ".env"
+        # Get absolute path to .env file (same directory as this settings file's parent)
+        _config_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        env_file = os.path.join(_config_dir, ".env")
         env_file_encoding = "utf-8"
 
 
