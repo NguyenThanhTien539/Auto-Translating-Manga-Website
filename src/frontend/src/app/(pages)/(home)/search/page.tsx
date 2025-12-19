@@ -1,94 +1,108 @@
-// app/manga/page.tsx
-import React from "react";
+"use client";
+
+import React, { useEffect, useMemo, useState } from "react";
 import MangaCard from "@/app/components/client/MangaCard";
+import { useSearchParams } from "next/navigation";
 
-const dummyMangaList = [
-  {
-    manga_id: "1",
-    manga_name: "The Rising Hero of Another World",
-    author: "Kazuya Tanaka",
-    original_language: "Japan",
-    genre: "Action, Fantasy, Adventure",
-    status: "On-going",
-    coverUrl: "https://i0.wp.com/www.glenatmanga.com/wp-content/uploads/2023/11/Spy-x-Family-Vol.-10.jpg?fit=500%2C750&ssl=1",
-    rating: 8.91,
-    totalChapters: 24,
-  },
-  {
-    manga_id: "2",
-    manga_name: "Moonlight Swordmaster",
-    author: "Kim Haneul",
-    original_language: "Korea",
-    genre: "Action, Martial Arts, Fantasy",
-    status: "On-going",
-    coverUrl: "https://i0.wp.com/www.glenatmanga.com/wp-content/uploads/2023/11/Spy-x-Family-Vol.-10.jpg?fit=500%2C750&ssl=1",
+type Manga = {
+  manga_id: string;
+  title: string;
+  author_name?: string;
+  original_language?: string;
+  genres?: string[];
+  status?: string;
+  cover_image?: string;
+  average_rating?: number;
+  total_chapters?: number;
+};
 
-    rating: 9.12,
-    totalChapters: 57,
-  },
-  {
-    manga_id: "3",
-    manga_name: "Dragon Emperor’s Daughter",
-    author: "Li Wei",
-    original_language: "Chinese",
-    genre: "Fantasy, Drama, Romance",
-    status: "Completed",
-    overUrl: "https://i0.wp.com/www.glenatmanga.com/wp-content/uploads/2023/11/Spy-x-Family-Vol.-10.jpg?fit=500%2C750&ssl=1",
-    rating: 8.45,
-    totalChapters: 40,
-  },
-  {
-    manga_id: "4",
-    manga_name: "Hello",
-    author: "Nguyen Van A",
-    original_language: "Vietnamese",
-    genre: "Fantasy, School, Supernatural",
-    status: "On-going",
-    coverUrl: "https://i0.wp.com/www.glenatmanga.com/wp-content/uploads/2023/11/Spy-x-Family-Vol.-10.jpg?fit=500%2C750&ssl=1",
-    rating: 8.77,
-    totalChapters: 18,
-  },
-  {
-    manga_id: "5",
-    manga_name: "Cyber City Chronicles",
-    author: "Akiro Sato",
-    original_language: "Japan",
-    genre: "Sci-Fi, Action, Thriller",
-    status: "On-going",
-    coverUrl: "https://i0.wp.com/www.glenatmanga.com/wp-content/uploads/2023/11/Spy-x-Family-Vol.-10.jpg?fit=500%2C750&ssl=1",
+export default function SearchPage() {
+  const sp = useSearchParams();
+  const keyword = useMemo(() => sp.get("keyword") || "", [sp]);
 
-    rating: 9.01,
-    totalChapters: 32,
-  },
-];
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
-export default function MangaDummyPage() {
+  const [mangas, setMangas] = useState<Manga[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>("");
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const run = async () => {
+      try {
+        setError("");
+        setLoading(true);
+
+        const res = await fetch(
+          `${API_URL}/search?keyword=${encodeURIComponent(keyword)}`,
+          { signal: controller.signal }
+        );
+
+        const json = await res.json();
+
+        if (json.code !== "success") {
+          setMangas([]);
+          setError(json.message || "Error fetching search results");
+          return;
+        }
+
+        setMangas(json.data || []);
+
+        
+      } catch (e: any) {
+        if (e?.name !== "AbortError") setError("Error fetching search results");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    run();
+
+    return () => controller.abort();
+  }, [API_URL, keyword]);
+
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
       <div className="max-w-6xl mx-auto px-4">
-        {/* Tiêu đề trang */}
         <header className="mb-6 flex items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
               Kết quả tìm kiếm
             </h1>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              Từ khoá: <span className="font-medium">{keyword || "(trống)"}</span>
+            </p>
           </div>
         </header>
 
-        {/* Grid danh sách card */}
+        {loading && (
+          <div className="text-gray-700 dark:text-gray-200">Đang tải...</div>
+        )}
+
+        {!loading && error && (
+          <div className="text-red-600 dark:text-red-400">{error}</div>
+        )}
+
+        {!loading && !error && mangas.length === 0 && (
+          <div className="text-gray-700 dark:text-gray-200">
+            Không tìm thấy truyện phù hợp.
+          </div>
+        )}
+
         <section className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {dummyMangaList.map((manga) => (
+          {mangas.map((m) => (
             <MangaCard
-              key={manga.manga_id}
-              manga_id={manga.manga_id}
-              manga_name={manga.manga_name}
-              author={manga.author}
-              original_language={manga.original_language}
-              genre={manga.genre}
-              status={manga.status}
-              coverUrl={manga.coverUrl ?? "/images/placeholder-cover.jpg"}
-              rating={manga.rating}
-              totalChapters={manga.totalChapters}
+              key={m.manga_id}
+              manga_id={m.manga_id}
+              manga_name={m.title} // backend là title
+              author={m.author_name || "Unknown"}
+              original_language={m.original_language || ""}
+              genre={(m.genres || []).join(", ")} // nếu có genres[]
+              status={m.status || ""}
+              coverUrl={m.cover_image ?? "/images/placeholder-cover.jpg"}
+              average_rating={m.average_rating ?? 0}
+              totalChapters={m.total_chapters ?? 0}
             />
           ))}
         </section>

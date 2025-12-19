@@ -4,17 +4,17 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import MangaCard from "@/app/components/client/MangaCard";
 
-type FilterMangaRow = {
+type Manga = {
   manga_id: string;
   title: string;
   author_name?: string;
   original_language?: string;
-  genres?: string[]; // nếu backend trả array
-  genre_names?: string[]; // nếu backend trả kiểu khác
+  genres?: string[]; 
+  genre_names?: string[]; 
   status?: string;
   cover_image?: string;
-  rating?: number;
-  total_chapters?: number; // backend nên trả field này (đếm chapters)
+  average_rating?: number;
+  total_chapters?: number; 
 };
 
 export default function FilterPage() {
@@ -25,7 +25,7 @@ export default function FilterPage() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
-  const [mangas, setMangas] = useState<FilterMangaRow[]>([]);
+  const [mangas, setMangas] = useState<Manga[]>([]);
 
   // ---- build URL query để gọi backend ----
   const requestUrl = useMemo(() => {
@@ -83,7 +83,7 @@ export default function FilterPage() {
       .then((data) => {
         if (data?.code === "success") {
           // bạn có thể trả về data.mangas hoặc data.data tùy backend
-          const rows: FilterMangaRow[] = data?.data ?? data?.mangas ?? [];
+          const rows: Manga[] = data?.data ?? data?.mangas ?? [];
           setMangas(rows);
         } else {
           setMangas([]);
@@ -155,7 +155,7 @@ export default function FilterPage() {
                       genre={Array.isArray(genres) ? genres.join(" - ") : ""}
                       status={m.status || "Unknown"}
                       coverUrl={m.cover_image || "/images/placeholder-cover.jpg"}
-                      rating={Number.isFinite(m.rating as number) ? (m.rating as number) : 0}
+                      average_rating={Number.isFinite(m.average_rating as number) ? (m.average_rating as number) : 0}
                       totalChapters={m.total_chapters ?? 0}
                     />
                   );
