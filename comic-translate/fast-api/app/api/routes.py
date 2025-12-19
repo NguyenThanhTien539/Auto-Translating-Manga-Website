@@ -192,6 +192,41 @@ async def inpaint_image(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/api/v1/render")
+async def render_text_on_image(
+    file: UploadFile = File(..., description="Image (usually inpainted)"),
+    blocks: str = Form(..., description="JSON string of text blocks with translations"),
+    font_color: Optional[str] = Form("#000000", description="Text color in hex format"),
+    init_font_size: Optional[int] = Form(40, description="Initial font size"),
+    min_font_size: Optional[int] = Form(10, description="Minimum font size"),
+    outline: Optional[bool] = Form(True, description="Add white outline to text")
+):
+    """
+    Render translated text onto an image.
+    
+    Typically used after inpainting to add translated text.
+    """
+    try:
+        logger.info("Rendering text request received")
+        image = await load_image_from_upload(file)
+        
+        result = manga_service.render_translated_text(
+            image=image,
+            blocks_json=blocks,
+            font_color=font_color,
+            init_font_size=init_font_size,
+            min_font_size=min_font_size,
+            outline=outline
+        )
+        
+        logger.info("Rendering completed")
+        return result
+        
+    except Exception as e:
+        logger.error(f"Rendering error: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/api/v1/translate", response_model=FullPipelineResponse)
 async def full_translation_pipeline(
     file: UploadFile = File(..., description="Manga page image"),
@@ -203,12 +238,13 @@ async def full_translation_pipeline(
     inpainter: Optional[str] = Form("LaMa", description="Inpainting model"),
     gpu: Optional[bool] = Form(False, description="Use GPU acceleration"),
     extra_context: Optional[str] = Form("", description="Additional translation context"),
-    include_inpainted: Optional[bool] = Form(False, description="Include inpainted image in response")
+    include_inpainted: Optional[bool] = Form(False, description="Include inpainted image in response"),
+    render_text: Optional[bool] = Form(True, description="Render translated text on inpainted image (requires inpainting)")
 ):
     """
     Complete manga translation pipeline: detection -> OCR -> translation.
     
-    Optionally includes inpainting of the original text.
+    Optionally includes inpainting of the original text and rendering of translated text.
     """
     try:
         logger.info(f"Full pipeline request - {source_lang} to {target_lang}")
@@ -223,10 +259,17 @@ async def full_translation_pipeline(
             translator=translator,
             inpainter=inpainter if include_inpainted else None,
             use_gpu=gpu,
-            extra_context=extra_context
+            extra_context=extra_context,
+            render_text=render_text if include_inpainted else False
         )
         
         logger.info(f"Full pipeline completed - processed {len(result['blocks'])} blocks")
+        logger.info(f"Response keys: {list(result.keys())}")
+        if 'rendered_image' in result:
+            logger.info(f"rendered_image field present: {len(result['rendered_image'])} chars")
+        else:
+            logger.warning("rendered_image field NOT present in result!")
+        
         return result
         
     except Exception as e:

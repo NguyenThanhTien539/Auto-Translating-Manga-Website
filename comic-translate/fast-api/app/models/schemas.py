@@ -56,6 +56,7 @@ class FullPipelineResponse(BaseModel):
     target_lang: str = Field(..., description="Target language")
     pipeline_steps: List[str] = Field(..., description="List of pipeline steps executed")
     inpainted_image: Optional[str] = Field(default=None, description="Base64 encoded inpainted image (if requested)")
+    rendered_image: Optional[str] = Field(default=None, description="Base64 encoded image with rendered translated text (if requested)")
 
 
 class ErrorResponse(BaseModel):

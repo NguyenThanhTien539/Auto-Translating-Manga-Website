@@ -18,8 +18,145 @@ from modules.inpainting.schema import Config
 from modules.detection.utils.content import get_inpaint_bboxes
 from modules.utils.download import ModelDownloader, ModelID
 import imkit as imk
+import os
 
 logger = logging.getLogger(__name__)
+
+
+def simple_draw_text(image: np.ndarray, blk_list, font_pth: str, colour: str = "#000", 
+                     init_font_size: int = 40, min_font_size=10, outline: bool = True):
+    """
+    Simplified text rendering without PySide6 dependency.
+    Uses PIL to draw translated text on image.
+    """
+    from PIL import Image, ImageFont, ImageDraw
+    
+    logger.info(f"Starting text rendering for {len(blk_list)} blocks")
+    
+    # Convert numpy array to PIL Image
+    if isinstance(image, np.ndarray):
+        pil_image = Image.fromarray(image)
+    else:
+        pil_image = image
+    
+    draw = ImageDraw.Draw(pil_image)
+    rendered_count = 0
+    
+    for idx, blk in enumerate(blk_list):
+        x1, y1, x2, y2 = blk.xyxy
+        width = int(x2 - x1)
+        height = int(y2 - y1)
+        tbbox_top_left = (int(x1), int(y1))
+        
+        translation = blk.translation
+        logger.info(f"Block {idx}: translation='{translation}', bbox={blk.xyxy}")
+        
+        if not translation or len(translation) <= 1:
+            logger.info(f"Block {idx}: Skipping (no translation or too short)")
+            continue
+        
+        # Use block-specific settings if available
+        current_min = min_font_size
+        current_init = init_font_size
+        current_colour = colour
+        
+        if blk.min_font_size > 0:
+            current_min = blk.min_font_size
+        if blk.max_font_size > 0:
+            current_init = blk.max_font_size
+        if blk.font_color:
+            current_colour = blk.font_color
+        
+        # Simple word wrap and font sizing with multiline support
+        font_size = current_init
+        lines = []
+        
+        # Try to fit text by reducing font size and wrapping
+        while font_size >= current_min:
+            font = ImageFont.truetype(font_pth, font_size)
+            
+            # Try to wrap text to fit width
+            words = translation.split()
+            lines = []
+            current_line = []
+            
+            for word in words:
+                test_line = ' '.join(current_line + [word])
+                bbox = draw.textbbox((0, 0), test_line, font=font)
+                text_width = bbox[2] - bbox[0]
+                
+                if text_width <= width - 10:  # 10px padding
+                    current_line.append(word)
+                else:
+                    if current_line:
+                        lines.append(' '.join(current_line))
+                        current_line = [word]
+                    else:
+                        lines.append(word)
+            
+            if current_line:
+                lines.append(' '.join(current_line))
+            
+            # Check if all lines fit in height
+            full_text = '\n'.join(lines)
+            bbox = draw.textbbox((0, 0), full_text, font=font)
+            text_height = bbox[3] - bbox[1]
+            
+            if text_height <= height - 10:  # 10px padding
+                break
+            
+            font_size -= 2
+            if font_size < current_min:
+                # Use single line if can't fit
+                lines = [translation]
+                break
+        
+        wrapped_text = '\n'.join(lines)
+        
+        # Center the text in the bounding box
+        bbox = draw.textbbox(tbbox_top_left, wrapped_text, font=font)
+        text_width = bbox[2] - bbox[0]
+        text_height = bbox[3] - bbox[1]
+        
+        # Calculate centered position
+        x_offset = (width - text_width) // 2
+        y_offset = (height - text_height) // 2
+        text_position = (tbbox_top_left[0] + x_offset, tbbox_top_left[1] + y_offset)
+        
+        logger.info(f"Block {idx}: Using font size {font_size}, {len(lines)} lines, color={current_colour}")
+        
+        # Draw text with outline for visibility
+        if outline:
+            # Draw thick white outline for better visibility
+            outline_width = max(2, font_size // 10)
+            for dx in range(-outline_width, outline_width + 1):
+                for dy in range(-outline_width, outline_width + 1):
+                    if dx != 0 or dy != 0:
+                        draw.multiline_text(
+                            (text_position[0] + dx, text_position[1] + dy),
+                            wrapped_text,
+                            font=font,
+                            fill="#FFFFFF",
+                            align='center',
+                            spacing=2
+                        )
+        
+        # Draw main text
+        draw.multiline_text(
+            text_position,
+            wrapped_text,
+            fill=current_colour,
+            font=font,
+            align='center',
+            spacing=2
+        )
+        
+        rendered_count += 1
+    
+    logger.info(f"Rendered {rendered_count} text blocks")
+    
+    # Convert back to numpy array
+    return np.array(pil_image)
 
 
 class MockSettingsPage:
@@ -479,7 +616,7 @@ class MangaTranslationService:
                 bboxes = blk.inpaint_bboxes
             else:
                 # Generate inpaint bboxes if not present
-                bboxes = get_inpaint_bboxes([blk], image.shape[:2])
+                bboxes = get_inpaint_bboxes(blk.xyxy, image)
             
             # Draw filled rectangles on mask
             for bbox in bboxes:
@@ -518,6 +655,94 @@ class MangaTranslationService:
             'image_shape': inpainted_image.shape
         }
     
+    def render_translated_text(
+        self,
+        image: np.ndarray,
+        blocks_json: Optional[str] = None,
+        font_path: Optional[str] = None,
+        font_color: str = "#000000",
+        init_font_size: int = 60,
+        min_font_size: int = 16,
+        outline: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Render translated text onto the image.
+        
+        Args:
+            image: Input image (typically the inpainted image)
+            blocks_json: JSON string of text blocks with translations
+            font_path: Path to font file (optional, uses default if not provided)
+            font_color: Color of the text in hex format
+            init_font_size: Initial font size to try
+            min_font_size: Minimum font size allowed
+            outline: Whether to add white outline for better readability
+            
+        Returns:
+            Dictionary with rendered image
+        """
+        logger.info("Rendering translated text on image")
+        
+        # Parse blocks if provided
+        if blocks_json:
+            parsed_json = json.loads(blocks_json)
+            if isinstance(parsed_json, dict) and 'blocks' in parsed_json:
+                blocks_data = parsed_json['blocks']
+            elif isinstance(parsed_json, list):
+                blocks_data = parsed_json
+            else:
+                raise ValueError("Invalid blocks_json format")
+            blk_list = self._dict_to_textblocks(blocks_data)
+        else:
+            raise ValueError("blocks_json is required for rendering")
+        
+        # Use default font if not provided
+        if not font_path:
+            # Try to find a system font
+            possible_fonts = [
+                "C:/Windows/Fonts/arial.ttf",
+                "C:/Windows/Fonts/ArialUni.ttf",
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+                "/System/Library/Fonts/Helvetica.ttc"
+            ]
+            for font in possible_fonts:
+                if os.path.exists(font):
+                    font_path = font
+                    break
+            
+            if not font_path:
+                raise ValueError("No suitable font found. Please provide font_path parameter.")
+        
+        logger.info(f"Using font: {font_path}")
+        
+        # Render text on image
+        rendered_image = simple_draw_text(
+            image=image,
+            blk_list=blk_list,
+            font_pth=font_path,
+            colour=font_color,
+            init_font_size=init_font_size,
+            min_font_size=min_font_size,
+            outline=outline
+        )
+        
+        logger.info("Text rendering completed")
+        
+        # Convert to base64 for transmission
+        from PIL import Image
+        import io
+        import base64
+        
+        pil_image = Image.fromarray(rendered_image)
+        buffer = io.BytesIO()
+        pil_image.save(buffer, format="PNG")
+        image_base64 = base64.b64encode(buffer.getvalue()).decode()
+        
+        return {
+            'rendered_image': image_base64,
+            'blocks_count': len(blk_list),
+            'image_shape': rendered_image.shape
+        }
+    
     def full_translation_pipeline(
         self,
         image: np.ndarray,
@@ -528,7 +753,9 @@ class MangaTranslationService:
         translator: str = "Google Translate",
         inpainter: Optional[str] = None,
         use_gpu: bool = False,
-        extra_context: str = ""
+        extra_context: str = "",
+        render_text: bool = False,
+        font_path: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Run complete translation pipeline: detection -> OCR -> translation -> optional inpainting.
@@ -599,6 +826,26 @@ class MangaTranslationService:
             )
             result['inpainted_image'] = inpainting_result['inpainted_image']
             result['pipeline_steps'].append('inpainting')
+            
+            # Step 5: Optional Text Rendering (requires inpainted image)
+            if render_text:
+                logger.info("Rendering translated text on inpainted image")
+                # Decode inpainted image from base64
+                import base64
+                import io
+                from PIL import Image
+                
+                inpainted_bytes = base64.b64decode(inpainting_result['inpainted_image'])
+                inpainted_pil = Image.open(io.BytesIO(inpainted_bytes))
+                inpainted_np = np.array(inpainted_pil)
+                
+                rendering_result = self.render_translated_text(
+                    image=inpainted_np,
+                    blocks_json=json.dumps(translation_result['blocks']),
+                    font_path=font_path
+                )
+                result['rendered_image'] = rendering_result['rendered_image']
+                result['pipeline_steps'].append('rendering')
         
         logger.info("Full translation pipeline completed")
         

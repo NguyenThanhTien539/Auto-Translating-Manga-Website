@@ -260,10 +260,10 @@ def adjust_text_line_coordinates(coords, width_expansion_percentage: int, height
     height_expansion_offset = int(((height * height_expansion_percentage) / 100) / 2)
 
     # Define the rectangle origin points (bottom left, top right) with expansion/contraction
-    new_x1 = max(top_left_x - width_expansion_offset, 0)
-    new_y1 = max(top_left_y - height_expansion_offset, 0)
-    new_x2 = min(bottom_right_x + width_expansion_offset, im_w)
-    new_y2 = min(bottom_right_y + height_expansion_offset, im_h)
+    new_x1 = int(max(top_left_x - width_expansion_offset, 0))
+    new_y1 = int(max(top_left_y - height_expansion_offset, 0))
+    new_x2 = int(min(bottom_right_x + width_expansion_offset, im_w))
+    new_y2 = int(min(bottom_right_y + height_expansion_offset, im_h))
 
     return new_x1, new_y1, new_x2, new_y2
 
