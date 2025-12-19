@@ -1,15 +1,23 @@
 "use client";
 
 import React, { use, useEffect, useState } from "react";
-import { MessageCircle, Star, Heart, Share2 } from "lucide-react";
+import {
+  MessageCircle,
+  Star,
+  Heart,
+  Share2,
+  Lock,
+  StarHalf,
+} from "lucide-react";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
-
+import { useAuth } from "@/app/hooks/useAuth";
 interface Chapter {
   chapter_id: string;
   chapter_number: string;
   title: string;
+  price: string;
   views?: number;
 }
 
@@ -26,18 +34,21 @@ type Manga = {
 };
 
 export default function ReadPage() {
+  const { infoUser } = useAuth();
   const router = useRouter();
   const params = useParams();
   const [mangaDetail, setMangaDetail] = useState<{
     manga: Manga;
     chapters: Chapter[];
+    usedChapterList?: Array<{ chapter_id: number }>;
   } | null>(null);
 
   const [activeTab, setActiveTab] = useState<"overview" | "chapters">(
     "overview"
   );
   const [isFavorite, setIsFavorite] = useState(false);
-
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
   const decodeHtml = (html: string) => {
     const txt = document.createElement("textarea");
     txt.innerHTML = html;
@@ -58,15 +69,15 @@ export default function ReadPage() {
     // Tạo nội dung chia sẻ chi tiết
     const shareContent = `🔥 ${mangaTitle} 🔥
 
-📚 Tác giả: ${mangaAuthor}
-🎭 Thể loại: ${mangaGenres}
+  📚 Tác giả: ${mangaAuthor}
+  🎭 Thể loại: ${mangaGenres}
 
-📖 Giới thiệu:
-${mangaDescription}${mangaDescription.length >= 200 ? "..." : ""}
+  📖 Giới thiệu:
+  ${mangaDescription}${mangaDescription.length >= 200 ? "..." : ""}
 
-👉 Đọc ngay tại: ${currentUrl}
+  👉 Đọc ngay tại: ${currentUrl}
 
-#Manga #${mangaTitle.replace(/\s+/g, "")} #DocTruyen`;
+  #Manga #${mangaTitle.replace(/\s+/g, "")} #DocTruyen`;
 
     try {
       // Copy nội dung vào clipboard
@@ -105,20 +116,33 @@ ${mangaDescription}${mangaDescription.length >= 200 ? "..." : ""}
   };
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/detail/${params.manga_id}`)
+    fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/manga/detail/${params.manga_id}
+        
+        `,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ user_id: infoUser?.id }),
+      }
+    )
       .then((response) => response.json())
       .then((data) => {
         if (data.code === "success") {
+          console.log(data.data);
           setMangaDetail(data.data);
         } else {
           setMangaDetail(null);
         }
       });
-  }, [params.manga_id]);
+  }, [params.manga_id, infoUser]);
 
   useEffect(() => {
     fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/manga/check-favorite/${params.manga_id}`,
+      `${process.env.NEXT_PUBLIC_API_URL}/manga/check-favorite?manga_id=${params.manga_id}`,
       {
         method: "GET",
         headers: {
@@ -136,6 +160,81 @@ ${mangaDescription}${mangaDescription.length >= 200 ? "..." : ""}
         }
       });
   }, [params.manga_id]);
+
+  const handleChapterClick = (chapter: Chapter, isOwned: boolean) => {
+    const chapterPrice = parseFloat(chapter.price);
+    // Nếu chapter miễn phí HOẶC đã mua, chuyển thẳng đến trang đọc
+    if (chapterPrice === 0 || isOwned) {
+      router.push(`/read/${mangaDetail?.manga.manga_id}/${chapter.chapter_id}`);
+    } else {
+      // Nếu chapter có giá VÀ chưa mua, hiển thị modal
+      setSelectedChapter(chapter);
+      setShowPurchaseModal(true);
+    }
+  };
+
+  const handlePurchaseChapter = async () => {
+    if (!selectedChapter) return;
+    if (!infoUser) {
+      toast.error("Vui lòng đăng nhập để mua chapter!");
+      return;
+    }
+
+    if (infoUser.coin_balance < parseFloat(selectedChapter.price)) {
+      toast.error("Số dư Coin không đủ. Vui lòng nạp thêm Coin!");
+      return;
+    }
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/order-chapter/payment-chapter`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            chapter_id: selectedChapter.chapter_id,
+            price_at_purchase: parseFloat(selectedChapter.price),
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.code === "success") {
+        toast.success("Mua chapter thành công!");
+        setShowPurchaseModal(false);
+
+        // Refresh lại dữ liệu manga để cập nhật usedChapterList
+        fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/manga/detail/${params.manga_id}`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+          }
+        )
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.code === "success") {
+              setMangaDetail(data.data);
+              // Sau khi refresh data, chuyển đến trang đọc
+              router.push(
+                `/read/${params.manga_id}/${selectedChapter.chapter_id}`
+              );
+            }
+          });
+      } else {
+        toast.error(data.message || "Không thể mua chapter. Vui lòng thử lại!");
+      }
+    } catch (error) {
+      console.error("Purchase error:", error);
+      toast.error("Đã có lỗi xảy ra. Vui lòng thử lại!");
+    }
+  };
 
   return (
     mangaDetail && (
@@ -207,7 +306,7 @@ ${mangaDescription}${mangaDescription.length >= 200 ? "..." : ""}
                     </button>
                     <button
                       onClick={() => {
-                        setIsFavorite(!isFavorite);
+                        const newFavoriteState = !isFavorite;
                         fetch(
                           `${process.env.NEXT_PUBLIC_API_URL}/manga/favorite`,
                           {
@@ -225,10 +324,16 @@ ${mangaDescription}${mangaDescription.length >= 200 ? "..." : ""}
                           .then((response) => response.json())
                           .then((data) => {
                             if (data.code === "success") {
+                              // Chỉ set state khi API thành công
+                              setIsFavorite(newFavoriteState);
                               toast.success(data.message);
                             } else {
                               toast.error("Đã có lỗi xảy ra");
                             }
+                          })
+                          .catch((error) => {
+                            console.error("Favorite error:", error);
+                            toast.error("Không thể thực hiện thao tác");
                           });
                       }}
                       className="group p-3 bg-slate-700/50 hover:bg-slate-700 rounded-xl border border-slate-600 hover:border-pink-500/50 transition-all duration-300 hover:scale-110"
@@ -271,10 +376,11 @@ ${mangaDescription}${mangaDescription.length >= 200 ? "..." : ""}
                         size={20}
                         className="fill-yellow-400 text-yellow-400"
                       />
+
                       <span className="text-2xl font-bold text-yellow-400">
                         {mangaDetail?.manga.average_rating
                           ? Number(mangaDetail.manga.average_rating).toFixed(1)
-                          : "0.0"}
+                          : "0"}
                       </span>
                     </div>
                   </div>
@@ -329,45 +435,136 @@ ${mangaDescription}${mangaDescription.length >= 200 ? "..." : ""}
           {activeTab === "chapters" && (
             <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-xl overflow-hidden">
               <div className="max-h-[600px] overflow-y-auto">
-                {mangaDetail?.chapters.map((chapter) => (
-                  <div
-                    key={chapter.chapter_id}
-                    className="border-b border-slate-700 hover:bg-blue-500/10 transition-colors"
-                    onClick={() => {
-                      router.push(
-                        `/read/${mangaDetail?.manga.manga_id}/${chapter.chapter_id}`
-                      );
-                    }}
-                  >
-                    <div className="p-5">
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-white">
-                          Chương {chapter.chapter_number}: {chapter.title}
-                        </span>
-                        <div className="flex items-center gap-6 text-slate-400">
-                          <button
-                            type="button"
-                            className="hover:text-blue-400 transition-colors"
-                            onClick={(e) => {
-                              e.stopPropagation();
+                {mangaDetail?.chapters.map((chapter) => {
+                  const chapterPrice = parseFloat(chapter.price);
+                  // Kiểm tra chapter đã được mua chưa
+                  const isOwned = mangaDetail?.usedChapterList?.some(
+                    (used) => used.chapter_id === Number(chapter.chapter_id)
+                  );
+                  // Chỉ hiển thị khóa nếu: có giá VÀ chưa mua
+                  const showLock = chapterPrice > 0 && !isOwned;
 
-                              const qs = new URLSearchParams({
-                                manga_id: String(
-                                  mangaDetail?.manga.manga_id ?? ""
-                                ),
-                                chapter_id: String(chapter.chapter_id),
-                              });
+                  return (
+                    <div
+                      key={chapter.chapter_id}
+                      className={`border-b border-slate-700 transition-colors ${
+                        showLock
+                          ? "hover:bg-yellow-500/10 cursor-pointer"
+                          : "hover:bg-blue-500/10 cursor-pointer"
+                      }`}
+                      onClick={() =>
+                        handleChapterClick(chapter, isOwned || false)
+                      }
+                    >
+                      <div className="p-5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3 flex-1">
+                            <span className="font-semibold text-white">
+                              Chương {chapter.chapter_number}: {chapter.title}
+                            </span>
+                            {showLock && (
+                              <div className="flex items-center gap-2 bg-yellow-500/20 border border-yellow-500/50 px-3 py-1 rounded-lg">
+                                <Lock size={14} className="text-yellow-400" />
+                                <span className="text-yellow-400 text-sm font-semibold">
+                                  {chapterPrice.toFixed(0)} Coin
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-6 text-slate-400">
+                            <button
+                              type="button"
+                              className="hover:text-blue-400 transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
 
-                              router.push(`/comment?${qs.toString()}`);
-                            }}
-                          >
-                            <MessageCircle size={18} />
-                          </button>
+                                const qs = new URLSearchParams({
+                                  manga_id: String(
+                                    mangaDetail?.manga.manga_id ?? ""
+                                  ),
+                                  chapter_id: String(chapter.chapter_id),
+                                });
+
+                                router.push(`/comment?${qs.toString()}`);
+                              }}
+                            >
+                              <MessageCircle size={18} />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Purchase Modal */}
+          {showPurchaseModal && selectedChapter && (
+            <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full overflow-hidden shadow-2xl">
+                {/* Modal Header */}
+                <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-b border-slate-700 p-6">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="p-2 bg-yellow-500/20 rounded-lg">
+                      <Lock className="text-yellow-400" size={24} />
+                    </div>
+                    <h3 className="text-xl font-bold text-white">
+                      Mua Chapter
+                    </h3>
                   </div>
-                ))}
+                </div>
+
+                {/* Modal Body */}
+                <div className="p-6 space-y-4">
+                  <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+                    <p className="text-slate-400 text-sm mb-2">Chapter</p>
+                    <p className="text-white font-semibold">
+                      Chương {selectedChapter.chapter_number}:{" "}
+                      {selectedChapter.title}
+                    </p>
+                  </div>
+
+                  <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 rounded-lg p-4 border border-yellow-500/30">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-300">Giá:</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl font-bold text-yellow-400">
+                          {parseFloat(selectedChapter.price).toFixed(0)}
+                        </span>
+                        <span className="text-yellow-400 font-semibold">
+                          Coin
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+                    <p className="text-blue-300 text-sm text-center">
+                      ⓘ Sau khi mua, bạn có thể đọc chapter này vĩnh viễn
+                    </p>
+                  </div>
+                </div>
+
+                {/* Modal Footer */}
+                <div className="bg-slate-700/30 p-6 flex gap-3">
+                  <button
+                    onClick={() => {
+                      setShowPurchaseModal(false);
+                      setSelectedChapter(null);
+                    }}
+                    className="flex-1 px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg transition-colors border border-slate-600"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    onClick={handlePurchaseChapter}
+                    className="flex-1 px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-semibold rounded-lg transition-all shadow-lg shadow-yellow-500/20 hover:shadow-yellow-500/40"
+                  >
+                    Xác nhận mua
+                  </button>
+                </div>
               </div>
             </div>
           )}

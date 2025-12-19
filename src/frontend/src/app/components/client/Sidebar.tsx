@@ -4,15 +4,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/app/hooks/useAuth";
-import {
-  User,
-  Heart,
-  Settings,
-  Home,
-  Compass,
-  PenSquare,
-  Bell,
-} from "lucide-react";
+import { User, Heart, Home, Compass, PenSquare, Bell } from "lucide-react";
 const MAIN_MENU = [
   { label: "Trang chủ", href: "/", icon: Home },
   { label: "Khám phá", href: "/explore", icon: Compass },
@@ -23,7 +15,6 @@ const MAIN_MENU = [
 const SECOND_MENU = [
   { label: "Hồ sơ", href: "/profile", icon: User },
   { label: "Danh sách của tôi", href: "/favourite-list", icon: Heart },
-  { label: "Cài đặt", href: "/settings", icon: Settings },
 ];
 
 export default function Sidebar() {

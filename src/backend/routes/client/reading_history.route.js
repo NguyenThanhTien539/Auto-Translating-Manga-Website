@@ -12,10 +12,11 @@ route.get(
   authMiddleware.clientAuth,
   readingHistoryController.getReadingHistory
 );
+
 route.get(
-  "/manga/:mangaId",
+  "/chapter/:chapterId",
   authMiddleware.clientAuth,
-  readingHistoryController.getReadingHistoryByManga
+  readingHistoryController.getReadingHistoryByChapter
 );
 
 module.exports = route;

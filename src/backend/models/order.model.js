@@ -11,3 +11,11 @@ module.exports.getOrderDetailById = async (id) => {
 module.exports.createOrder = async (orderData) => {
   return db("deposit_transactions").insert(orderData);
 };
+
+module.exports.orderChapter = async (orderData) => {
+  return db("purchased_chapters").insert(orderData);
+};
+
+module.exports.createCoinHistory = async (user_id, amount, type) => {
+  return db("coin_history").insert({ user_id, amount, type });
+};

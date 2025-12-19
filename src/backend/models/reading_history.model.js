@@ -47,3 +47,16 @@ module.exports.getReadingHistoryByUserAndManga = async (userId, mangaId) => {
     .orderBy("chapters.chapter_number", "asc")
     .first();
 };
+
+module.exports.getReadingHistoryByUserAndChapter = async (
+  userId,
+  chapterId
+) => {
+  return db("reading_history")
+    .where({
+      "reading_history.user_id": userId,
+      "reading_history.chapter_id": chapterId,
+    })
+    .select("reading_history.*")
+    .first();
+};

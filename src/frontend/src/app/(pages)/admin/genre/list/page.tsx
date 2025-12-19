@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Trash2, Plus } from "lucide-react";
+import { EditButton } from "@/app/components/admin/Button";
 
 type GenreItem = {
   genre_id: number;
@@ -72,19 +73,12 @@ export default function CategoryListPage() {
                     {item.genre_name}
                   </div>
 
-                  <div className="px-4 py-4 flex items-center justify-center">
-                    <div className="flex border border-gray-200 rounded-lg overflow-hidden">
-                      <button
-                        className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-                        onClick={() =>
-                          router.push(`/admin/genre/edit/${item.genre_id}`)
-                        }
+                    <div className="flex items-center justify-center gap-2">
+                      <EditButton
+                        href={`/admin/genre/edit/${item.genre_id}`}
                         title="Chỉnh sửa"
-                      >
-                        <Pencil size={18} />
-                      </button>
+                      />
                     </div>
-                  </div>
                 </div>
               ))}
             </div>

@@ -45,7 +45,7 @@ export default function AdminChapterReadPage() {
     const controller = new AbortController();
     setLoading(true);
 
-    const url = `${API_URL}/manga/chapter/${chapterId}/pages`;
+    const url = `${API_URL}/${ADMIN_PATH}/manage-manga/chapter/${chapterId}/pages`;
 
     fetch(url, {
       credentials: "include",

@@ -87,7 +87,6 @@ module.exports.clientAuth = async (req, res, next) => {
     }
 
     req.infoUser = existedRecord;
-
     next();
   } catch (error) {
     res.clearCookie("accessToken");
@@ -123,5 +122,36 @@ module.exports.uploaderAuth = async (req, res, next) => {
   } catch (error) {
     res.clearCookie("accessToken");
     res.json({ code: "error", message: "Có lỗi xảy ra ở đây" });
+  }
+};
+
+// Optional authentication - không bắt buộc đăng nhập
+// Nếu có token hợp lệ thì set req.infoUser, nếu không thì bỏ qua
+module.exports.optionalAuth = async (req, res, next) => {
+  try {
+    const authToken = req.cookies.accessToken;
+
+    // Nếu không có token, cho phép tiếp tục (guest user)
+    if (!authToken) {
+      return next();
+    }
+
+    const decodedData = jwt.verify(authToken, process.env.JWT_SECRET);
+    const existedRecord = await accountModel.findAminAuthToken(
+      decodedData.id,
+      decodedData.email,
+      decodedData.role
+    );
+
+    // Nếu có token hợp lệ, set user info
+    if (existedRecord) {
+      req.infoUser = existedRecord;
+    }
+
+    next();
+  } catch (error) {
+    // Nếu token không hợp lệ, xóa cookie và cho phép tiếp tục như guest
+    res.clearCookie("accessToken");
+    next();
   }
 };

@@ -3,18 +3,10 @@ const route = require("express").Router();
 const orderController = require("../../controllers/client/order.controller");
 const authMiddleware = require("../../middlewares/auth.middleware");
 
-route.get("/list", orderController.list);
-
-route.get("/detail/:id", orderController.detail);
-
-route.get(
-  "/payment-zalopay",
+route.post(
+  "/payment-chapter",
   authMiddleware.clientAuth,
-  orderController.paymentZaloPay
+  orderController.paymentChapter
 );
-
-route.post("/payment-zalopay-result", orderController.paymentZaloPayResult);
-
-
 
 module.exports = route;

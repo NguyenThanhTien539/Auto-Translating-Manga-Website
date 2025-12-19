@@ -2,6 +2,7 @@ const route = require("express").Router();
 const mangaController = require("../../controllers/admin/manga.controller");
 const authMiddleware = require("../../middlewares/auth.middleware");
 
+
 route.get("/list", authMiddleware.adminAuth, mangaController.getListManga);
 
 route.patch(
@@ -27,5 +28,7 @@ route.get(
   authMiddleware.adminAuth,
   mangaController.getMangaDetail
 );
+
+route.get("/chapter/:id/pages", mangaController.getChapterPages);
 
 module.exports = route;

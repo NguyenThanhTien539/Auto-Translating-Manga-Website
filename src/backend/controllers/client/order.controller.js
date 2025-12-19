@@ -143,3 +143,24 @@ module.exports.paymentZaloPayResult = async (req, res) => {
     result.return_message = ex.message;
   }
 };
+
+module.exports.paymentChapter = async (req, res) => {
+  try {
+    const { user_id } = req.infoUser;
+    req.body.user_id = user_id;
+    await orderModel.orderChapter(req.body);
+    await accountModel.updateCoinById(
+      req.infoUser.user_id,
+      req.infoUser.coin_balance - parseInt(req.body.price_at_purchase)
+    );
+    await orderModel.createCoinHistory(
+      req.infoUser.user_id,
+      req.body.price_at_purchase,
+      "Purchase"
+    );
+
+    res.json({ code: "success", message: "Mua chapter thành công." });
+  } catch (error) {
+    res.json({ code: "error", message: "Thất bại mua chapter." });
+  }
+};

@@ -14,7 +14,11 @@ interface PageData {
   page_number: number;
   image_url: string | null;
   language: string;
-  translation_status: "original" | "translated" | "not_translated" | "processing";
+  translation_status:
+    | "original"
+    | "translated"
+    | "not_translated"
+    | "processing";
 }
 
 interface TranslatingPage {
@@ -39,29 +43,93 @@ export default function ChapterReadPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/manga/chapter/${params.chapter_id}/pages?language=${selectedLanguage}`
+      `${process.env.NEXT_PUBLIC_API_URL}/manga/chapter/${params.chapter_id}/pages?language=${selectedLanguage}`,
+      {
+        credentials: "include",
+      }
     )
-      .then((response) => response.json())
+      .then(async (response) => {
+        // Parse JSON trước
+        let data;
+        try {
+          data = await response.json();
+        } catch (e) {
+          throw new Error("Không thể tải dữ liệu chapter");
+        }
+
+        // Kiểm tra response status
+        if (!response.ok) {
+          throw data;
+        }
+
+        return data;
+      })
       .then((data) => {
         if (data.code === "success") {
           console.log("Pages data:", data.data);
-          console.log("First page translation_status:", data.data[0]?.translation_status);
+          console.log(
+            "First page translation_status:",
+            data.data[0]?.translation_status
+          );
           setPages(data.data);
           setLoading(false);
+        } else {
+          throw data;
         }
       })
       .catch((error) => {
-        console.error("Error fetching chapter pages:", error);
         setLoading(false);
+
+        // Xử lý lỗi chi tiết
+        if (error && typeof error === "object" && error.code === "error") {
+          // Lỗi từ backend
+          if (error.requireLogin) {
+            toast.error("Vui lòng đăng nhập để đọc chapter này", {
+              duration: 5000,
+            });
+            setTimeout(() => {
+              window.location.href = "/";
+            }, 2000);
+          } else if (error.requirePurchase) {
+            toast.error(
+              `Chapter này cần ${
+                error.chapterPrice || 0
+              } Coin để đọc. Vui lòng mua chapter!`,
+              {
+                duration: 5000,
+              }
+            );
+            setTimeout(() => {
+              window.location.href = `/read/${params.manga_id}`;
+            }, 3000);
+          } else {
+            toast.error(error.message || "Không thể tải chapter");
+            setTimeout(() => {
+              window.location.href = `/read/${params.manga_id}`;
+            }, 2000);
+          }
+        } else if (error instanceof Error) {
+          // Lỗi JavaScript
+          toast.error(error.message);
+          setTimeout(() => {
+            window.location.href = `/read/${params.manga_id}`;
+          }, 2000);
+        } else {
+          // Lỗi không xác định
+          toast.error("Có lỗi xảy ra khi tải chapter");
+          setTimeout(() => {
+            window.location.href = `/read/${params.manga_id}`;
+          }, 2000);
+        }
       });
-  }, [params.chapter_id, selectedLanguage]);
+  }, [params.chapter_id, params.manga_id, selectedLanguage]);
 
   // Fetch reading history and auto-scroll to last read page
   useEffect(() => {
     if (!isLogin || !infoUser || pages.length === 0) return;
 
     fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/reading-history/manga/${params.manga_id}`,
+      `${process.env.NEXT_PUBLIC_API_URL}/reading-history/chapter/${params.chapter_id}`,
       {
         credentials: "include",
       }
@@ -87,7 +155,7 @@ export default function ChapterReadPage() {
       .catch((error) => {
         console.error("Error fetching reading history:", error);
       });
-  }, [isLogin, infoUser, pages.length, params.manga_id]);
+  }, [isLogin, infoUser, pages.length, params.chapter_id]);
 
   // Save reading progress function
   const saveReadingProgress = useCallback(
@@ -165,7 +233,9 @@ export default function ChapterReadPage() {
           setPages(pagesData.data);
         }
       } else if (data.code === "processing") {
-        toast.info("Trang này đang được dịch...", { id: `translate-${pageId}` });
+        toast.info("Trang này đang được dịch...", {
+          id: `translate-${pageId}`,
+        });
       } else {
         toast.error(data.message || "Dịch trang thất bại", {
           id: `translate-${pageId}`,
@@ -173,7 +243,9 @@ export default function ChapterReadPage() {
       }
     } catch (error) {
       console.error("Error translating page:", error);
-      toast.error("Có lỗi xảy ra khi dịch trang", { id: `translate-${pageId}` });
+      toast.error("Có lỗi xảy ra khi dịch trang", {
+        id: `translate-${pageId}`,
+      });
     } finally {
       setTranslatingPages((prev) => ({ ...prev, [pageId]: false }));
     }
@@ -379,7 +451,9 @@ export default function ChapterReadPage() {
                                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                               ></path>
                             </svg>
-                            {selectedLanguage === "vi" ? "Đang dịch..." : "Translating..."}
+                            {selectedLanguage === "vi"
+                              ? "Đang dịch..."
+                              : "Translating..."}
                           </>
                         ) : (
                           <>
@@ -396,8 +470,8 @@ export default function ChapterReadPage() {
                                 d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"
                               />
                             </svg>
-                            {selectedLanguage === "vi" 
-                              ? "Dịch sang Tiếng Việt" 
+                            {selectedLanguage === "vi"
+                              ? "Dịch sang Tiếng Việt"
                               : "Translate to English"}
                           </>
                         )}

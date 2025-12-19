@@ -250,6 +250,10 @@ module.exports.calculateAverageRating = async (mangaId) => {
   return result?.average_rating ? parseFloat(result.average_rating) : 0;
 };
 
+module.exports.getPurchasedChaptersList = async (userId) => {
+  return db("purchased_chapters").where("user_id", userId).select("chapter_id");
+};
+
 // Translation-related functions
 module.exports.getPageByChapterAndLanguage = async (chapterId, pageNumber, language) => {
   return db("pages")

@@ -1,6 +1,7 @@
 const db = require("../../config/database.config");
 const mangaModel = require("../../models/manga.model");
 const accountModel = require("../../models/account.model");
+const crypto = require("crypto");
 
 module.exports.getListManga = async (req, res) => {
   try {
@@ -95,6 +96,45 @@ module.exports.getMangaDetail = async (req, res) => {
     manga.totalChapters = totalChaper;
     const finalDetail = { manga, chapters };
     res.json({ code: "success", data: finalDetail });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ code: "error", message: "Lỗi server" });
+  }
+};
+
+const URL_SECRET = process.env.URL_SECRET || "your-secret-key-change-this";
+
+const generateSignedToken = (pageId, expiresIn = 3600) => {
+  const expirationTime = Math.floor(Date.now() / 1000) + expiresIn; // 1 hour default
+  const data = `${pageId}:${expirationTime}`;
+  const signature = crypto
+    .createHmac("sha256", URL_SECRET)
+    .update(data)
+    .digest("hex");
+  return `${signature}:${expirationTime}`;
+};
+module.exports.getChapterPages = async (req, res) => {
+  try {
+    const chapterId = req.params.id;
+    const pages = await mangaModel.getChapterPages(chapterId);
+    // Get base URL from request or use default
+    const protocol = req.protocol;
+    const host = req.get("host");
+    const baseUrl = `${protocol}://${host}`;
+
+    // Return proxy URLs with signed tokens (expires in 1 hour)
+    const securePages = pages.map((page) => {
+      const token = generateSignedToken(page.page_id, 3600); // 1 hour
+      return {
+        page_id: page.page_id,
+        page_number: page.page_number,
+        language: page.language,
+        chapter_id: page.chapter_id,
+        image_url: `${baseUrl}/manga/page-image/${page.page_id}?token=${token}`,
+      };
+    });
+
+    res.json({ code: "success", data: securePages });
   } catch (error) {
     console.error(error);
     res.status(500).json({ code: "error", message: "Lỗi server" });

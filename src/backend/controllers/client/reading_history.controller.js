@@ -28,13 +28,13 @@ module.exports.getReadingHistory = async (req, res) => {
   }
 };
 
-module.exports.getReadingHistoryByManga = async (req, res) => {
+module.exports.getReadingHistoryByChapter = async (req, res) => {
   try {
     const userId = req.infoUser.user_id;
-    const { mangaId } = req.params;
-    const history = await readingHistoryModel.getReadingHistoryByUserAndManga(
+    const { chapterId } = req.params;
+    const history = await readingHistoryModel.getReadingHistoryByUserAndChapter(
       userId,
-      parseInt(mangaId)
+      parseInt(chapterId)
     );
     res.json({ code: "success", data: history });
   } catch (error) {

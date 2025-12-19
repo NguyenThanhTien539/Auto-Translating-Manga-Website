@@ -9,13 +9,13 @@ export function useAuth() {
   const pathName = usePathname();
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsLoading(true);
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/check`, {
       credentials: "include",
     })
       .then((res) => res.json())
       .then((data) => {
-        console.log(data);
         if (data.code == "success") {
           setIsLogin(true);
           setInfoUser(data.infoUser);

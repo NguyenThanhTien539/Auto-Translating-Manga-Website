@@ -3,6 +3,7 @@ const multer = require("multer");
 const mangaController = require("../../controllers/client/manga.controller");
 const translateController = require("../../controllers/client/request_translate_manga.controller");
 const authMiddleware = require("../../middlewares/auth.middleware");
+const chapterMiddleware = require("../../middlewares/chapter.middleware");
 
 // Simple in-memory rate limiter
 const rateLimitMap = new Map();
@@ -69,9 +70,23 @@ route.post(
 
 route.get("/all", mangaController.getAllMangasOfClient);
 
-route.get("/detail/:id", mangaController.getMangaDetailOfClient);
+// route.get(
+//   "/detail/:id",
+//   // authMiddleware.clientAuth,
+//   mangaController.getMangaDetailOfClient
+// );
+route.post(
+  "/detail/:id",
+  // authMiddleware.clientAuth,
+  mangaController.getMangaDetailOfClient
+);
 
-route.get("/chapter/:id/pages", mangaController.getChapterPages);
+route.get(
+  "/chapter/:id/pages",
+  authMiddleware.optionalAuth,
+  chapterMiddleware.checkChapterAccessOptional,
+  mangaController.getChapterPages
+);
 
 route.get("/page-image/:pageId", mangaController.getPageImage); // fix dong nay de truyen doc duoc vi no ngu
 
@@ -98,7 +113,7 @@ route.get(
 );
 
 route.get(
-  "/check-favorite/:mangaId",
+  "/check-favorite",
   authMiddleware.clientAuth,
   mangaController.checkFavoriteManga
 );
