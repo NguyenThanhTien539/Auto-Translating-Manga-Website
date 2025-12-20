@@ -54,6 +54,7 @@ export default function CommentPage() {
   const [newRating, setNewRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [mangaDetail, setMangaDetail] = useState<Manga | null>(null);
 
@@ -90,6 +91,12 @@ export default function CommentPage() {
         } else {
           setComments([]);
         }
+      })
+      .catch(() => {
+        setComments([]);
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
   }, [manga_id, chapter_id]);
 
@@ -185,6 +192,14 @@ export default function CommentPage() {
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
         <div className="text-white text-xl">Không tìm thấy thông tin manga</div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
     );
   }

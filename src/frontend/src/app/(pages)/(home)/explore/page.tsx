@@ -130,6 +130,7 @@ type Manga = {
 };
 export default function Explore() {
   const [allMangas, setAllMangas] = useState<Manga[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/all`)
@@ -140,108 +141,120 @@ export default function Explore() {
         } else {
           setAllMangas([]);
         }
+      })
+      .catch(() => {
+        setAllMangas([]);
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
   }, []);
 
   return (
     <>
-      <div className="p-6 space-y-6 bg-gray-50 dark:bg-gray-500 ">
-        {/* Popular this month */}
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-              Popular <span className="text-amber-500">this month</span>
-            </h2>
-            <button className="text-sm text-sky-600 hover:text-sky-700 dark:text-sky-400 font-medium">
-              See More
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {allMangas.map((manga) => (
-              <div
-                key={manga.manga_id}
-                onClick={() => router.push(`/read/${manga.manga_id}`)}
-                className="cursor-pointer"
-              >
-                <MangaCard
-                  manga_id={manga.manga_id}
-                  manga_name={manga.title}
-                  author={manga.author_name}
-                  original_language={manga?.original_language}
-                  genre={manga?.genres?.join(" - ")}
-                  status={manga?.status}
-                  coverUrl={manga.cover_image}
-                  average_rating={manga?.average_rating}
-                  totalChapters={manga?.total_chapters}
-                />
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Recent uploads */}
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-              Recent <span className="text-amber-500">uploads</span>
-            </h2>
-            <button className="text-sm text-sky-600 hover:text-sky-700 dark:text-sky-400 font-medium">
-              See More
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {EXPLORE_MANGA_DATA.slice(5, 10).map((manga) => (
-              <MangaCard
-                key={manga.manga_id}
-                manga_id={manga.manga_id}
-                manga_name={manga.manga_name}
-                author={manga.author}
-                original_language={manga.original_language}
-                genre={manga.genre}
-                status={manga.status}
-                coverUrl={manga.coverUrl}
-                average_rating={manga.average_rating}
-                totalChapters={manga.totalChapters}
-              />
-            ))}
-          </div>
-        </section>
-
-        {/* All Manga */}
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-              Tất cả truyện
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {EXPLORE_MANGA_DATA.map((manga) => (
-              <MangaCard
-                key={manga.manga_id}
-                manga_id={manga.manga_id}
-                manga_name={manga.manga_name}
-                author={manga.author}
-                original_language={manga.original_language}
-                genre={manga.genre}
-                status={manga.status}
-                coverUrl={manga.coverUrl}
-                average_rating={manga.average_rating}
-                totalChapters={manga.totalChapters}
-              />
-            ))}
-          </div>
-        </section>
-
-        {/* Load More Button */}
-        <div className="flex justify-center pt-4">
-          <button className="px-8 py-3 bg-sky-600 hover:bg-sky-700 text-white font-medium rounded-lg transition-colors shadow-md">
-            Tải thêm truyện
-          </button>
+      {isLoading ? (
+        <div className="flex justify-center items-center min-h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
-      </div>
+      ) : (
+        <div className="p-6 space-y-6 bg-gray-50 dark:bg-gray-500 ">
+          {/* Popular this month */}
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                Popular <span className="text-amber-500">this month</span>
+              </h2>
+              <button className="text-sm text-sky-600 hover:text-sky-700 dark:text-sky-400 font-medium">
+                See More
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {allMangas.map((manga) => (
+                <div
+                  key={manga.manga_id}
+                  onClick={() => router.push(`/read/${manga.manga_id}`)}
+                  className="cursor-pointer"
+                >
+                  <MangaCard
+                    manga_id={manga.manga_id}
+                    manga_name={manga.title}
+                    author={manga.author_name}
+                    original_language={manga?.original_language}
+                    genre={manga?.genres?.join(" - ")}
+                    status={manga?.status}
+                    coverUrl={manga.cover_image}
+                    average_rating={manga?.average_rating}
+                    totalChapters={manga?.total_chapters}
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Recent uploads */}
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                Recent <span className="text-amber-500">uploads</span>
+              </h2>
+              <button className="text-sm text-sky-600 hover:text-sky-700 dark:text-sky-400 font-medium">
+                See More
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {EXPLORE_MANGA_DATA.slice(5, 10).map((manga) => (
+                <MangaCard
+                  key={manga.manga_id}
+                  manga_id={manga.manga_id}
+                  manga_name={manga.manga_name}
+                  author={manga.author}
+                  original_language={manga.original_language}
+                  genre={manga.genre}
+                  status={manga.status}
+                  coverUrl={manga.coverUrl}
+                  average_rating={manga.average_rating}
+                  totalChapters={manga.totalChapters}
+                />
+              ))}
+            </div>
+          </section>
+
+          {/* All Manga */}
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                Tất cả truyện
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {EXPLORE_MANGA_DATA.map((manga) => (
+                <MangaCard
+                  key={manga.manga_id}
+                  manga_id={manga.manga_id}
+                  manga_name={manga.manga_name}
+                  author={manga.author}
+                  original_language={manga.original_language}
+                  genre={manga.genre}
+                  status={manga.status}
+                  coverUrl={manga.coverUrl}
+                  average_rating={manga.average_rating}
+                  totalChapters={manga.totalChapters}
+                />
+              ))}
+            </div>
+          </section>
+
+          {/* Load More Button */}
+          <div className="flex justify-center pt-4">
+            <button className="px-8 py-3 bg-sky-600 hover:bg-sky-700 text-white font-medium rounded-lg transition-colors shadow-md">
+              Tải thêm truyện
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }

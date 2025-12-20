@@ -12,12 +12,13 @@ type Manga = {
   genres: string[];
   status: string;
   cover_image: string;
-  rating: number;
+  average_rating: number;
   total_chapters: number;
 };
 
 export default function FavouriteList() {
   const [items, setItems] = useState<Manga[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -35,6 +36,12 @@ export default function FavouriteList() {
         } else {
           setItems([]);
         }
+      })
+      .catch(() => {
+        setItems([]);
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
   }, []);
 
@@ -52,14 +59,18 @@ export default function FavouriteList() {
                 Danh sách yêu thích
               </h2>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                {items.length} truyện đã lưu
+                {isLoading ? "Đang tải..." : `${items.length} truyện đã lưu`}
               </p>
             </div>
           </div>
         </div>
 
         {/* Content Area */}
-        {items.length > 0 ? (
+        {isLoading ? (
+          <div className="flex justify-center items-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          </div>
+        ) : items.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {items.map((manga) => (
               <div
@@ -75,7 +86,7 @@ export default function FavouriteList() {
                   genre={manga?.genres?.join(" - ")}
                   status={manga?.status}
                   coverUrl={manga.cover_image}
-                  rating={manga.rating || 4.5}
+                  average_rating={manga.average_rating || 4.5}
                   totalChapters={manga?.total_chapters}
                 />
               </div>

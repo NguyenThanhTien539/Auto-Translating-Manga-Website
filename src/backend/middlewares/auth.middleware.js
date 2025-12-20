@@ -110,6 +110,12 @@ module.exports.uploaderAuth = async (req, res, next) => {
       return;
     }
 
+    if (existedRecord.user_status !== "active") {
+      res.clearCookie("accessToken");
+      res.json({ code: "error", message: "Tài khoản không hoạt động" });
+      return;
+    }
+
     const detailedRole = await RoleModel.findById(decodedData.role);
     if (detailedRole.role_code !== "UPL") {
       res.json({ code: "error", message: "Bạn không có quyền truy cập" });

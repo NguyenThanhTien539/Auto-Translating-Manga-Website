@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const AccountModel = require("../../models/account.model");
 const RoleModel = require("../../models/role.model");
+
 module.exports.check = async (req, res) => {
   try {
     const token = req.cookies.accessToken;
@@ -18,6 +19,14 @@ module.exports.check = async (req, res) => {
       res.json({ code: "error", message: "Token không hợp lệ" });
       return;
     }
+
+    // Check if user is banned
+    if (existedEmail.user_status !== "active") {
+      res.clearCookie("accessToken");
+      res.json({ code: "ban", message: "Tài khoản không hoạt động" });
+      return;
+    }
+
     const detailedRole = await RoleModel.findById(existedEmail.role_id);
     const infoUser = {
       id: existedEmail.user_id,

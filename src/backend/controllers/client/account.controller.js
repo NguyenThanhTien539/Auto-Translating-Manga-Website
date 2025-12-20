@@ -149,6 +149,13 @@ module.exports.login = async (req, res) => {
     });
     return;
   }
+  if (existedAccount.user_status == "ban") {
+    res.json({
+      code: "error",
+      message: "Tài khoản của bạn đã bị khóa.",
+    });
+    return;
+  }
 
   const accessToken = generateAccessToken(
     {

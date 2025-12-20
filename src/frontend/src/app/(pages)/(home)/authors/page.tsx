@@ -99,8 +99,8 @@ export default function AuthorsPage() {
 
   if (loading) {
     return (
-      <div className="p-6 bg-gray-50 dark:bg-gray-500">
-        <div className="text-gray-600 dark:text-white">Đang tải...</div>
+      <div className="w-full min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
     );
   }

@@ -51,7 +51,7 @@ export default function FormLogin() {
           .then((res) => res.json())
           .then((data) => {
             if (data.code == "error") {
-              toast.error("Đăng nhập thất bại");
+              toast.error(data.message || "Đăng nhập thất bại!");
             }
 
             if (data.code == "success") {

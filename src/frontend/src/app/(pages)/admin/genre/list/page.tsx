@@ -73,12 +73,12 @@ export default function CategoryListPage() {
                     {item.genre_name}
                   </div>
 
-                    <div className="flex items-center justify-center gap-2">
-                      <EditButton
-                        href={`/admin/genre/edit/${item.genre_id}`}
-                        title="Chỉnh sửa"
-                      />
-                    </div>
+                  <div className="flex items-center justify-center gap-2">
+                    <EditButton
+                      href={`/admin/genre/edit/${item.genre_id}`}
+                      title="Chỉnh sửa"
+                    />
+                  </div>
                 </div>
               ))}
             </div>

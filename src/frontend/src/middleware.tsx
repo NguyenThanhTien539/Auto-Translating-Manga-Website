@@ -70,6 +70,7 @@ async function requireUploader(request: NextRequest) {
 // Check user chỉ cần login (không check role)
 async function requireUser(request: NextRequest) {
   const payload = await verifyJwtFromRequest(request);
+
   if (!payload) {
     // Chưa login
     return redirectTo(request, "/");
