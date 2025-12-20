@@ -1,5 +1,5 @@
 "use client";
-
+export const dynamic = 'force-dynamic';
 import React, { useEffect, useMemo, useState } from "react";
 import MangaCard from "@/app/components/client/MangaCard";
 import { useSearchParams } from "next/navigation";
