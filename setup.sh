@@ -53,7 +53,7 @@ pm2 delete backend || true
 pm2 start npm --name "backend" -- start
 
 cd ../frontend
-sed -i "s|localhost|$(curl -s -4 ifconfig.me)|g" .env.local
+sed -i "s|localhost:5000|$(curl -s -4 ifconfig.me):5000/api|g" .env.local
 npm i
 npm run build
 pm2 delete frontend || true
