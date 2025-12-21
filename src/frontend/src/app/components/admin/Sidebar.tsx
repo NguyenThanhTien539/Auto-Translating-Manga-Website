@@ -70,9 +70,9 @@ export default function Sidebar() {
       </Link>
 
       <Link
-        href="/admin/authors"
+        href="/admin/manage-authors"
         className={`${baseClass} ${
-          pathname === "/admin/authors" ? activeClass : normalClass
+          pathname === "/admin/manage-authors" ? activeClass : normalClass
         }`}
       >
         <Box className="w-4 h-4" />

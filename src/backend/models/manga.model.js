@@ -11,7 +11,7 @@ module.exports.createChapter = async (data) => {
 };
 
 module.exports.createPages = async (data) => {
-  return db("pages").insert(data).returning('page_id');
+  return db("pages").insert(data).returning("page_id");
 };
 
 module.exports.getMangaById = async (id) => {
@@ -255,7 +255,11 @@ module.exports.getPurchasedChaptersList = async (userId) => {
 };
 
 // Translation-related functions
-module.exports.getPageByChapterAndLanguage = async (chapterId, pageNumber, language) => {
+module.exports.getPageByChapterAndLanguage = async (
+  chapterId,
+  pageNumber,
+  language
+) => {
   return db("pages")
     .where({
       chapter_id: chapterId,
@@ -266,9 +270,7 @@ module.exports.getPageByChapterAndLanguage = async (chapterId, pageNumber, langu
 };
 
 module.exports.updatePageImageUrl = async (pageId, imageUrl) => {
-  return db("pages")
-    .where("page_id", pageId)
-    .update({ image_url: imageUrl });
+  return db("pages").where("page_id", pageId).update({ image_url: imageUrl });
 };
 
 module.exports.getChapterPagesByLanguage = async (chapterId, language) => {
@@ -320,4 +322,11 @@ module.exports.searchMangaBySlug = async ({ slug, limit = 20, offset = 0 }) => {
     .offset(offset);
 
   return rows; // trả thẳng list mangas có đủ field
+};
+
+module.exports.getMangasByAuthorId = async (authorId) => {
+  return db("mangas")
+    .where("author_id", authorId)
+    .select("*")
+    .orderBy("manga_id", "asc");
 };

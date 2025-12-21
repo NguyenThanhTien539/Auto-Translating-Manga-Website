@@ -13,6 +13,6 @@ route.use("/registration-uploader", registerUploaderRoutes);
 
 route.use("/manage-manga", mangaRoutes);
 
-route.use("/authors", authorRoutes);
+route.use("/manage-authors", authorRoutes);
 
 module.exports = route;

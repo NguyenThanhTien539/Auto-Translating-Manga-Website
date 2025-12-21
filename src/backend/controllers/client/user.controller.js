@@ -11,7 +11,6 @@ module.exports.profile = async (req, res) => {
   const existingUser = await accountModel.checkUsernameExists(
     req.body.username
   );
-  console.log(req.body);
   if (existingUser && existingUser.user_id !== req.infoUser.user_id) {
     return res.json({ code: "error", message: "Tên đăng nhập đã tồn tại" });
   }
