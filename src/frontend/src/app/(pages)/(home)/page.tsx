@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import MangaCard from "@/app/components/client/MangaCard";
 import { useRouter } from "next/navigation";
-
+import { decodeHtml } from "@/utils/utils";
 type Manga = {
   manga_id: string;
   title: string;
@@ -140,7 +140,7 @@ export default function Home() {
 
                   {/* Description: clamp + ... */}
                   <p className="mt-2 max-w-xl text-sm text-slate-100 line-clamp-3">
-                    {current?.description || "Đang tải..."}
+                    {decodeHtml(current?.description) || "Đang tải..."}
                   </p>
 
                   {/* Đọc + Chương luôn nằm dưới description */}

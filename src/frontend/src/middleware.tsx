@@ -109,7 +109,7 @@ export async function middleware(request: NextRequest) {
     return requireUser(request);
   }
 
-  if (pathname.startsWith("/order")) {
+  if (pathname.startsWith("/order-coin")) {
     return requireUser(request);
   }
 
@@ -131,7 +131,7 @@ export const config = {
     "/account/verify/:path*", // check otp
     "/account/reset-password/:path*", // check otp
     "/profile/:path*", // check user
-    "/order/:path",
+    "/order-coin/:path",
     "/favourite-list/:path*",
     "/comment/:path*",
   ],
