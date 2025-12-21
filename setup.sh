@@ -18,13 +18,8 @@ server {
     listen [::]:80 default_server;
     server_name _; 
 
-    root ~/Auto-Translating-Manga-Website/src/frontend/dist;
-
-    index index.html;
-
     # FRONTEND
     location / {
-        try_files $uri $uri/ /index.html;
         proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
