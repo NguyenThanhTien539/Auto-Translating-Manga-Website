@@ -498,7 +498,7 @@ module.exports.getPageImage = async (req, res) => {
 
     if (!page) {
       console.log(`Page ID ${pageId} not found in DB`); // Log để debug
-      return res.status(404).json({ code: "error", message: "Page not found" });
+      return res.status(404).json({ code: "error", message: `Page ID ${pageId} not found` });
     }
 
     // 4. Fetch image from Cloudinary and stream to client
