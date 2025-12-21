@@ -406,7 +406,11 @@ module.exports.getChapterPages = async (req, res) => {
     // Get base URL from request or use default
     const protocol = req.protocol;
     const host = req.get("host");
-    const baseUrl = `${protocol}://${host}`;
+
+    const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
+    const apiPrefix = isLocal ? '' : '/api';
+
+    const baseUrl = `${protocol}://${host}${apiPrefix}`;
 
     // Return proxy URLs with signed tokens (expires in 1 hour)
     const securePages = pages.map((page) => {
