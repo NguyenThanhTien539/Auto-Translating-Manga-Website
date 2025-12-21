@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import MangaCard from "@/app/components/client/MangaCard";
 
@@ -9,18 +9,17 @@ type Manga = {
   title: string;
   author_name?: string;
   original_language?: string;
-  genres?: string[]; 
-  genre_names?: string[]; 
+  genres?: string[];
+  genre_names?: string[];
   status?: string;
   cover_image?: string;
   average_rating?: number;
-  total_chapters?: number; 
+  total_chapters?: number;
 };
 
-export default function FilterPage() {
+function FilterContent() {
   const sp = useSearchParams();
   const router = useRouter();
-
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
   const [loading, setLoading] = useState(true);
@@ -40,8 +39,7 @@ export default function FilterPage() {
 
     // state: bạn đang có lúc dùng "complete" / lúc "completed"
     const stateRaw = sp.get("state");
-    const state =
-      stateRaw === "complete" ? "completed" : stateRaw; // normalize nhẹ
+    const state = stateRaw === "complete" ? "completed" : stateRaw; // normalize nhẹ
 
     const type = sp.get("type");
 
@@ -60,8 +58,11 @@ export default function FilterPage() {
       categoriesMulti.length > 0
         ? categoriesMulti
         : categoriesOne
-          ? categoriesOne.split(",").map((x) => x.trim()).filter(Boolean)
-          : [];
+        ? categoriesOne
+            .split(",")
+            .map((x) => x.trim())
+            .filter(Boolean)
+        : [];
 
     ids.forEach((id) => q.append("categories", id));
 
@@ -72,6 +73,7 @@ export default function FilterPage() {
     if (!API_URL) return;
 
     const controller = new AbortController();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     setError("");
 
@@ -143,8 +145,7 @@ export default function FilterPage() {
             ) : (
               <section className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3">
                 {mangas.map((m) => {
-                  const genres =
-                    m.genres ?? m.genre_names ?? []; // tùy backend trả
+                  const genres = m.genres ?? m.genre_names ?? []; // tùy backend trả
                   return (
                     <MangaCard
                       key={m.manga_id}
@@ -154,8 +155,14 @@ export default function FilterPage() {
                       original_language={m.original_language || "Unknown"}
                       genre={Array.isArray(genres) ? genres.join(" - ") : ""}
                       status={m.status || "Unknown"}
-                      coverUrl={m.cover_image || "/images/placeholder-cover.jpg"}
-                      average_rating={Number.isFinite(m.average_rating as number) ? (m.average_rating as number) : 0}
+                      coverUrl={
+                        m.cover_image || "/images/placeholder-cover.jpg"
+                      }
+                      average_rating={
+                        Number.isFinite(m.average_rating as number)
+                          ? (m.average_rating as number)
+                          : 0
+                      }
                       totalChapters={m.total_chapters ?? 0}
                     />
                   );
@@ -166,5 +173,13 @@ export default function FilterPage() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function FilterPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <FilterContent />
+    </Suspense>
   );
 }

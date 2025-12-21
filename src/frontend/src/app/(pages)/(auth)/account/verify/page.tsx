@@ -1,16 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // import JustValidate from "just-validate";
 "use client";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import OTPForm from "./OTPForm";
 import { toast } from "sonner";
 import Image from "next/image";
 
 function AccountVerify() {
   const router = useRouter();
-  const params = new URLSearchParams(window.location.search);
-  const verifyType = params.get("type");
+  const searchParams = useSearchParams();
+  const verifyType = searchParams.get("type");
 
   const [otpValue, setOtp] = useState("");
   const [error, setError] = useState("");
@@ -38,7 +38,7 @@ function AccountVerify() {
         .then((data) => {
           if (data.code == "success") {
             toast.success(data.message);
-            const email = params.get("email");
+            const email = searchParams.get("email");
             router.push(`/account/reset-password?email=${email}`);
           }
           if (data.code == "error") {
@@ -141,4 +141,10 @@ function AccountVerify() {
   );
 }
 
-export default AccountVerify;
+export default function AccountVerifyPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AccountVerify />
+    </Suspense>
+  );
+}
