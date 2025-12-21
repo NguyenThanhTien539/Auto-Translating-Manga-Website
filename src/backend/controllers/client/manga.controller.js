@@ -497,7 +497,8 @@ module.exports.getPageImage = async (req, res) => {
     const page = await Manga.getPageById(pageId);
 
     if (!page) {
-      return res.status(404).json({ code: "error", message: "Page not found" });
+      console.log(`Page ID ${pageId} not found in DB`); // Log để debug
+      return res.status(404).json({ code: "error", message: `Page ID ${pageId} not found` });
     }
 
     // 4. Fetch image from Cloudinary and stream to client
