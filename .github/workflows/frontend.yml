@@ -21,6 +21,8 @@ jobs:
             # 1. Di chuyển vào thư mục code trên Server
             # (Thay đổi đường dẫn này theo đúng thực tế trên server của bạn)
             cd Auto-Translating-Manga-Website/src/frontend
+
+            sudo pm2 stop "frontend" || true
             
             # 2. Lấy code mới nhất về
             git pull origin main
@@ -29,3 +31,5 @@ jobs:
             # Rất quan trọng vì dev mode đọc trực tiếp từ node_modules
             sudo npm install
             sudo npm run build
+
+            pm2 restart "frontend" --update-env
