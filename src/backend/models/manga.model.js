@@ -239,6 +239,77 @@ module.exports.isMangaFavoritedByUser = async (userId, mangaId) => {
   return !!result;
 };
 
+module.exports.countFavoriteMangasByUserId = async (userId) => {
+  const result = await db("favorites")
+    .where("user_id", userId)
+    .count("manga_id as count")
+    .first();
+  return parseInt(result.count);
+};
+
+module.exports.getFinishedAndReadingCount = async (userId) => {
+  // Đếm số manga đã hoàn thành: tất cả chapters có last_read_page = tổng số pages
+  const finishedResult = await db.raw(
+    `
+    SELECT COUNT(DISTINCT m.manga_id) AS finished_count
+    FROM mangas m
+    WHERE EXISTS (
+      SELECT 1 FROM chapters c WHERE c.manga_id = m.manga_id
+    )
+    AND NOT EXISTS (
+      SELECT 1
+      FROM chapters c
+      LEFT JOIN LATERAL (
+        SELECT MAX(rh.last_page_read) AS last_read_page
+        FROM reading_history rh
+        WHERE rh.chapter_id = c.chapter_id
+          AND rh.user_id = ?
+      ) rhmax ON TRUE
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*) AS total_pages
+        FROM pages p
+        WHERE p.chapter_id = c.chapter_id
+      ) pc ON TRUE
+      WHERE c.manga_id = m.manga_id
+        AND COALESCE(rhmax.last_read_page, 0) <> pc.total_pages
+    )
+    `,
+    [userId]
+  );
+
+  // Đếm số manga đang đọc: có ít nhất 1 chapter có 0 < last_read_page < tổng số pages
+  const readingResult = await db.raw(
+    `
+    SELECT COUNT(DISTINCT m.manga_id) AS reading_count
+    FROM mangas m
+    WHERE EXISTS (
+      SELECT 1
+      FROM chapters c
+      LEFT JOIN LATERAL (
+        SELECT MAX(rh.last_page_read) AS last_read_page
+        FROM reading_history rh
+        WHERE rh.chapter_id = c.chapter_id
+          AND rh.user_id = ?
+      ) rhmax ON TRUE
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*) AS total_pages
+        FROM pages p
+        WHERE p.chapter_id = c.chapter_id
+      ) pc ON TRUE
+      WHERE c.manga_id = m.manga_id
+        AND COALESCE(rhmax.last_read_page, 0) > 0
+        AND COALESCE(rhmax.last_read_page, 0) < pc.total_pages
+    )
+    `,
+    [userId]
+  );
+
+  return {
+    finished_count: parseInt(finishedResult.rows[0]?.finished_count, 10) || 0,
+    reading_count: parseInt(readingResult.rows[0]?.reading_count, 10) || 0,
+  };
+};
+
 module.exports.calculateAverageRating = async (mangaId) => {
   const result = await db("mangas")
     .join("chapters", "mangas.manga_id", "chapters.manga_id")

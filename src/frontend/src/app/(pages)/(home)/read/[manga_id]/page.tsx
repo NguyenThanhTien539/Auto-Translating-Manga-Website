@@ -1,18 +1,14 @@
 "use client";
 
 import React, { use, useEffect, useState } from "react";
-import {
-  MessageCircle,
-  Star,
-  Heart,
-  Share2,
-  Lock,
-  StarHalf,
-} from "lucide-react";
+import { MessageCircle, Star, Heart, Share2, Lock } from "lucide-react";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useAuth } from "@/app/hooks/useAuth";
+
+import { decodeHtml } from "@/utils/utils";
+
 interface Chapter {
   chapter_id: string;
   chapter_number: string;
@@ -50,11 +46,11 @@ export default function ReadPage() {
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const decodeHtml = (html: string) => {
-    const txt = document.createElement("textarea");
-    txt.innerHTML = html;
-    return txt.value;
-  };
+  // const decodeHtml = (html: string) => {
+  //   const txt = document.createElement("textarea");
+  //   txt.innerHTML = html;
+  //   return txt.value;
+  // };
 
   const handleShare = async () => {
     const currentUrl = window.location.href;
@@ -317,6 +313,10 @@ export default function ReadPage() {
                       </button>
                       <button
                         onClick={() => {
+                          if (!infoUser) {
+                            toast.error("Vui lòng đăng nhập!");
+                            return;
+                          }
                           const newFavoriteState = !isFavorite;
                           fetch(
                             `${process.env.NEXT_PUBLIC_API_URL}/manga/favorite`,
@@ -423,9 +423,7 @@ export default function ReadPage() {
                     Nội dung
                   </h2>
                   <p className="text-slate-300 leading-relaxed">
-                    {decodeHtml(
-                      mangaDetail?.manga.description.replace(/<[^>]+>/g, "")
-                    )}
+                    {decodeHtml(mangaDetail?.manga.description)}
                   </p>
                 </div>
 

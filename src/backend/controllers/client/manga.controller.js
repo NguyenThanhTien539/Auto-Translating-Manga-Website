@@ -368,7 +368,6 @@ module.exports.getChapterPages = async (req, res) => {
     const chapterId = req.params.id;
     const { language } = req.query; // Get language from query parameter
 
-    
     let pages;
 
     if (language) {
@@ -407,8 +406,8 @@ module.exports.getChapterPages = async (req, res) => {
     const protocol = req.protocol;
     const host = req.get("host");
 
-    const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
-    const apiPrefix = isLocal ? '' : '/api';
+    const isLocal = host.includes("localhost") || host.includes("127.0.0.1");
+    const apiPrefix = isLocal ? "" : "/api";
 
     const baseUrl = `${protocol}://${host}${apiPrefix}`;
 
@@ -479,7 +478,11 @@ module.exports.getPageImage = async (req, res) => {
 
     // 2. STRICT referrer check - MUST have referrer from allowed origins
     const referrer = req.get("referer") || req.get("referrer");
-    const allowedOrigins = ["http://localhost:3000", "http://localhost:5000", "http://ec2-15-134-37-160.ap-southeast-2.compute.amazonaws.com"];
+    const allowedOrigins = [
+      "http://localhost:3000",
+      "http://localhost:5000",
+      "http://ec2-15-134-37-160.ap-southeast-2.compute.amazonaws.com",
+    ];
 
     if (!referrer) {
       return res.status(403).json({
@@ -502,7 +505,9 @@ module.exports.getPageImage = async (req, res) => {
 
     if (!page) {
       console.log(`Page ID ${pageId} not found in DB`); // Log để debug
-      return res.status(404).json({ code: "error", message: `Page ID ${pageId} not found` });
+      return res
+        .status(404)
+        .json({ code: "error", message: `Page ID ${pageId} not found` });
     }
 
     // 4. Fetch image from Cloudinary and stream to client
@@ -793,6 +798,22 @@ module.exports.checkFavoriteManga = async (req, res) => {
     const isFavorite = await Manga.isMangaFavoritedByUser(user_id, manga_id);
     // Trả về boolean trực tiếp thay vì object
     res.json({ code: "success", data: isFavorite });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ code: "error", message: "Lỗi server" });
+  }
+};
+
+module.exports.getMangaStatistics = async (req, res) => {
+  try {
+    const user_id = req.infoUser.user_id;
+    const favoriteCount = await Manga.countFavoriteMangasByUserId(user_id);
+    const { finished_count, reading_count } =
+      await Manga.getFinishedAndReadingCount(user_id);
+    res.json({
+      code: "success",
+      data: { favoriteCount, finished_count, reading_count },
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ code: "error", message: "Lỗi server" });

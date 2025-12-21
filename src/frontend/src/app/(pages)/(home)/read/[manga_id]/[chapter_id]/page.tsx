@@ -169,7 +169,7 @@ export default function ChapterReadPage() {
 
       // Debounce save - only save after user stops scrolling for 2 seconds
       saveTimeoutRef.current = setTimeout(() => {
-        if (pageNumber === lastSavedPage.current) return;
+        if (pageNumber <= lastSavedPage.current) return;
 
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/reading-history/add`, {
           method: "POST",
