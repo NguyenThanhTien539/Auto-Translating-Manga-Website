@@ -22,7 +22,6 @@ module.exports.detail = async (req, res) => {
 
 module.exports.paymentZaloPay = async (req, res) => {
   const { orderCode } = req.query;
-  console.log("Order Code:", orderCode);
   try {
     const orderDetail = await orderModel.getOrderDetailById(orderCode);
     const config = {
@@ -34,7 +33,7 @@ module.exports.paymentZaloPay = async (req, res) => {
     };
 
     const embed_data = {
-      redirecturl: `http://ec2-15-134-37-160.ap-southeast-2.compute.amazonaws.com`,
+      redirecturl: `http://ec2-15-134-37-160.ap-southeast-2.compute.amazonaws.com?orderCode=${orderCode}`,
     };
     const items = [{}];
     const transID = Math.floor(Math.random() * 1000000);
@@ -49,7 +48,7 @@ module.exports.paymentZaloPay = async (req, res) => {
       description: `Thanh toán gói nạp ${orderDetail.coins} coin - Mã đơn hàng: ${orderCode}`,
       bank_code: "",
       callback_url:
-        "https://debora-dizziest-unpliably.ngrok-free.dev/order-coin/payment-zalopay-result",
+        "http://ec2-15-134-37-160.ap-southeast-2.compute.amazonaws.com/api/order-coin/payment-zalopay-result",
     };
 
     const data =
