@@ -30,10 +30,11 @@ module.exports.paymentZaloPay = async (req, res) => {
       key1: "sdngKKJmqEMzvh5QQcdD2A9XBSKUNaYn",
       key2: "trMrHtvjo6myautxDUiAcYsVtaeQ8nhf",
       endpoint: "https://sb-openapi.zalopay.vn/v2/create",
+      // endpoint: "https://openapi.zalopay.vn/v2/create",
     };
 
     const embed_data = {
-      // redirecturl: `/order/success?depositeId=${orderCode}`,
+      redirecturl: `http://ec2-15-134-37-160.ap-southeast-2.compute.amazonaws.com`,
     };
     const items = [{}];
     const transID = Math.floor(Math.random() * 1000000);
