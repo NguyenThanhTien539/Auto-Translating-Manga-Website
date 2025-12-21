@@ -1,0 +1,34 @@
+name: Frontend Dev CD
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'src/frontend/**' # Chỉ chạy khi có thay đổi trong thư mục frontend
+
+jobs:
+  deploy-dev:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Deploy to Server via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            # 1. Di chuyển vào thư mục code trên Server
+            # (Thay đổi đường dẫn này theo đúng thực tế trên server của bạn)
+            cd /var/www/my-project/src/frontend
+            
+            # 2. Lấy code mới nhất về
+            git pull origin main
+            
+            # 3. Cài đặt các gói thư viện mới (nếu có update trong package.json)
+            # Rất quan trọng vì dev mode đọc trực tiếp từ node_modules
+            npm install
+            
+            # 4. Khởi động lại tiến trình PM2
+            # Lệnh này sẽ restart process có tên là "frontend" để nó chạy lại code mới
+            pm2 restart "frontend" --update-env
