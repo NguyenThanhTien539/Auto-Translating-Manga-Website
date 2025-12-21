@@ -1,5 +1,6 @@
 #!bin/bash
 set -e
+exec sudo "$0" "$@"
 
 apt update
 apt upgrade -y
@@ -11,8 +12,6 @@ node -v
 npm -v
 
 npm install -g pm2
-
-rm -f /etc/nginx/sites-enabled/default
 
 cat << 'EOF' > /etc/nginx/sites-available/my-nextjs-app
 server {
@@ -44,16 +43,17 @@ server {
 EOF
 
 ln -sf /etc/nginx/sites-available/my-nextjs-app /etc/nginx/sites-enabled/
+rm -f /etc/nginx/sites-enabled/default
+
 nginx -t
 nginx -s reload
-
-
 
 cd src/backend
 npm i
 pm2 start npm --name "backend" -- start
 
 cd ../frontend
+sed -i "s/http://localhost:5000/$(curl -s -4 ifconfig.me)/g" .env.local
 npm i
 pm2 start npm --name "frontend" -- run dev
 
