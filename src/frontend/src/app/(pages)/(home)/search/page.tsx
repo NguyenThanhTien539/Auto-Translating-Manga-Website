@@ -1,6 +1,6 @@
 "use client";
-export const dynamic = 'force-dynamic';
-import React, { useEffect, useMemo, useState } from "react";
+export const dynamic = "force-dynamic";
+import React, { useEffect, useMemo, useState, Suspense } from "react";
 import MangaCard from "@/app/components/client/MangaCard";
 import { useSearchParams } from "next/navigation";
 
@@ -16,7 +16,7 @@ type Manga = {
   total_chapters?: number;
 };
 
-export default function SearchPage() {
+function SearchContent() {
   const sp = useSearchParams();
   const keyword = useMemo(() => sp.get("keyword") || "", [sp]);
 
@@ -48,8 +48,7 @@ export default function SearchPage() {
         }
 
         setMangas(json.data || []);
-
-        
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (e: any) {
         if (e?.name !== "AbortError") setError("Error fetching search results");
       } finally {
@@ -71,7 +70,8 @@ export default function SearchPage() {
               Kết quả tìm kiếm
             </h1>
             <p className="text-sm text-gray-600 dark:text-gray-300">
-              Từ khoá: <span className="font-medium">{keyword || "(trống)"}</span>
+              Từ khoá:{" "}
+              <span className="font-medium">{keyword || "(trống)"}</span>
             </p>
           </div>
         </header>
@@ -108,5 +108,13 @@ export default function SearchPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SearchContent />
+    </Suspense>
   );
 }

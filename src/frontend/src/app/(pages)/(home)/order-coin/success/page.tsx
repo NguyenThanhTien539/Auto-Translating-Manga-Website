@@ -2,8 +2,9 @@
 "use client";
 import { useSearchParams, useRouter } from "next/navigation";
 import { CheckCircle2, Home, FileText, Coins } from "lucide-react";
-import { useEffect, useState } from "react";
-export default function OrderSuccessPage() {
+import { useEffect, useState, Suspense } from "react";
+
+function OrderSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const depositId = searchParams.get("depositId");
@@ -188,5 +189,13 @@ export default function OrderSuccessPage() {
         </div>
       </div>
     )
+  );
+}
+
+export default function OrderSuccessPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <OrderSuccessContent />
+    </Suspense>
   );
 }
