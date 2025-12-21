@@ -49,7 +49,7 @@ export default function MangaCard({
             className="font-bold text-sm line-clamp-2 leading-tight"
             title={manga_name}
           >
-            {manga_name}CCCC
+            {manga_name}DDDD
           </h3>
           <p className="text-sky-200 text-xs mt-1 truncate">{author}</p>
         </div>
