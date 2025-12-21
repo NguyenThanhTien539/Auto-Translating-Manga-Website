@@ -27,8 +27,8 @@ jobs:
             
             # 3. Cài đặt các gói thư viện mới (nếu có update trong package.json)
             # Rất quan trọng vì dev mode đọc trực tiếp từ node_modules
-            npm install
+            sudo npm install
             
             # 4. Khởi động lại tiến trình PM2
             # Lệnh này sẽ restart process có tên là "frontend" để nó chạy lại code mới
-            pm2 restart "backend" --update-env
+            sudo pm2 restart "backend" --update-env
