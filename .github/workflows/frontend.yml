@@ -32,4 +32,4 @@ jobs:
             sudo npm install
             sudo npm run build
 
-            pm2 restart "frontend" --update-env
+            sudo pm2 restart "frontend" --update-env
