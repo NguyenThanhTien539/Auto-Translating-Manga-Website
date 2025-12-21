@@ -15,6 +15,18 @@ route.get(
 
 route.post("/payment-zalopay-result", orderController.paymentZaloPayResult);
 
+route.get("/detail-payment/:orderCode", orderController.detailPayment);
 
+route.get(
+  "/confirm-payment",
+  authMiddleware.clientAuth,
+  orderController.confirmPayment
+);
+
+route.get(
+  "/history",
+  authMiddleware.clientAuth,
+  orderController.depositHistory
+);
 
 module.exports = route;

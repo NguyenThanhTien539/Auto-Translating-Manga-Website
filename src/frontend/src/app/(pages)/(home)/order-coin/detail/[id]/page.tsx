@@ -27,7 +27,7 @@ const paymentMethods: PaymentMethod[] = [
     description: "Thanh toán siêu tốc qua ứng dụng MoMo",
   },
   {
-    id: "zalopay",
+    id: "ZaloPay",
     name: "Ví ZaloPay",
     icon: Wallet, // ZaloPay là ví điện tử -> Dùng icon Wallet
     description: "Thanh toán qua ví ZaloPay hoặc ứng dụng Zalo",
@@ -63,27 +63,37 @@ export default function OrderDetailPage() {
 
   const handlePayment = async () => {
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/order-coin/payment-${selectedPayment}?orderCode=${orderDetail.id}`,
-        {
-          credentials: "include",
-        }
+      // 1) Confirm-payment -> lấy depositId
+      const confirmRes = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/order-coin/confirm-payment?orderCode=${orderDetail.id}&payment_method=${selectedPayment}`,
+        { credentials: "include" }
       );
 
-      // If server returned non-2xx, log status and response text for debugging
-      if (!res.ok) {
-        const text = await res.text();
-        console.error("HTTP error on payment request:", res.status, text);
+      const confirmData = await confirmRes.json();
+
+      if (confirmData.code !== "success") {
+        console.error("Lỗi từ server (confirm-payment):", confirmData);
         return;
       }
 
-      const data = await res.json();
+      const depositId = confirmData.depositId;
 
-      if (data.code == "success") {
-        router.push(data.paymentUrl);
+      if (!depositId) {
+        console.error("Không nhận được depositId từ server");
+        return;
+      }
+
+      const payRes = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/order-coin/payment-${selectedPayment}?orderCode=${orderDetail.id}&depositId=${depositId}`,
+        { credentials: "include" }
+      );
+
+      const payData = await payRes.json();
+
+      if (payData.code === "success") {
+        router.push(payData.paymentUrl);
       } else {
-        // show detailed server response in console to help debugging
-        console.error("Lỗi từ server:", data);
+        console.error("Lỗi từ server (payment):", payData);
       }
     } catch (error) {
       console.error("Lỗi thanh toán:", error);
