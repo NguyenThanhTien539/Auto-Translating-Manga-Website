@@ -16,7 +16,8 @@ rm -f /etc/nginx/sites-enabled/default
 
 cat << 'EOF' > /etc/nginx/sites-available/my-nextjs-app
 server {
-    listen 80;
+    listen 80 default_server;
+    listen [::]:80 default_server;
     server_name _; 
 
     # FRONTEND
