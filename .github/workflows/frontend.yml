@@ -21,8 +21,6 @@ jobs:
             # 1. Di chuyển vào thư mục code trên Server
             # (Thay đổi đường dẫn này theo đúng thực tế trên server của bạn)
             cd Auto-Translating-Manga-Website/src/frontend
-
-            sudo pm2 stop "frontend" || true
             
             # 2. Lấy code mới nhất về
             git pull origin main
