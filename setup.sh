@@ -12,14 +12,16 @@ npm -v
 
 npm install -g pm2
 
-cat << EOF > /etc/nginx/sites-available/my-nextjs-app
+rm -f /etc/nginx/sites-enabled/default
+
+cat << 'EOF' > /etc/nginx/sites-available/my-nextjs-app
 server {
     listen 80;
-    server_name _; # Hoặc điền IP/Domain của bạn
+    server_name _; 
 
-    # 1. Cấu hình cho FRONTEND (Gốc)
+    # FRONTEND
     location / {
-        proxy_pass http://localhost:3000; # Chuyển về Frontend
+        proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -27,14 +29,10 @@ server {
         proxy_cache_bypass $http_upgrade;
     }
 
-    # 2. Cấu hình cho BACKEND (Khi gọi /api)
+    # BACKEND
     location /api/ {
-        # Lưu ý: Dấu / ở cuối dòng proxy_pass rất quan trọng
-        # Nếu backend của bạn có prefix /api sẵn trong code -> dùng http://localhost:4000;
-        # Nếu backend của bạn không có prefix /api -> dùng http://localhost:4000/; (để Nginx cắt bỏ chữ /api đi)
-
-        proxy_pass http://localhost:4000/; 
-
+        # Proxy pass có dấu / ở cuối để cắt /api đi khi gửi vào backend
+        proxy_pass http://localhost:5000/; 
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -44,6 +42,7 @@ server {
 }
 EOF
 
+ln -sf /etc/nginx/sites-available/my-nextjs-app /etc/nginx/sites-enabled/
 nginx -t
 nginx -s reload
 
@@ -56,3 +55,5 @@ pm2 start npm --name "backend" -- start
 cd ../frontend
 npm i
 pm2 start npm --name "frontend" -- run dev
+
+curl -4 ifconfig.me
