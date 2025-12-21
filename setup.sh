@@ -1,6 +1,5 @@
 #!bin/bash
 set -e
-exec sudo "$0" "$@"
 
 apt update
 apt upgrade -y
