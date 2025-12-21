@@ -22,7 +22,7 @@ jobs:
             # (Thay đổi đường dẫn này theo đúng thực tế trên server của bạn)
             cd Auto-Translating-Manga-Website/src/frontend
 
-            pm2 stop "frontend" || true
+            sudo pm2 stop "frontend" || true
             
             # 2. Lấy code mới nhất về
             git pull origin main
@@ -30,7 +30,4 @@ jobs:
             # 3. Cài đặt các gói thư viện mới (nếu có update trong package.json)
             # Rất quan trọng vì dev mode đọc trực tiếp từ node_modules
             sudo npm install
-            
-            # 4. Khởi động lại tiến trình PM2
-            # Lệnh này sẽ restart process có tên là "frontend" để nó chạy lại code mới
-            sudo pm2 restart "frontend" --update-env
+            sudo npm run build

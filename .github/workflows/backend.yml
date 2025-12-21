@@ -22,7 +22,7 @@ jobs:
             # (Thay đổi đường dẫn này theo đúng thực tế trên server của bạn)
             cd Auto-Translating-Manga-Website/src/backend
 
-            pm2 stop "backend" || true
+            sudo pm2 stop "backend" || true
             
             # 2. Lấy code mới nhất về
             git pull origin main

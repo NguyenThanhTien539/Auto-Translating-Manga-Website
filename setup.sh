@@ -18,8 +18,13 @@ server {
     listen [::]:80 default_server;
     server_name _; 
 
+    root ~/Auto-Translating-Manga-Website/src/frontend/dist;
+
+    index index.html;
+
     # FRONTEND
     location / {
+        try_files $uri $uri/ /index.html;
         proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
@@ -47,15 +52,16 @@ rm -f /etc/nginx/sites-enabled/default
 nginx -t
 nginx -s reload
 
-pm2 delete all
-
 cd src/backend
 npm i
+pm2 delete backend || true
 pm2 start npm --name "backend" -- start
 
 cd ../frontend
 sed -i "s|localhost|$(curl -s -4 ifconfig.me)|g" .env.local
 npm i
-pm2 start npm --name "frontend" -- run dev
+npm run build
+pm2 delete frontend || true
+pm2 start npm --name "frontend" -- start
 
 curl -4 ifconfig.me
