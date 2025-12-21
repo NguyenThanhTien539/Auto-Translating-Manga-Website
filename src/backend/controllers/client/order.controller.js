@@ -47,7 +47,7 @@ module.exports.paymentZaloPay = async (req, res) => {
       amount: orderDetail.price,
       description: `Thanh toán gói nạp ${orderDetail.coins} coin - Mã đơn hàng: ${orderCode}`,
       bank_code: "",
-      callback_url: `https://debora-dizziest-unpliably.ngrok-free.dev/order-coin/payment-zalopay-result?depositId=${depositId}`,
+      callback_url: `http://ec2-15-134-37-160.ap-southeast-2.compute.amazonaws.com/api/order-coin/payment-zalopay-result?depositId=${depositId}`,
     };
 
     const data =
