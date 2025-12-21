@@ -314,7 +314,7 @@ export default function ReadPage() {
                       <button
                         onClick={() => {
                           if (!infoUser) {
-                            toast.error("Vui lòng đăng nhập!");
+                            toast.error("Vui lòng đăng nhập để yêu thích!");
                             return;
                           }
                           const newFavoriteState = !isFavorite;
