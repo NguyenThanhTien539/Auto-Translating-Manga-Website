@@ -5,7 +5,7 @@ apt update
 apt upgrade -y
 
 curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-apt install -y nodejs
+apt install -y nodejs nginx
 
 node -v
 npm -v
@@ -46,6 +46,8 @@ EOF
 
 nginx -t
 nginx -s reload
+
+
 
 cd src/backend
 npm i
