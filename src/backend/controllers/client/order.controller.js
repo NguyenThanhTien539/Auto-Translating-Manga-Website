@@ -47,7 +47,7 @@ module.exports.paymentZaloPay = async (req, res) => {
       amount: orderDetail.price,
       description: `Thanh toán gói nạp ${orderDetail.coins} coin - Mã đơn hàng: ${orderCode}`,
       bank_code: "",
-      callback_url: `http://ec2-15-134-37-160.ap-southeast-2.compute.amazonaws.com/api/order-coin/payment-zalopay-result?depositId=${depositId}`,
+      callback_url: `https://debora-dizziest-unpliably.ngrok-free.dev/order-coin/payment-zalopay-result?depositId=${depositId}`,
     };
 
     const data =
@@ -116,16 +116,14 @@ module.exports.paymentZaloPayResult = async (req, res) => {
       // merchant cập nhật trạng thái cho đơn hàng
       let dataJson = JSON.parse(dataStr, config.key2);
       const [email, orderId] = dataJson.app_user.split(" - ");
-      // const existedRecord = await accountModel.findEmail(email);
+      const existedRecord = await accountModel.findEmail(email);
       // const finalData = {
       //   user_id: existedRecord.user_id,
       //   coin_package_id: orderId,
       //   payment_method: "ZaloPay",
       //   status: "Success",
       // };
-
       const { depositId } = req.query;
-
       await orderModel.updateDepositStatus(depositId, "Success");
 
       const packageDetail = await orderModel.getOrderDetailById(orderId);
