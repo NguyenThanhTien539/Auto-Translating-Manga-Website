@@ -475,7 +475,7 @@ module.exports.getPageImage = async (req, res) => {
 
     // 2. STRICT referrer check - MUST have referrer from allowed origins
     const referrer = req.get("referer") || req.get("referrer");
-    const allowedOrigins = ["http://localhost:3000", "http://localhost:5000"];
+    const allowedOrigins = ["http://localhost:3000", "http://localhost:5000", "http://ec2-15-134-37-160.ap-southeast-2.compute.amazonaws.com"];
 
     if (!referrer) {
       return res.status(403).json({
