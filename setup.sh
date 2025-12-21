@@ -47,12 +47,14 @@ rm -f /etc/nginx/sites-enabled/default
 nginx -t
 nginx -s reload
 
+pm2 delete all
+
 cd src/backend
 npm i
 pm2 start npm --name "backend" -- start
 
 cd ../frontend
-sed -i "s/http://localhost:5000/$(curl -s -4 ifconfig.me)/g" .env.local
+sed -i "s|localhost|$(curl -s -4 ifconfig.me)|g" .env.local
 npm i
 pm2 start npm --name "frontend" -- run dev
 
