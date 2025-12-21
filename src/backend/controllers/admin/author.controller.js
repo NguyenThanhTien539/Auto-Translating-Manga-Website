@@ -30,17 +30,13 @@ module.exports.createAuthor = async (req, res) => {
 module.exports.updateAuthor = async (req, res) => {
   try {
     const { id } = req.params;
-    const data = req.body; // { author_name, biography, avatar_url }
+    req.body.avatar_url = req.file ? req.file.path : req.body.avatar_url;
 
-    // Kiểm tra tác giả có tồn tại không
-    const existingAuthor = await AuthorModel.getAuthorById(id);
-    if (!existingAuthor) {
-      return res.status(404).json({ message: "Author not found" });
-    }
+    await AuthorModel.updateAuthor(id, req.body);
 
-    await AuthorModel.updateAuthor(id, data);
-
-    return res.status(200).json({ message: "Author updated successfully" });
+    return res
+      .status(200)
+      .json({ code: "success", message: "Cập nhật tác giả thành công" });
   } catch (error) {
     console.error("Error updating author:", error);
     return res.status(500).json({ message: "Internal server error" });
@@ -51,14 +47,14 @@ module.exports.updateAuthor = async (req, res) => {
 module.exports.deleteAuthor = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Logic kiểm tra: Nếu tác giả đã có truyện (manga), có thể chặn không cho xóa
     // hoặc xóa mềm (soft delete). Ở đây làm xóa cứng đơn giản:
-    
+
     const count = await AuthorModel.deleteAuthor(id);
-    
+
     if (count === 0) {
-        return res.status(404).json({ message: "Author not found to delete" });
+      return res.status(404).json({ message: "Author not found to delete" });
     }
 
     return res.status(200).json({ message: "Author deleted successfully" });
@@ -75,14 +71,12 @@ module.exports.getAllAuthors = async (req, res) => {
     let authors;
 
     if (name) {
-      // Nếu có query param ?name=... thì tìm kiếm
       authors = await AuthorModel.searchAuthorsByName(name);
     } else {
-      // Không thì lấy tất cả
       authors = await AuthorModel.getAllAuthors();
     }
 
-    return res.status(200).json(authors);
+    return res.status(200).json({ code: "success", authors: authors });
   } catch (error) {
     console.error("Error getting authors:", error);
     return res.status(500).json({ message: "Internal server error" });
@@ -108,12 +102,12 @@ module.exports.getAuthorById = async (req, res) => {
 
 // [GET] /authors/:id/mangas - Lấy các truyện của tác giả này
 module.exports.getAuthorMangas = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const mangas = await AuthorModel.getMangasByAuthorId(id);
-        return res.status(200).json(mangas);
-    } catch (error) {
-        console.error("Error getting author mangas:", error);
-        return res.status(500).json({ message: "Internal server error" });
-    }
-}
+  try {
+    const { id } = req.params;
+    const mangas = await AuthorModel.getMangasByAuthorId(id);
+    return res.status(200).json(mangas);
+  } catch (error) {
+    console.error("Error getting author mangas:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};

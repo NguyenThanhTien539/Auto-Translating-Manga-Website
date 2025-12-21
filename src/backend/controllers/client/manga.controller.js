@@ -406,7 +406,11 @@ module.exports.getChapterPages = async (req, res) => {
     // Get base URL from request or use default
     const protocol = req.protocol;
     const host = req.get("host");
-    const baseUrl = `${protocol}://${host}`;
+
+    const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
+    const apiPrefix = isLocal ? '' : '/api';
+
+    const baseUrl = `${protocol}://${host}${apiPrefix}`;
 
     // Return proxy URLs with signed tokens (expires in 1 hour)
     const securePages = pages.map((page) => {
@@ -475,7 +479,7 @@ module.exports.getPageImage = async (req, res) => {
 
     // 2. STRICT referrer check - MUST have referrer from allowed origins
     const referrer = req.get("referer") || req.get("referrer");
-    const allowedOrigins = ["http://localhost:3000", "http://localhost:5000"];
+    const allowedOrigins = ["http://localhost:3000", "http://localhost:5000", "http://ec2-15-134-37-160.ap-southeast-2.compute.amazonaws.com"];
 
     if (!referrer) {
       return res.status(403).json({
@@ -497,7 +501,8 @@ module.exports.getPageImage = async (req, res) => {
     const page = await Manga.getPageById(pageId);
 
     if (!page) {
-      return res.status(404).json({ code: "error", message: "Page not found" });
+      console.log(`Page ID ${pageId} not found in DB`); // Log để debug
+      return res.status(404).json({ code: "error", message: `Page ID ${pageId} not found` });
     }
 
     // 4. Fetch image from Cloudinary and stream to client

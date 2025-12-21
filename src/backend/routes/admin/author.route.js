@@ -2,12 +2,20 @@ const express = require("express");
 const route = express.Router();
 const AuthorController = require("../../controllers/admin/author.controller");
 const authMiddleware = require("../../middlewares/auth.middleware");
+const multer = require("multer");
+const { storage } = require("../../helper/cloudinary.helper");
 
+const upload = multer({ storage: storage });
 // Tạo mới
 route.post("/", authMiddleware.adminAuth, AuthorController.createAuthor);
 
 // Cập nhật
-route.put("/:id", authMiddleware.adminAuth, AuthorController.updateAuthor);
+route.patch(
+  "/update/:id",
+  authMiddleware.adminAuth,
+  upload.single("avatar_url"),
+  AuthorController.updateAuthor
+);
 
 // Xóa
 route.delete("/:id", authMiddleware.adminAuth, AuthorController.deleteAuthor);

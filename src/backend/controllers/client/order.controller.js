@@ -21,8 +21,7 @@ module.exports.detail = async (req, res) => {
 };
 
 module.exports.paymentZaloPay = async (req, res) => {
-  const { orderCode } = req.query;
-  console.log("Order Code:", orderCode);
+  const { orderCode, depositId } = req.query;
   try {
     const orderDetail = await orderModel.getOrderDetailById(orderCode);
     const config = {
@@ -30,10 +29,11 @@ module.exports.paymentZaloPay = async (req, res) => {
       key1: "sdngKKJmqEMzvh5QQcdD2A9XBSKUNaYn",
       key2: "trMrHtvjo6myautxDUiAcYsVtaeQ8nhf",
       endpoint: "https://sb-openapi.zalopay.vn/v2/create",
+      // endpoint: "https://openapi.zalopay.vn/v2/create",
     };
 
     const embed_data = {
-      // redirecturl: `/order/success?depositeId=${orderCode}`,
+      redirecturl: `http://ec2-15-134-37-160.ap-southeast-2.compute.amazonaws.com/order-coin/success?depositId=${depositId}`,
     };
     const items = [{}];
     const transID = Math.floor(Math.random() * 1000000);
@@ -47,8 +47,7 @@ module.exports.paymentZaloPay = async (req, res) => {
       amount: orderDetail.price,
       description: `Thanh toán gói nạp ${orderDetail.coins} coin - Mã đơn hàng: ${orderCode}`,
       bank_code: "",
-      callback_url:
-        "https://debora-dizziest-unpliably.ngrok-free.dev/order-coin/payment-zalopay-result",
+      callback_url: `http://ec2-15-134-37-160.ap-southeast-2.compute.amazonaws.com/api/order-coin/payment-zalopay-result?depositId=${depositId}`,
     };
 
     const data =
@@ -118,21 +117,26 @@ module.exports.paymentZaloPayResult = async (req, res) => {
       let dataJson = JSON.parse(dataStr, config.key2);
       const [email, orderId] = dataJson.app_user.split(" - ");
       const existedRecord = await accountModel.findEmail(email);
-      const finalData = {
-        user_id: existedRecord.user_id,
-        coin_package_id: orderId,
-        payment_method: "ZaloPay",
-        status: "Success",
-      };
-
-      if (existedRecord) {
-        await orderModel.createOrder(finalData);
-      }
+      // const finalData = {
+      //   user_id: existedRecord.user_id,
+      //   coin_package_id: orderId,
+      //   payment_method: "ZaloPay",
+      //   status: "Success",
+      // };
+      const { depositId } = req.query;
+      await orderModel.updateDepositStatus(depositId, "Success");
 
       const packageDetail = await orderModel.getOrderDetailById(orderId);
+
       await accountModel.updateCoinById(
         existedRecord.user_id,
-        packageDetail.coins
+        existedRecord.coin_balance + packageDetail.coins
+      );
+
+      await orderModel.createCoinHistory(
+        existedRecord.user_id,
+        packageDetail.coins,
+        "Deposit"
       );
 
       result.return_code = 1;
@@ -162,5 +166,53 @@ module.exports.paymentChapter = async (req, res) => {
     res.json({ code: "success", message: "Mua chapter thành công." });
   } catch (error) {
     res.json({ code: "error", message: "Thất bại mua chapter." });
+  }
+};
+
+module.exports.detailPayment = async (req, res) => {
+  const { orderCode } = req.params;
+  try {
+    const paymentDetail = await orderModel.getPaymentDetailByOrderCode(
+      orderCode
+    );
+    res.json({ code: "success", paymentDetail: paymentDetail });
+  } catch (error) {
+    res.json({ code: "error", message: "Thất bại lấy chi tiết thanh toán." });
+  }
+};
+
+module.exports.confirmPayment = async (req, res) => {
+  const { orderCode, payment_method } = req.query;
+  try {
+    const finalData = {
+      user_id: req.infoUser.user_id,
+      coin_package_id: orderCode,
+      payment_method: payment_method,
+      status: "Pending",
+    };
+    const depositId = await orderModel.createNewDeposit(finalData);
+    res.json({
+      code: "success",
+      message: "Xác nhận thanh toán thành công.",
+      depositId: depositId,
+    });
+  } catch (error) {
+    res.json({ code: "error", message: "Thất bại xác nhận thanh toán." });
+  }
+};
+
+module.exports.depositHistory = async (req, res) => {
+  try {
+    const { user_id } = req.infoUser;
+    const { depositId } = req.query;
+    const history = await orderModel.getDepositHistoryByUserId(
+      user_id,
+      depositId
+    );
+
+    console.log("Deposit history:", history);
+    res.json({ code: "success", history: history[0] });
+  } catch (error) {
+    res.json({ code: "error", message: "Thất bại lấy lịch sử nạp coin." });
   }
 };
