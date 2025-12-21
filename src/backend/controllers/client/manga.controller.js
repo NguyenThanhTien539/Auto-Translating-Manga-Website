@@ -497,6 +497,7 @@ module.exports.getPageImage = async (req, res) => {
     const page = await Manga.getPageById(pageId);
 
     if (!page) {
+      console.log(`Page ID ${pageId} not found in DB`); // Log để debug
       return res.status(404).json({ code: "error", message: "Page not found" });
     }
 
