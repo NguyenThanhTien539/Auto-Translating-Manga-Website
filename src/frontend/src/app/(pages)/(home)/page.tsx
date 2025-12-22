@@ -71,6 +71,11 @@ export default function Home() {
   const handleNext = () => {
     setActiveIndex((prev) => (prev + 1) % mangas.length);
   };
+
+  const handleCategoryClick = (genre_name: string) => {
+    router.push(`/filter?categories=${genre_name}`);
+  }
+
   const [genres, setGenres] = useState([]);
   const [isLoadingGenres, setIsLoadingGenres] = useState(true);
   useEffect(() => {
@@ -212,6 +217,7 @@ export default function Home() {
               {(genres as any[]).map((genre, idx) => (
                 <button
                   key={genre.genre_id}
+                  onClick={() => handleCategoryClick(genre.genre_name)}
                   className={`rounded-full border px-3 py-1 text-xs font-medium shadow-sm
               ${
                 idx === 0
