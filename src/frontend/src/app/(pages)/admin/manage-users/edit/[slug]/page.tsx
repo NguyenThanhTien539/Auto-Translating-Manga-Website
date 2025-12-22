@@ -38,6 +38,7 @@ export default function EditUserPage() {
   const userId = params.slug as string;
 
   const [userDetail, setUserDetail] = useState<UserDetail | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     fetch(
@@ -51,6 +52,9 @@ export default function EditUserPage() {
         } else {
           toast.error(data.message || "Không thể tải thông tin người dùng");
         }
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
   }, [userId]);
 
@@ -76,7 +80,7 @@ export default function EditUserPage() {
       .then((data) => {
         if (data.code === "success") {
           toast.success(data.message);
-          router.refresh(); 
+          router.refresh();
         } else {
           toast.error(data.message);
         }
@@ -84,8 +88,12 @@ export default function EditUserPage() {
   };
 
   return (
-    userDetail && (
-      <div className="w-full min-h-screen px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="w-full min-h-screen px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      {isLoading ? (
+        <div className="flex justify-center items-center min-h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        </div>
+      ) : userDetail ? (
         <div className="max-w-3xl mx-auto">
           <h2 className="text-2xl sm:text-3xl font-semibold mb-4 sm:mb-6">
             Chỉnh sửa thông tin người dùng
@@ -291,7 +299,7 @@ export default function EditUserPage() {
             </form>
           </div>
         </div>
-      </div>
-    )
+      ) : null}
+    </div>
   );
 }

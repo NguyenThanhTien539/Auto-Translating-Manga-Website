@@ -2,8 +2,8 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import { Star } from "lucide-react";
+import React, { use, useEffect, useMemo, useState } from "react";
+import { Star, Sparkles } from "lucide-react";
 import Image from "next/image";
 import { useParams, useRouter, usePathname } from "next/navigation";
 import { toast } from "sonner";
@@ -28,6 +28,7 @@ type Manga = {
   status: string;
   totalChapters?: number;
   average_rating?: number;
+  is_highlighted?: boolean;
 };
 
 const getChapterStatusBadge = (status?: string) => {
@@ -148,6 +149,9 @@ export default function ReadPage() {
     {}
   );
   const [coinDrafts, setCoinDrafts] = useState<Record<string, number>>({});
+  const [isHighlight, setIsHighlight] = useState<boolean>(false);
+  const [showHighlightMenu, setShowHighlightMenu] = useState<boolean>(false);
+  const [highlightDuration, setHighlightDuration] = useState<number>(7);
 
   useEffect(() => {
     try {
@@ -205,8 +209,10 @@ export default function ReadPage() {
     )
       .then((res) => res.json())
       .then((data) => {
-        if (data?.code === "success") setMangaDetail(data.data);
-        else {
+        if (data?.code === "success") {
+          setMangaDetail(data.data);
+          setIsHighlight(data.data?.manga?.is_highlighted || false);
+        } else {
           setMangaDetail(null);
           toast.error(data?.message || "Không thể tải chi tiết truyện");
         }
@@ -222,8 +228,8 @@ export default function ReadPage() {
 
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="text-gray-600">Loading...</div>
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
     );
   }
@@ -323,6 +329,172 @@ export default function ReadPage() {
 
                 <div className="mt-5 flex flex-wrap items-center gap-3">
                   {getMangaStatusBadge(mangaDetail.manga.status)}
+
+                  {/* Highlight Button with Duration */}
+                  {mangaDetail.manga.status !== "Pending" && (
+                    <div className="relative">
+                      <button
+                        onClick={async () => {
+                          // Nếu đang highlight -> click là tắt highlight (gọi API)
+                          if (isHighlight) {
+                            const prev = isHighlight;
+                            const prevDuration = highlightDuration;
+
+                            const next = false;
+
+                            // Optimistic UI
+                            setIsHighlight(next);
+                            setShowHighlightMenu(false);
+
+                            try {
+                              const res = await fetch(
+                                `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manage-manga/set-highlight/${mangaDetail.manga.manga_id}`,
+                                {
+                                  method: "PATCH",
+                                  credentials: "include",
+                                  headers: {
+                                    "Content-Type": "application/json",
+                                  },
+                                  body: JSON.stringify({
+                                    is_highlight: next,
+                                    highlight_duration: 0,
+                                  }),
+                                }
+                              );
+                              const data = await res.json();
+                              if (data.code === "success") {
+                                toast.success(
+                                  data.message || "Bỏ truyện nổi bật thành công"
+                                );
+                              } else {
+                                setIsHighlight(prev);
+                                setHighlightDuration(prevDuration);
+                                toast.error(
+                                  data?.message || "Bỏ truyện nổi bật thất bại"
+                                );
+                              }
+                            } catch (err) {
+                              // rollback
+                              setIsHighlight(prev);
+                              setHighlightDuration(prevDuration);
+                              toast.error("Lỗi kết nối server");
+                            }
+
+                            return;
+                          }
+
+                          // Nếu chưa highlight -> mở menu chọn duration
+                          setShowHighlightMenu((v) => !v);
+                        }}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border transition-all duration-200 hover:scale-105 ${
+                          isHighlight
+                            ? "bg-gradient-to-r from-yellow-50 to-amber-50 text-amber-700 border-amber-300 shadow-md"
+                            : "bg-gray-50 text-gray-500 border-gray-300 hover:border-amber-300 hover:bg-amber-50/50"
+                        }`}
+                        title={
+                          isHighlight
+                            ? "Click để bỏ truyện khỏi nổi bật"
+                            : "Click để đặt truyện làm nổi bật"
+                        }
+                      >
+                        <Sparkles
+                          size={14}
+                          className={`transition-all duration-200 ${
+                            isHighlight
+                              ? "fill-amber-500 text-amber-500"
+                              : "text-gray-400"
+                          }`}
+                        />
+                        Highlight
+                      </button>
+
+                      {/* Duration Dropdown Menu */}
+                      {showHighlightMenu && !isHighlight && (
+                        <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-lg p-3 z-50 min-w-[200px]">
+                          <p className="text-xs font-semibold text-gray-700 mb-2">
+                            Chọn thời gian nổi bật:
+                          </p>
+
+                          <div className="space-y-1.5">
+                            {[3, 7, 14, 30].map((days) => (
+                              <button
+                                key={days}
+                                onClick={async () => {
+                                  const prev = isHighlight;
+                                  const prevDuration = highlightDuration;
+
+                                  const next = true;
+
+                                  // Optimistic UI
+                                  setHighlightDuration(days);
+                                  setIsHighlight(next);
+                                  setShowHighlightMenu(false);
+
+                                  try {
+                                    const res = await fetch(
+                                      `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manage-manga/set-highlight/${mangaDetail.manga.manga_id}`,
+                                      {
+                                        method: "PATCH",
+                                        credentials: "include",
+                                        headers: {
+                                          "Content-Type": "application/json",
+                                        },
+                                        body: JSON.stringify({
+                                          is_highlight: next,
+                                          highlight_duration: days,
+                                        }),
+                                      }
+                                    );
+
+                                    const data = await res.json();
+                                    if (data.code === "success") {
+                                      toast.success(
+                                        data.message ||
+                                          "Đặt truyện nổi bật thành công"
+                                      );
+                                    } else {
+                                      {
+                                        setIsHighlight(prev);
+                                        setHighlightDuration(prevDuration);
+                                        toast.error(
+                                          data?.message ||
+                                            "Đặt truyện nổi bật thất bại"
+                                        );
+                                      }
+                                    }
+                                  } catch (err) {
+                                    // rollback
+                                    setIsHighlight(prev);
+                                    setHighlightDuration(prevDuration);
+                                    toast.error("Lỗi kết nối server");
+                                  }
+                                }}
+                                className="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-amber-50 text-gray-700 hover:text-amber-700 transition-colors flex items-center justify-between group"
+                              >
+                                <span>{days} ngày</span>
+                                <span className="text-xs text-gray-400 group-hover:text-amber-500">
+                                  {days === 3
+                                    ? "Ngắn hạn"
+                                    : days === 7
+                                    ? "1 tuần"
+                                    : days === 14
+                                    ? "2 tuần"
+                                    : "1 tháng"}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+
+                          <button
+                            onClick={() => setShowHighlightMenu(false)}
+                            className="w-full mt-2 pt-2 border-t border-gray-100 text-xs text-gray-500 hover:text-gray-700 text-center"
+                          >
+                            Hủy
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4">

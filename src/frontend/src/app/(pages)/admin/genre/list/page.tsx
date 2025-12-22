@@ -18,6 +18,7 @@ const gridCols = "1.5fr 1.2fr";
 export default function CategoryListPage() {
   const router = useRouter();
   const [items, setItems] = useState<GenreItem[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     fetch(
@@ -27,64 +28,75 @@ export default function CategoryListPage() {
       .then((res) => res.json())
       .then((data) => {
         if (data.code === "success") setItems(data.list);
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
   }, []);
 
   return (
-    <>
-      {/* Title + Create button */}
-      <div className="flex items-center justify-between mb-10">
-        <h2 className="font-[600] text-3xl text-center flex-1">
-          Quản lý thể loại Manga
-        </h2>
+    <div className="w-full min-h-screen px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
+      {isLoading ? (
+        <div className="flex justify-center items-center min-h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        </div>
+      ) : (
+        <>
+          {/* Title + Create button */}
+          <div className="flex items-center justify-between mb-10">
+            <h2 className="font-[600] text-3xl text-center flex-1">
+              Quản lý thể loại Manga
+            </h2>
 
-        <button
-          onClick={() => router.push("/admin/genre/create")}
-          className="ml-4 inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors"
-        >
-          <Plus size={18} />
-          Tạo thể loại mới
-        </button>
-      </div>
-
-      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-        <div className="w-full overflow-x-auto">
-          <div className="min-w-[900px] mx-auto">
-            {/* Header */}
-            <div
-              className={headerRowClass}
-              style={{ gridTemplateColumns: gridCols }}
+            <button
+              onClick={() => router.push("/admin/genre/create")}
+              className="ml-4 inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors"
             >
-              <div className="px-4 py-4 text-center">Tên thể loại</div>
-              <div className="px-4 py-4 text-center whitespace-nowrap">
-                Hành động
-              </div>
-            </div>
+              <Plus size={18} />
+              Tạo thể loại mới
+            </button>
+          </div>
 
-            {/* Body */}
-            <div className="divide-y divide-gray-100">
-              {items.map((item) => (
+          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+            <div className="w-full overflow-x-auto">
+              <div className="min-w-[900px] mx-auto">
+                {/* Header */}
                 <div
-                  key={item.genre_id}
-                  className={`${rowClass} hover:bg-gray-50 transition-colors`}
+                  className={headerRowClass}
                   style={{ gridTemplateColumns: gridCols }}
                 >
-                  <div className="px-4 py-4 font-medium text-gray-900 text-center">
-                    {item.genre_name}
-                  </div>
-
-                  <div className="flex items-center justify-center gap-2">
-                    <EditButton
-                      href={`/admin/genre/edit/${item.genre_id}`}
-                      title="Chỉnh sửa"
-                    />
+                  <div className="px-4 py-4 text-center">Tên thể loại</div>
+                  <div className="px-4 py-4 text-center whitespace-nowrap">
+                    Hành động
                   </div>
                 </div>
-              ))}
+
+                {/* Body */}
+                <div className="divide-y divide-gray-100">
+                  {items.map((item) => (
+                    <div
+                      key={item.genre_id}
+                      className={`${rowClass} hover:bg-gray-50 transition-colors`}
+                      style={{ gridTemplateColumns: gridCols }}
+                    >
+                      <div className="px-4 py-4 font-medium text-gray-900 text-center">
+                        {item.genre_name}
+                      </div>
+
+                      <div className="flex items-center justify-center gap-2">
+                        <EditButton
+                          href={`/admin/genre/edit/${item.genre_id}`}
+                          title="Chỉnh sửa"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-    </>
+        </>
+      )}
+    </div>
   );
 }

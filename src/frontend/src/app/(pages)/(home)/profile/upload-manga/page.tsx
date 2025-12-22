@@ -3,8 +3,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { useAuth } from "@/app/hooks/useAuth";
 import { useRouter } from "next/navigation";
+import { slugify } from "@/utils/make_slug";
 import { toast } from "sonner";
 import {
   Upload,
@@ -165,6 +165,7 @@ export default function UploadMangaPage() {
     formData.append("description", mangaDescription);
     formData.append("cover_image", coverFile[0].file);
     formData.append("file_content", contentFile[0].file);
+    formData.append("slug", slugify(form.mangaTitle.value));
 
     // Append multiple genres as JSON string or comma-separated
     formData.append("genres", JSON.stringify(selectedGenres));

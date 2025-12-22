@@ -167,7 +167,7 @@ export default function ReadPage() {
     const chapterPrice = parseFloat(chapter.price);
     // Nếu chapter miễn phí HOẶC đã mua, chuyển thẳng đến trang đọc
     if (chapterPrice === 0 || isOwned) {
-      router.push(`/read/${mangaDetail?.manga.manga_id}/${chapter.chapter_id}`);
+      router.push(`/explore/manga/${mangaDetail?.manga.manga_id}/${chapter.chapter_id}`);
     } else {
       // Nếu chapter có giá VÀ chưa mua, hiển thị modal
       setSelectedChapter(chapter);
@@ -314,7 +314,7 @@ export default function ReadPage() {
                       <button
                         onClick={() => {
                           if (!infoUser) {
-                            toast.error("Vui lòng đăng nhập!");
+                            toast.error("Vui lòng đăng nhập để yêu thích!");
                             return;
                           }
                           const newFavoriteState = !isFavorite;

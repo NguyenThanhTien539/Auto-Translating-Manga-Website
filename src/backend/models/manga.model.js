@@ -34,7 +34,8 @@ module.exports.getChaptersByMangaId = async (mangaId) => {
 module.exports.getMangasByUploader = async (uploaderId) => {
   return db("mangas")
     .where("uploader_id", uploaderId)
-    .select("manga_id ", "title");
+    .select("*")
+    .orderBy("manga_id", "asc");
 };
 
 module.exports.getAllMangas = async () => {
@@ -400,4 +401,8 @@ module.exports.getMangasByAuthorId = async (authorId) => {
     .where("author_id", authorId)
     .select("*")
     .orderBy("manga_id", "asc");
+};
+
+module.exports.setHighlightManga = async (mangaId, dataToUpdate) => {
+  return db("mangas").where("manga_id", mangaId).update(dataToUpdate);
 };

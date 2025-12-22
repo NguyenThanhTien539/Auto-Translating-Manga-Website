@@ -31,4 +31,6 @@ route.get(
 
 route.get("/chapter/:id/pages", mangaController.getChapterPages);
 
+route.patch("/set-highlight/:id", authMiddleware.adminAuth, mangaController.setHighlightManga);
+
 module.exports = route;
