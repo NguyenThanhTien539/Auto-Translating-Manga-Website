@@ -509,7 +509,7 @@ export default function ChapterReadPage() {
 
                   <div className="flex items-center justify-center gap-4">
                     <Link
-                      href={`/read/${params.manga_id}`}
+                      href={`/explore/manga/${params.manga_id}`}
                       className="px-6 py-3 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-medium transition-colors"
                     >
                       Danh sách chương

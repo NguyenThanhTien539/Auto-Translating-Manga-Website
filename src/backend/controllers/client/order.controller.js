@@ -33,7 +33,7 @@ module.exports.paymentZaloPay = async (req, res) => {
     };
 
     const embed_data = {
-      redirecturl: `http://ec2-15-134-37-160.ap-southeast-2.compute.amazonaws.com/order-coin/success?depositId=${depositId}`,
+      redirecturl: `http://54.169.111.98/order-coin/success?depositId=${depositId}`,
     };
     const items = [{}];
     const transID = Math.floor(Math.random() * 1000000);
@@ -47,7 +47,7 @@ module.exports.paymentZaloPay = async (req, res) => {
       amount: orderDetail.price,
       description: `Thanh toán gói nạp ${orderDetail.coins} coin - Mã đơn hàng: ${orderCode}`,
       bank_code: "",
-      callback_url: `http://ec2-15-134-37-160.ap-southeast-2.compute.amazonaws.com/api/order-coin/payment-zalopay-result?depositId=${depositId}`,
+      callback_url: `http://54.169.111.98//api/order-coin/payment-zalopay-result?depositId=${depositId}`,
     };
 
     const data =
@@ -98,17 +98,9 @@ module.exports.paymentZaloPayResult = async (req, res) => {
 
       let dataJson = JSON.parse(dataStr, config.key2);
       const [email, orderId] = dataJson.app_user.split(" - ");
-      const existedRecord = await accountModel.findEmail(email);
-      const finalData = {
-        user_id: existedRecord.user_id,
-        coin_package_id: orderId,
-        payment_method: "ZaloPay",
-        status: "Failed",
-      };
+      const { depositId } = req.query;
+      await orderModel.updateDepositStatus(depositId, "Failed");
 
-      if (existedRecord) {
-        await orderModel.createOrder(finalData);
-      }
       result.return_code = -1;
       result.return_message = "mac not equal";
     } else {
@@ -117,12 +109,6 @@ module.exports.paymentZaloPayResult = async (req, res) => {
       let dataJson = JSON.parse(dataStr, config.key2);
       const [email, orderId] = dataJson.app_user.split(" - ");
       const existedRecord = await accountModel.findEmail(email);
-      // const finalData = {
-      //   user_id: existedRecord.user_id,
-      //   coin_package_id: orderId,
-      //   payment_method: "ZaloPay",
-      //   status: "Success",
-      // };
       const { depositId } = req.query;
       await orderModel.updateDepositStatus(depositId, "Success");
 
