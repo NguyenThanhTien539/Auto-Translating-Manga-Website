@@ -200,7 +200,7 @@ const processChaptersInBackground = async (
 
 module.exports.uploadManga = async (req, res) => {
   try {
-    const { title, author, description, genres, language } = req.body;
+    const { title, author, description, genres, language, slug } = req.body;
     const files = req.files;
 
     // Get user ID from request (set by auth middleware)
@@ -238,6 +238,7 @@ module.exports.uploadManga = async (req, res) => {
       uploader_id: uploader_id,
       status: "OnGoing", // Valid values: 'OnGoing', 'Completed', 'Dropped'
       original_language: language,
+      slug: slug,
     };
 
     const newManga = await Manga.createManga(mangaData);
@@ -285,6 +286,19 @@ module.exports.getMyMangas = async (req, res) => {
     const uploader_id = req.infoUser.user_id;
 
     const mangas = await Manga.getMangasByUploader(uploader_id);
+    for (const manga of mangas) {
+      const chapterCount = await Manga.countChaptersByMangaId(manga.manga_id);
+      manga.total_chapters = chapterCount;
+
+      const genres = await Manga.getGenresByMangaId(manga.manga_id);
+      manga.genres = genres.map((g) => g.genre_name);
+
+      const author = await Manga.getAuthorDetailByAuthorId(manga.author_id);
+      manga.author_name = author ? author.author_name : "Unknown";
+
+      const averageRating = await Manga.calculateAverageRating(manga.manga_id);
+      manga.average_rating = averageRating;
+    }
     res.json({ code: "success", data: mangas });
   } catch (error) {
     console.error(error);

@@ -173,7 +173,7 @@ export default function Explore() {
               {allMangas.map((manga) => (
                 <div
                   key={manga.manga_id}
-                  onClick={() => router.push(`/read/${manga.manga_id}`)}
+                  onClick={() => router.push(`/explore/manga/${manga.manga_id}`)}
                   className="cursor-pointer"
                 >
                   <MangaCard
