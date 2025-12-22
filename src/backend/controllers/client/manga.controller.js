@@ -687,14 +687,10 @@ module.exports.uploadChapter = async (req, res) => {
     // Get ZIP file buffer for background processing
     const fileContentBuffer = files.file_content[0].buffer;
 
-    // ⚡ Respond immediately to frontend
     res.json({
       code: "success",
       message: "Chương của bạn đang được xử lý.",
     });
-
-    // Process chapters in background (non-blocking)
-    // Don't await this - let it run in background
 
     const originalLanguage = await Manga.getOriginalLanguageByMangaId(manga_id);
 

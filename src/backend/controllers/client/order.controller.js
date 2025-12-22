@@ -26,14 +26,14 @@ module.exports.paymentZaloPay = async (req, res) => {
     const orderDetail = await orderModel.getOrderDetailById(orderCode);
     const config = {
       app_id: "2554",
-      key1: "sdngKKJmqEMzvh5QQcdD2A9XBSKUNaYn",
-      key2: "trMrHtvjo6myautxDUiAcYsVtaeQ8nhf",
-      endpoint: "https://sb-openapi.zalopay.vn/v2/create",
+      key1: process.env.ZALOPAY_KEY1,
+      key2: process.env.ZALOPAY_KEY2,
+      endpoint: process.env.ZALOPAY_ENDPOINT,
       // endpoint: "https://openapi.zalopay.vn/v2/create",
     };
 
     const embed_data = {
-      redirecturl: `http://54.169.111.98/order-coin/success?depositId=${depositId}`,
+      redirecturl: `${process.env.ZALOPAY_RETURN_URL}/order-coin/success?depositId=${depositId}`,
     };
     const items = [{}];
     const transID = Math.floor(Math.random() * 1000000);
@@ -47,7 +47,7 @@ module.exports.paymentZaloPay = async (req, res) => {
       amount: orderDetail.price,
       description: `Thanh toán gói nạp ${orderDetail.coins} coin - Mã đơn hàng: ${orderCode}`,
       bank_code: "",
-      callback_url: `http://54.169.111.98/api/order-coin/payment-zalopay-result?depositId=${depositId}`,
+      callback_url: `${process.env.ZALOPAY_RETURN_URL}/api/order-coin/payment-zalopay-result?depositId=${depositId}`,
     };
 
     const data =
@@ -84,7 +84,7 @@ module.exports.paymentZaloPay = async (req, res) => {
 
 module.exports.paymentZaloPayResult = async (req, res) => {
   const config = {
-    key2: "trMrHtvjo6myautxDUiAcYsVtaeQ8nhf",
+    key2: process.env.ZALOPAY_KEY2,
   };
   let result = {};
   try {
