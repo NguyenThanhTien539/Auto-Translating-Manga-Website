@@ -306,14 +306,14 @@ export default function Filter({
           onClick={onCancel}
           className="min-w-[120px] px-4 py-2 rounded-md border border-[#f6aa1c] text-sm font-semibold bg-white hover:bg-gray-50"
         >
-          Cancel
+          Hủy
         </button>
         <button
           type="button"
           onClick={handleApply}
           className="min-w-[120px] px-4 py-2 rounded-md border border-[#f6aa1c] text-sm font-semibold bg-[#1e6091] text-white hover:bg-[#174b71]"
         >
-          Filter
+          Lọc
         </button>
       </section>
     </div>

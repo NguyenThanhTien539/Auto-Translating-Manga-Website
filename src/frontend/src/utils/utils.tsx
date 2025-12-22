@@ -6,6 +6,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function decodeHtml(html: string): string {
+  if (!html) return "";
   const txt = document.createElement("textarea");
   txt.innerHTML = html.replace(/<[^>]+>/g, "");
   return txt.value;

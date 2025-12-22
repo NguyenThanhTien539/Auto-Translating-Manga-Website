@@ -12,6 +12,7 @@ export function SearchBar({ onSearch, onOpenFilter }: SearchBarProps) {
 
   // delete keyword when reload page
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setKeyword("");
   }, []);
 

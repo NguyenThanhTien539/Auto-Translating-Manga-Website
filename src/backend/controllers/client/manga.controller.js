@@ -236,7 +236,7 @@ module.exports.uploadManga = async (req, res) => {
       description,
       cover_image: coverUpload.secure_url,
       uploader_id: uploader_id,
-      status: "OnGoing", // Valid values: 'OnGoing', 'Completed', 'Dropped'
+      status: "Pending", // Valid values: 'OnGoing', 'Completed', 'Dropped'
       original_language: language,
       slug: slug,
     };

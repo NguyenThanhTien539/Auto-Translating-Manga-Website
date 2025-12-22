@@ -67,25 +67,6 @@ export default function ManageMangaPage() {
     setSearch("");
   };
 
-  const toggleOne = (id: number) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-  };
-
-  const allChecked =
-    mangaList.length > 0 &&
-    mangaList.every((m) => selectedIds.includes(m.manga_id));
-
-  const toggleAll = () => {
-    const ids = mangaList.map((m) => m.manga_id);
-    setSelectedIds((prev) => {
-      if (allChecked) return prev.filter((id) => !ids.includes(id));
-      const set = new Set([...prev, ...ids]);
-      return Array.from(set);
-    });
-  };
-
   // ========= FILTERED LIST =========
   const filteredMangas = useMemo(() => {
     return mangaList.filter((manga) => {
@@ -165,14 +146,6 @@ export default function ManageMangaPage() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                   <tr>
-                    <th className="px-4 py-4 text-left w-12">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 cursor-pointer"
-                        checked={allChecked}
-                        onChange={toggleAll}
-                      />
-                    </th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
                       Thông tin truyện
                     </th>
@@ -196,22 +169,11 @@ export default function ManageMangaPage() {
 
                 <tbody className="divide-y divide-gray-100">
                   {filteredMangas.map((manga) => {
-                    const checked = selectedIds.includes(manga.manga_id);
-
                     return (
                       <tr
                         key={manga.manga_id}
                         className="hover:bg-blue-50/50 transition-colors"
                       >
-                        <td className="px-4 py-4">
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => toggleOne(manga.manga_id)}
-                            className="w-4 h-4 cursor-pointer"
-                          />
-                        </td>
-
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <div className="w-12 h-16 relative rounded overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-200">

@@ -148,9 +148,9 @@ export default function Home() {
                     <button
                       onClick={() => {
                         if (!current?.manga_id) return;
-                        router.push(`/read/${current.manga_id}`);
+                        router.push(`/explore/manga/${current.manga_id}`);
                       }}
-                      className="inline-flex items-center justify-center rounded-full bg-sky-600 px-6 py-2 text-sm font-semibold text-white hover:bg-sky-700"
+                      className="cursor-pointer inline-flex items-center justify-center rounded-full bg-sky-600 px-6 py-2 text-sm font-semibold text-white hover:bg-sky-700"
                     >
                       Đọc
                     </button>

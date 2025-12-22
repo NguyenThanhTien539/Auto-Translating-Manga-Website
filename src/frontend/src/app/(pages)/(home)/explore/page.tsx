@@ -131,13 +131,21 @@ type Manga = {
 export default function Explore() {
   const [allMangas, setAllMangas] = useState<Manga[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
   const router = useRouter();
+
+  const totalPages = Math.ceil(allMangas.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const mangasToShow = allMangas.slice(startIndex, endIndex);
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/all`)
       .then((response) => response.json())
       .then((data) => {
         if (data.code === "success") {
           setAllMangas(data.mangas);
+          setCurrentPage(1); // Reset to first page when new data loads
         } else {
           setAllMangas([]);
         }
@@ -157,23 +165,22 @@ export default function Explore() {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
       ) : (
-        <div className="p-6 space-y-6 bg-gray-50 dark:bg-gray-500 ">
+        <div className="p-6 space-y-6 bg-gray-50 dark:bg-gray-500 min-h-screen">
           {/* Popular this month */}
           <section>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                Popular <span className="text-amber-500">this month</span>
+                Tất cả <span className="text-amber-500">truyện</span>
               </h2>
-              <button className="text-sm text-sky-600 hover:text-sky-700 dark:text-sky-400 font-medium">
-                See More
-              </button>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {allMangas.map((manga) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              {mangasToShow.map((manga) => (
                 <div
                   key={manga.manga_id}
-                  onClick={() => router.push(`/explore/manga/${manga.manga_id}`)}
+                  onClick={() =>
+                    router.push(`/explore/manga/${manga.manga_id}`)
+                  }
                   className="cursor-pointer"
                 >
                   <MangaCard
@@ -190,69 +197,32 @@ export default function Explore() {
                 </div>
               ))}
             </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center space-x-4 mt-8">
+                <button
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-600"
+                >
+                  Trước
+                </button>
+                <span className="text-gray-700 dark:text-white">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  onClick={() =>
+                    setCurrentPage(Math.min(totalPages, currentPage + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                  className="px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-600"
+                >
+                  Sau
+                </button>
+              </div>
+            )}
           </section>
-
-          {/* Recent uploads */}
-          <section>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                Recent <span className="text-amber-500">uploads</span>
-              </h2>
-              <button className="text-sm text-sky-600 hover:text-sky-700 dark:text-sky-400 font-medium">
-                See More
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {EXPLORE_MANGA_DATA.slice(5, 10).map((manga) => (
-                <MangaCard
-                  key={manga.manga_id}
-                  manga_id={manga.manga_id}
-                  manga_name={manga.manga_name}
-                  author={manga.author}
-                  original_language={manga.original_language}
-                  genre={manga.genre}
-                  status={manga.status}
-                  coverUrl={manga.coverUrl}
-                  average_rating={manga.average_rating}
-                  totalChapters={manga.totalChapters}
-                />
-              ))}
-            </div>
-          </section>
-
-          {/* All Manga */}
-          <section>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                Tất cả truyện
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {EXPLORE_MANGA_DATA.map((manga) => (
-                <MangaCard
-                  key={manga.manga_id}
-                  manga_id={manga.manga_id}
-                  manga_name={manga.manga_name}
-                  author={manga.author}
-                  original_language={manga.original_language}
-                  genre={manga.genre}
-                  status={manga.status}
-                  coverUrl={manga.coverUrl}
-                  average_rating={manga.average_rating}
-                  totalChapters={manga.totalChapters}
-                />
-              ))}
-            </div>
-          </section>
-
-          {/* Load More Button */}
-          <div className="flex justify-center pt-4">
-            <button className="px-8 py-3 bg-sky-600 hover:bg-sky-700 text-white font-medium rounded-lg transition-colors shadow-md">
-              Tải thêm truyện
-            </button>
-          </div>
         </div>
       )}
     </>
