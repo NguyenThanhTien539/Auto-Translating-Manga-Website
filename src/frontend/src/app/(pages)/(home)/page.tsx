@@ -48,6 +48,9 @@ export default function Home() {
   // get mangas is highlighted
   const highlighted_mangas = mangas.filter((manga) => manga.is_highlighted);
 
+  // get manga with status not pending 
+  const slider_mangas = mangas.filter((manga) => manga.status !== "Pending").slice(0, 5);
+
   // Auto slide 3s
   useEffect(() => {
     if (mangas.length <= 1) return;
@@ -182,7 +185,7 @@ export default function Home() {
                   </div>
 
                   <div className="flex gap-2">
-                    {mangas.map((item, index) => (
+                    {slider_mangas.map((item, index) => (
                       <button
                         key={item.manga_id}
                         onClick={() => setActiveIndex(index)}

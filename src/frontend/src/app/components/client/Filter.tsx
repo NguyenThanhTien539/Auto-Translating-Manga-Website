@@ -9,6 +9,8 @@ export type MangaFilterValues = {
   categories: string[]; // genre_name[]
 };
 
+let notShownStatus = ["Pending"];
+
 interface MangaFilterPanelProps {
   initialValues?: Partial<MangaFilterValues>;
   onApply: (values: MangaFilterValues) => void;
@@ -74,7 +76,7 @@ export default function Filter({
       })
       .then(({ ok, json }) => {
         if (ok && json?.code === "success" && json?.data) {
-          // ✅ chỉ lấy đúng 2 field cần dùng
+          // chỉ lấy đúng 2 field cần dùng
           setPanelData({
             status: Array.isArray(json.data.status) ? json.data.status : [],
             genres: Array.isArray(json.data.genres) ? json.data.genres : [],
@@ -147,6 +149,11 @@ export default function Filter({
     if (num < chaptersMin) num = chaptersMin;
     setChaptersMax(num);
   };
+
+  // get list of status excluding notShownStatus
+  const filteredStatusOptions = statusOptions.filter(
+    (s) => !notShownStatus.includes(s)
+  );
 
   return (
     <div className="w-full max-w-5xl mx-auto bg-white text-gray-900 rounded-xl shadow-lg border border-gray-200 p-6 space-y-8">
@@ -222,7 +229,7 @@ export default function Filter({
               All
             </button>
 
-            {statusOptions.map((s) => {
+            {filteredStatusOptions.map((s) => {
               const active = state === s;
               return (
                 <button
