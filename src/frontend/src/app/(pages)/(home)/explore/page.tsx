@@ -3,119 +3,6 @@
 import MangaCard from "@/app/components/client/MangaCard";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-// Dữ liệu giả phong phú cho trang explore
-const EXPLORE_MANGA_DATA = [
-  {
-    manga_id: "1",
-    manga_name: "One Piece",
-    author: "Eiichiro Oda",
-    original_language: "Japan",
-    genre: "Adventure - Action - Comedy - Fantasy",
-    status: "Ongoing",
-    coverUrl: "/image/logo.jpg",
-    average_rating: 9.26,
-    totalChapters: 1100,
-  },
-  {
-    manga_id: "2",
-    manga_name: "Solo Leveling",
-    author: "Chugong",
-    original_language: "Korea",
-    genre: "Action - Fantasy - Adventure",
-    status: "Completed",
-    coverUrl: "/image/logo.jpg",
-    average_rating: 9.15,
-    totalChapters: 179,
-  },
-  {
-    manga_id: "3",
-    manga_name: "Versatile Mage",
-    author: "Chaos",
-    original_language: "China",
-    genre: "Action - Fantasy - School Life",
-    status: "Ongoing",
-    coverUrl: "/image/logo.jpg",
-    average_rating: 8.78,
-    totalChapters: 810,
-  },
-  {
-    manga_id: "4",
-    manga_name: "Berserk",
-    author: "Kentaro Miura",
-    original_language: "Japan",
-    genre: "Dark Fantasy - Drama - Horror - Action",
-    status: "Continuous",
-    coverUrl: "/image/logo.jpg",
-    average_rating: 9.32,
-    totalChapters: 374,
-  },
-  {
-    manga_id: "5",
-    manga_name: "The Beginning After The End",
-    author: "TurtleMe",
-    original_language: "Korea",
-    genre: "Action - Fantasy - Adventure - Drama",
-    status: "Ongoing",
-    coverUrl: "/image/logo.jpg",
-    average_rating: 9.05,
-    totalChapters: 178,
-  },
-  {
-    manga_id: "6",
-    manga_name: "Chainsaw Man",
-    author: "Tatsuki Fujimoto",
-    original_language: "Japan",
-    genre: "Action - Horror - Dark Fantasy",
-    status: "Ongoing",
-    coverUrl: "/image/logo.jpg",
-    average_rating: 8.92,
-    totalChapters: 158,
-  },
-  {
-    manga_id: "7",
-    manga_name: "Jujutsu Kaisen",
-    author: "Gege Akutami",
-    original_language: "Japan",
-    genre: "Action - Dark Fantasy - Supernatural",
-    status: "Ongoing",
-    coverUrl: "/image/logo.jpg",
-    average_rating: 8.88,
-    totalChapters: 245,
-  },
-  {
-    manga_id: "8",
-    manga_name: "Tower of God",
-    author: "SIU",
-    original_language: "Korea",
-    genre: "Action - Fantasy - Mystery - Drama",
-    status: "Ongoing",
-    coverUrl: "/image/logo.jpg",
-    average_rating: 8.95,
-    totalChapters: 585,
-  },
-  {
-    manga_id: "9",
-    manga_name: "Demon Slayer",
-    author: "Koyoharu Gotouge",
-    original_language: "Japan",
-    genre: "Action - Adventure - Fantasy - Drama",
-    status: "Completed",
-    coverUrl: "/image/logo.jpg",
-    average_rating: 8.76,
-    totalChapters: 205,
-  },
-  {
-    manga_id: "10",
-    manga_name: "My Hero Academia",
-    author: "Kohei Horikoshi",
-    original_language: "Japan",
-    genre: "Action - Adventure - Superhero",
-    status: "Ongoing",
-    coverUrl: "/image/logo.jpg",
-    average_rating: 8.65,
-    totalChapters: 410,
-  },
-];
 
 type Manga = {
   manga_id: string;
@@ -138,7 +25,7 @@ export default function Explore() {
   const totalPages = Math.ceil(allMangas.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const mangasToShow = allMangas.slice(startIndex, endIndex);
+  const mangasToShow = allMangas.slice(startIndex, endIndex).filter(manga => manga.status !== "Pending" );
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/all`)
       .then((response) => response.json())
