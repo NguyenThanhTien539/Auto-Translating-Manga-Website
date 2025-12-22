@@ -18,6 +18,8 @@ server {
     listen [::]:80 default_server;
     server_name _; 
 
+    client_max_body_size 50m;
+
     # FRONTEND
     location / {
         proxy_pass http://localhost:3000;
