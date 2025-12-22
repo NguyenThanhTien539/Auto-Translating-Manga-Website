@@ -47,7 +47,7 @@ module.exports.paymentZaloPay = async (req, res) => {
       amount: orderDetail.price,
       description: `Thanh toán gói nạp ${orderDetail.coins} coin - Mã đơn hàng: ${orderCode}`,
       bank_code: "",
-      callback_url: `http://54.169.111.98//api/order-coin/payment-zalopay-result?depositId=${depositId}`,
+      callback_url: `http://54.169.111.98/api/order-coin/payment-zalopay-result?depositId=${depositId}`,
     };
 
     const data =
@@ -196,7 +196,6 @@ module.exports.depositHistory = async (req, res) => {
       depositId
     );
 
-    console.log("Deposit history:", history);
     res.json({ code: "success", history: history[0] });
   } catch (error) {
     res.json({ code: "error", message: "Thất bại lấy lịch sử nạp coin." });
