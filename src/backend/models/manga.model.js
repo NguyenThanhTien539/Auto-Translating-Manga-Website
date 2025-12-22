@@ -401,3 +401,7 @@ module.exports.getMangasByAuthorId = async (authorId) => {
     .select("*")
     .orderBy("manga_id", "asc");
 };
+
+module.exports.setHighlightManga = async (mangaId, dataToUpdate) => {
+  return db("mangas").where("manga_id", mangaId).update(dataToUpdate);
+};
