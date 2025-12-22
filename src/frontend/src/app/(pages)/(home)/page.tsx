@@ -101,7 +101,7 @@ export default function Home() {
           <section className="space-y-2">
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-semibold text-slate-900">
-                Out now 🎉
+                Nóng hổi mới ra lò, không đọc là tiếc đấy!
               </h2>
             </div>
 

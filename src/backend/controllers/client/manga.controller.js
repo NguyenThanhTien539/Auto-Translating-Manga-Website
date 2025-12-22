@@ -495,7 +495,7 @@ module.exports.getPageImage = async (req, res) => {
     const allowedOrigins = [
       "http://localhost:3000",
       "http://localhost:5000",
-      "http://ec2-15-134-37-160.ap-southeast-2.compute.amazonaws.com",
+      "http://54.169.111.98",
     ];
 
     if (!referrer) {

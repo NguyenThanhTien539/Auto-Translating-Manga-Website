@@ -4,12 +4,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/app/hooks/useAuth";
-import { User, Heart, Home, Compass, PenSquare, Bell } from "lucide-react";
+import { User, Heart, Home, Compass, PenSquare } from "lucide-react";
 const MAIN_MENU = [
   { label: "Trang chủ", href: "/", icon: Home },
   { label: "Khám phá", href: "/explore", icon: Compass },
   { label: "Tác giả", href: "/authors", icon: PenSquare },
-  { label: "Thông báo", href: "/notifications", icon: Bell },
 ];
 
 const SECOND_MENU = [

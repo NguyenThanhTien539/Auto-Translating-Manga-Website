@@ -66,11 +66,6 @@ export default function ChapterReadPage() {
       })
       .then((data) => {
         if (data.code === "success") {
-          console.log("Pages data:", data.data);
-          console.log(
-            "First page translation_status:",
-            data.data[0]?.translation_status
-          );
           setPages(data.data);
           setLoading(false);
         } else {
