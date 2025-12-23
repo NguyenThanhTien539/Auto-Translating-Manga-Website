@@ -25,7 +25,9 @@ export default function Explore() {
   const totalPages = Math.ceil(allMangas.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const mangasToShow = allMangas.slice(startIndex, endIndex).filter(manga => manga.status !== "Pending" );
+  const mangasToShow = allMangas
+    .slice(startIndex, endIndex)
+    .filter((manga) => manga.status !== "Pending");
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/all`)
       .then((response) => response.json())
@@ -44,6 +46,8 @@ export default function Explore() {
         setIsLoading(false);
       });
   }, []);
+
+  // Scroll to top when component mounts
 
   return (
     <>
@@ -96,7 +100,7 @@ export default function Explore() {
                   Trước
                 </button>
                 <span className="text-gray-700 dark:text-white">
-                  Page {currentPage} of {totalPages}
+                  Trang {currentPage} của {totalPages}
                 </span>
                 <button
                   onClick={() =>

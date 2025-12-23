@@ -820,6 +820,10 @@ module.exports.getMangaStatistics = async (req, res) => {
     const favoriteCount = await Manga.countFavoriteMangasByUserId(user_id);
     const { finished_count, reading_count } =
       await Manga.getFinishedAndReadingCount(user_id);
+    console.log("Finished and Reading Count:", {
+      finished_count,
+      reading_count,
+    });
     res.json({
       code: "success",
       data: { favoriteCount, finished_count, reading_count },

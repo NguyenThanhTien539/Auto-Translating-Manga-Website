@@ -140,7 +140,7 @@ export default function ChapterReadPage() {
             const pageElement = pageRefs.current[lastPage];
             if (pageElement) {
               pageElement.scrollIntoView({
-                behavior: "smooth",
+                behavior: "auto", // Changed from "smooth" to "auto" for instant scroll
                 block: "start",
               });
             }
@@ -246,27 +246,37 @@ export default function ChapterReadPage() {
     }
   };
 
-  // Track scroll position to update current page
+  // Track scroll position to update current page using IntersectionObserver
   useEffect(() => {
-    const handleScroll = () => {
-      let currentVisiblePage = 1;
+    if (pages.length === 0) return;
+
+    const observerOptions = {
+      root: null,
+      rootMargin: "0px",
+      threshold: 0.5, // Trigger when 50% of the page is visible
+    };
+
+    const observerCallback = (entries: IntersectionObserverEntry[]) => {
+      let currentVisiblePage = currentPage;
       let maxVisibility = 0;
 
-      // Find which page is most visible
-      Object.entries(pageRefs.current).forEach(([pageNum, element]) => {
-        if (!element) return;
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const pageNum = parseInt(
+            entry.target.getAttribute("data-page") || "1"
+          );
+          const rect = entry.boundingClientRect;
+          const viewportHeight = window.innerHeight;
 
-        const rect = element.getBoundingClientRect();
-        const viewportHeight = window.innerHeight;
+          // Calculate visibility
+          const visibleHeight =
+            Math.min(rect.bottom, viewportHeight) - Math.max(rect.top, 0);
+          const visibilityPercent = visibleHeight / rect.height;
 
-        // Calculate how much of the page is visible
-        const visibleHeight =
-          Math.min(rect.bottom, viewportHeight) - Math.max(rect.top, 0);
-        const visibilityPercent = visibleHeight / rect.height;
-
-        if (visibilityPercent > maxVisibility && visibilityPercent > 0.3) {
-          maxVisibility = visibilityPercent;
-          currentVisiblePage = parseInt(pageNum);
+          if (visibilityPercent > maxVisibility) {
+            maxVisibility = visibilityPercent;
+            currentVisiblePage = pageNum;
+          }
         }
       });
 
@@ -280,16 +290,23 @@ export default function ChapterReadPage() {
       saveReadingProgress(currentVisiblePage);
     };
 
-    window.addEventListener("scroll", handleScroll);
-    handleScroll(); // Initial call
+    const observer = new IntersectionObserver(
+      observerCallback,
+      observerOptions
+    );
+
+    // Observe all page elements
+    Object.values(pageRefs.current).forEach((element) => {
+      if (element) observer.observe(element);
+    });
 
     return () => {
-      window.removeEventListener("scroll", handleScroll);
+      observer.disconnect();
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [pages.length, saveReadingProgress]);
+  }, [pages.length, saveReadingProgress, currentPage]);
 
   if (loading) {
     return (
@@ -378,6 +395,7 @@ export default function ChapterReadPage() {
                   ref={(el) => {
                     pageRefs.current[page.page_number] = el;
                   }}
+                  data-page={page.page_number}
                   className={`relative bg-black rounded-lg overflow-hidden shadow-lg transition-all ${
                     currentPage === page.page_number
                       ? "ring-2 ring-sky-500 ring-offset-2 ring-offset-gray-900"

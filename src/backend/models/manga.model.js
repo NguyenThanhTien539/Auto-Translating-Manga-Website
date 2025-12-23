@@ -249,65 +249,39 @@ module.exports.countFavoriteMangasByUserId = async (userId) => {
 };
 
 module.exports.getFinishedAndReadingCount = async (userId) => {
-  // Đếm số manga đã hoàn thành: tất cả chapters có last_read_page = tổng số pages
-  const finishedResult = await db.raw(
-    `
-    SELECT COUNT(DISTINCT m.manga_id) AS finished_count
-    FROM mangas m
-    WHERE EXISTS (
-      SELECT 1 FROM chapters c WHERE c.manga_id = m.manga_id
+  // Lấy danh sách tất cả chapters với last_page_read và total_pages
+  const chaptersData = await db("chapters as c")
+    .leftJoin("reading_history as rh", function () {
+      this.on("rh.chapter_id", "c.chapter_id").andOn("rh.user_id", userId);
+    })
+    .leftJoin("pages as p", "p.chapter_id", "c.chapter_id")
+    .select(
+      "c.chapter_id",
+      db.raw("MAX(rh.last_page_read) as last_page_read"),
+      db.raw("MAX(p.page_number) as total_pages")
     )
-    AND NOT EXISTS (
-      SELECT 1
-      FROM chapters c
-      LEFT JOIN LATERAL (
-        SELECT MAX(rh.last_page_read) AS last_read_page
-        FROM reading_history rh
-        WHERE rh.chapter_id = c.chapter_id
-          AND rh.user_id = ?
-      ) rhmax ON TRUE
-      LEFT JOIN LATERAL (
-        SELECT COUNT(*) AS total_pages
-        FROM pages p
-        WHERE p.chapter_id = c.chapter_id
-      ) pc ON TRUE
-      WHERE c.manga_id = m.manga_id
-        AND COALESCE(rhmax.last_read_page, 0) <> pc.total_pages
-    )
-    `,
-    [userId]
-  );
+    .groupBy("c.chapter_id");
 
-  // Đếm số manga đang đọc: có ít nhất 1 chapter có 0 < last_read_page < tổng số pages
-  const readingResult = await db.raw(
-    `
-    SELECT COUNT(DISTINCT m.manga_id) AS reading_count
-    FROM mangas m
-    WHERE EXISTS (
-      SELECT 1
-      FROM chapters c
-      LEFT JOIN LATERAL (
-        SELECT MAX(rh.last_page_read) AS last_read_page
-        FROM reading_history rh
-        WHERE rh.chapter_id = c.chapter_id
-          AND rh.user_id = ?
-      ) rhmax ON TRUE
-      LEFT JOIN LATERAL (
-        SELECT COUNT(*) AS total_pages
-        FROM pages p
-        WHERE p.chapter_id = c.chapter_id
-      ) pc ON TRUE
-      WHERE c.manga_id = m.manga_id
-        AND COALESCE(rhmax.last_read_page, 0) > 0
-        AND COALESCE(rhmax.last_read_page, 0) < pc.total_pages
-    )
-    `,
-    [userId]
-  );
+  let finished_count = 0;
+  let reading_count = 0;
+
+  chaptersData.forEach((chapter) => {
+    const { last_page_read, total_pages } = chapter;
+    const last = last_page_read || 0;
+    const total = total_pages || 0;
+
+    if (total > 0) {
+      if (last === total) {
+        finished_count++;
+      } else if (last > 0 && last < total) {
+        reading_count++;
+      }
+    }
+  });
 
   return {
-    finished_count: parseInt(finishedResult.rows[0]?.finished_count, 10) || 0,
-    reading_count: parseInt(readingResult.rows[0]?.reading_count, 10) || 0,
+    finished_count,
+    reading_count,
   };
 };
 
