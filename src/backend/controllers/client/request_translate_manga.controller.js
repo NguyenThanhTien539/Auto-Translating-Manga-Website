@@ -50,48 +50,17 @@ module.exports.translateSinglePage = async (req, res) => {
       targetLanguage
     );
 
-    if (existingTranslation) {
-      // If image_url is "processing", return status
-      if (existingTranslation.image_url === "processing") {
-        return res.json({
-          code: "processing",
-          message: "Translation is already in progress",
-          pageId: existingTranslation.page_id,
-        });
-      }
-
-      // If image_url exists and is not empty, translation is complete
-      if (existingTranslation.image_url && existingTranslation.image_url !== "") {
-        return res.json({
-          code: "success",
-          message: "Translation already exists",
-          pageId: existingTranslation.page_id,
-          imageUrl: existingTranslation.image_url,
-        });
-      }
+    if (existingTranslation && existingTranslation.image_url && existingTranslation.image_url !== "") {
+      // Translation already exists with valid URL
+      return res.json({
+        code: "success",
+        message: "Translation already exists",
+        pageId: existingTranslation.page_id,
+        imageUrl: existingTranslation.image_url,
+      });
     }
 
-    // 3. Create/Update page record with "processing" status
-    let translatedPageId;
-    if (existingTranslation) {
-      console.log("Updating existing translation, page_id:", existingTranslation.page_id);
-      await Manga.updatePageImageUrl(existingTranslation.page_id, "processing");
-      translatedPageId = existingTranslation.page_id;
-    } else {
-      console.log("Creating new page for translation");
-      const newPageData = {
-        chapter_id: originalPage.chapter_id,
-        page_number: originalPage.page_number,
-        image_url: "processing",
-        language: targetLanguage,
-      };
-      const result = await Manga.createPages([newPageData]);
-      console.log("Created page result:", result);
-      translatedPageId = result[0].page_id;
-      console.log("New translated page ID:", translatedPageId);
-    }
-
-    // 4. Get manga info for language mapping
+    // 3. Get manga info for language mapping
     const chapter = await Manga.getChapterByChapterId(originalPage.chapter_id);
     const manga = await Manga.getMangaById(chapter.manga_id);
     const sourceLanguage = manga.original_language || "ja";
@@ -171,7 +140,6 @@ module.exports.translateSinglePage = async (req, res) => {
 
     // 6. Upload translated image to Cloudinary
     console.log("Uploading translated image to Cloudinary...");
-    console.log("Translated page ID:", translatedPageId);
     const uploadResult = await new Promise((resolve, reject) => {
       cloudinary.uploader.upload(
         `data:image/png;base64,${renderedImageBase64}`,
@@ -186,8 +154,25 @@ module.exports.translateSinglePage = async (req, res) => {
       );
     });
 
-    // 7. Update page record with actual image URL
-    await Manga.updatePageImageUrl(translatedPageId, uploadResult.secure_url);
+    // 7. Create/Update page record with translated image URL
+    let translatedPageId;
+    if (existingTranslation) {
+      console.log("Updating existing translation with result, page_id:", existingTranslation.page_id);
+      await Manga.updatePageImageUrl(existingTranslation.page_id, uploadResult.secure_url);
+      translatedPageId = existingTranslation.page_id;
+    } else {
+      console.log("Creating new page with translation result");
+      const newPageData = {
+        chapter_id: originalPage.chapter_id,
+        page_number: originalPage.page_number,
+        image_url: uploadResult.secure_url,
+        language: targetLanguage,
+      };
+      const result = await Manga.createPages([newPageData]);
+      console.log("Created page result:", result);
+      translatedPageId = result[0].page_id;
+      console.log("New translated page ID:", translatedPageId);
+    }
 
     // 8. Return success response
     res.json({
@@ -198,25 +183,6 @@ module.exports.translateSinglePage = async (req, res) => {
     });
   } catch (error) {
     console.error("Error in translateSinglePage:", error);
-
-    // Update page status to empty if it was processing
-    if (req.body.pageId) {
-      try {
-        const originalPage = await Manga.getPageById(req.body.pageId);
-        if (originalPage) {
-          const existingTranslation = await Manga.getPageByChapterAndLanguage(
-            originalPage.chapter_id,
-            originalPage.page_number,
-            req.body.targetLanguage
-          );
-          if (existingTranslation && existingTranslation.image_url === "processing") {
-            await Manga.updatePageImageUrl(existingTranslation.page_id, "");
-          }
-        }
-      } catch (cleanupError) {
-        console.error("Error during cleanup:", cleanupError);
-      }
-    }
 
     res.status(500).json({
       code: "error",
