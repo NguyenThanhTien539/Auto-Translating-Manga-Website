@@ -12,12 +12,13 @@ npm -v
 
 npm install -g pm2
 
-rm -f /etc/nginx/sites-enabled/default
-
 cat << 'EOF' > /etc/nginx/sites-available/my-nextjs-app
 server {
-    listen 80;
+    listen 80 default_server;
+    listen [::]:80 default_server;
     server_name _; 
+
+    client_max_body_size 50m;
 
     # FRONTEND
     location / {
@@ -43,17 +44,20 @@ server {
 EOF
 
 ln -sf /etc/nginx/sites-available/my-nextjs-app /etc/nginx/sites-enabled/
+rm -f /etc/nginx/sites-enabled/default
+
 nginx -t
 nginx -s reload
 
-
-
 cd src/backend
 npm i
+pm2 delete backend || true
 pm2 start npm --name "backend" -- start
 
 cd ../frontend
 npm i
-pm2 start npm --name "frontend" -- run dev
+npm run build
+pm2 delete frontend || true
+pm2 start npm --name "frontend" -- start
 
 curl -4 ifconfig.me

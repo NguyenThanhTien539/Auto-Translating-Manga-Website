@@ -34,7 +34,8 @@ module.exports.getChaptersByMangaId = async (mangaId) => {
 module.exports.getMangasByUploader = async (uploaderId) => {
   return db("mangas")
     .where("uploader_id", uploaderId)
-    .select("manga_id ", "title");
+    .select("*")
+    .orderBy("manga_id", "asc");
 };
 
 module.exports.getAllMangas = async () => {
@@ -239,6 +240,51 @@ module.exports.isMangaFavoritedByUser = async (userId, mangaId) => {
   return !!result;
 };
 
+module.exports.countFavoriteMangasByUserId = async (userId) => {
+  const result = await db("favorites")
+    .where("user_id", userId)
+    .count("manga_id as count")
+    .first();
+  return parseInt(result.count);
+};
+
+module.exports.getFinishedAndReadingCount = async (userId) => {
+  // Lấy danh sách tất cả chapters với last_page_read và total_pages
+  const chaptersData = await db("chapters as c")
+    .leftJoin("reading_history as rh", function () {
+      this.on("rh.chapter_id", "c.chapter_id").andOn("rh.user_id", userId);
+    })
+    .leftJoin("pages as p", "p.chapter_id", "c.chapter_id")
+    .select(
+      "c.chapter_id",
+      db.raw("MAX(rh.last_page_read) as last_page_read"),
+      db.raw("MAX(p.page_number) as total_pages")
+    )
+    .groupBy("c.chapter_id");
+
+  let finished_count = 0;
+  let reading_count = 0;
+
+  chaptersData.forEach((chapter) => {
+    const { last_page_read, total_pages } = chapter;
+    const last = last_page_read || 0;
+    const total = total_pages || 0;
+
+    if (total > 0) {
+      if (last === total) {
+        finished_count++;
+      } else if (last > 0 && last < total) {
+        reading_count++;
+      }
+    }
+  });
+
+  return {
+    finished_count,
+    reading_count,
+  };
+};
+
 module.exports.calculateAverageRating = async (mangaId) => {
   const result = await db("mangas")
     .join("chapters", "mangas.manga_id", "chapters.manga_id")
@@ -329,4 +375,8 @@ module.exports.getMangasByAuthorId = async (authorId) => {
     .where("author_id", authorId)
     .select("*")
     .orderBy("manga_id", "asc");
+};
+
+module.exports.setHighlightManga = async (mangaId, dataToUpdate) => {
+  return db("mangas").where("manga_id", mangaId).update(dataToUpdate);
 };

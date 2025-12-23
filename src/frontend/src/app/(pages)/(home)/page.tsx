@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import MangaCard from "@/app/components/client/MangaCard";
 import { useRouter } from "next/navigation";
-
+import { decodeHtml } from "@/utils/utils";
 type Manga = {
   manga_id: string;
   title: string;
@@ -48,26 +48,38 @@ export default function Home() {
   // get mangas is highlighted
   const highlighted_mangas = mangas.filter((manga) => manga.is_highlighted);
 
+  // get manga with status not pending
+  const slider_mangas = mangas
+    .filter((manga) => manga.status !== "Pending")
+    .slice(0, 5);
+
   // Auto slide 3s
   useEffect(() => {
-    if (mangas.length <= 1) return;
+    if (slider_mangas.length <= 1) return;
 
     const timer = setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % mangas.length);
+      setActiveIndex((prev) => (prev + 1) % slider_mangas.length);
     }, 3000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [slider_mangas.length]);
 
-  const current = mangas[activeIndex];
+  const current = slider_mangas[activeIndex];
 
   const handlePrev = () => {
-    setActiveIndex((prev) => (prev === 0 ? mangas.length - 1 : prev - 1));
+    setActiveIndex((prev) =>
+      prev === 0 ? slider_mangas.length - 1 : prev - 1
+    );
   };
 
   const handleNext = () => {
-    setActiveIndex((prev) => (prev + 1) % mangas.length);
+    setActiveIndex((prev) => (prev + 1) % slider_mangas.length);
   };
+
+  const handleCategoryClick = (genre_name: string) => {
+    router.push(`/filter?categories=${genre_name}`);
+  };
+
   const [genres, setGenres] = useState([]);
   const [isLoadingGenres, setIsLoadingGenres] = useState(true);
   useEffect(() => {
@@ -98,7 +110,7 @@ export default function Home() {
           <section className="space-y-2">
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-semibold text-slate-900">
-                Out now 🎉
+                Nóng hổi mới ra lò, không đọc là tiếc đấy!
               </h2>
             </div>
 
@@ -122,10 +134,6 @@ export default function Home() {
               <div className="relative z-10 flex h-full flex-col p-6 sm:pr-[380px]">
                 {/* top badges */}
                 <div className="flex items-center justify-between text-xs text-slate-100">
-                  <span className="bg-black/40 px-3 py-1 rounded-full">
-                    New chapter
-                  </span>
-
                   <span className="flex items-center gap-1 bg-black/40 px-2 py-1 rounded-full text-[11px]">
                     <span className="h-2 w-2 rounded-full bg-red-500" />
                     {current?.type ?? "Manga"}
@@ -140,7 +148,7 @@ export default function Home() {
 
                   {/* Description: clamp + ... */}
                   <p className="mt-2 max-w-xl text-sm text-slate-100 line-clamp-3">
-                    {current?.description || "Đang tải..."}
+                    {decodeHtml(current?.description) || "Đang tải..."}
                   </p>
 
                   {/* Đọc + Chương luôn nằm dưới description */}
@@ -148,9 +156,9 @@ export default function Home() {
                     <button
                       onClick={() => {
                         if (!current?.manga_id) return;
-                        router.push(`/read/${current.manga_id}`);
+                        router.push(`/explore/manga/${current.manga_id}`);
                       }}
-                      className="inline-flex items-center justify-center rounded-full bg-sky-600 px-6 py-2 text-sm font-semibold text-white hover:bg-sky-700"
+                      className="cursor-pointer inline-flex items-center justify-center rounded-full bg-sky-600 px-6 py-2 text-sm font-semibold text-white hover:bg-sky-700"
                     >
                       Đọc
                     </button>
@@ -182,7 +190,7 @@ export default function Home() {
                   </div>
 
                   <div className="flex gap-2">
-                    {mangas.map((item, index) => (
+                    {slider_mangas.map((item, index) => (
                       <button
                         key={item.manga_id}
                         onClick={() => setActiveIndex(index)}
@@ -209,6 +217,7 @@ export default function Home() {
               {(genres as any[]).map((genre, idx) => (
                 <button
                   key={genre.genre_id}
+                  onClick={() => handleCategoryClick(genre.genre_name)}
                   className={`rounded-full border px-3 py-1 text-xs font-medium shadow-sm
               ${
                 idx === 0
@@ -230,18 +239,25 @@ export default function Home() {
               </h3>
               <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
                 {highlighted_mangas.map((manga) => (
-                  <MangaCard
+                  <div
+                    className="cursor-pointer"
+                    onClick={() => {
+                      router.push(`/explore/manga/${manga.manga_id}`);
+                    }}
                     key={manga.manga_id}
-                    manga_id={manga.manga_id}
-                    manga_name={manga.title}
-                    author={manga.author_name}
-                    original_language={manga.original_language}
-                    genre={manga.genres.join("-")}
-                    status={manga.status}
-                    coverUrl={manga.cover_image}
-                    average_rating={manga.average_rating}
-                    totalChapters={manga.total_chapters}
-                  />
+                  >
+                    <MangaCard
+                      manga_id={manga.manga_id}
+                      manga_name={manga.title}
+                      author={manga.author_name}
+                      original_language={manga.original_language}
+                      genre={manga.genres.join("-")}
+                      status={manga.status}
+                      coverUrl={manga.cover_image}
+                      average_rating={manga.average_rating}
+                      totalChapters={manga.total_chapters}
+                    />
+                  </div>
                 ))}
               </div>
             </div>

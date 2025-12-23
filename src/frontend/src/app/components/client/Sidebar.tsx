@@ -4,12 +4,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/app/hooks/useAuth";
-import { User, Heart, Home, Compass, PenSquare, Bell } from "lucide-react";
+import { User, Heart, Home, Compass, PenSquare } from "lucide-react";
 const MAIN_MENU = [
   { label: "Trang chủ", href: "/", icon: Home },
   { label: "Khám phá", href: "/explore", icon: Compass },
   { label: "Tác giả", href: "/authors", icon: PenSquare },
-  { label: "Thông báo", href: "/notifications", icon: Bell },
 ];
 
 const SECOND_MENU = [
@@ -18,8 +17,16 @@ const SECOND_MENU = [
 ];
 
 export default function Sidebar() {
-  const { infoUser, isLogin } = useAuth();
+  const { isLogin } = useAuth();
   const pathname = usePathname();
+
+  // Helper functions for active state
+  const isHomeActive = pathname === "/";
+  const isExploreActive = pathname.startsWith("/explore");
+  const isAuthorsActive = pathname.startsWith("/authors");
+  const isNotificationsActive = pathname.startsWith("/notifications");
+  const isProfileActive = pathname.startsWith("/profile");
+  const isFavouriteActive = pathname.startsWith("/favourite-list");
 
   return (
     <aside className="w-[210px] bg-sky-900 text-white flex-shrink-0">
@@ -32,7 +39,11 @@ export default function Sidebar() {
           <nav className="flex flex-col gap-2">
             {MAIN_MENU.map((item) => {
               const Icon = item.icon;
-              const isActive = pathname === item.href;
+              const isActive =
+                (item.href === "/" && isHomeActive) ||
+                (item.href === "/explore" && isExploreActive) ||
+                (item.href === "/authors" && isAuthorsActive) ||
+                (item.href === "/notifications" && isNotificationsActive);
               return (
                 <Link
                   key={item.href}
@@ -61,7 +72,9 @@ export default function Sidebar() {
               <nav className="flex flex-col gap-2">
                 {SECOND_MENU.map((item) => {
                   const Icon = item.icon;
-                  const isActive = pathname === item.href;
+                  const isActive =
+                    (item.href === "/profile" && isProfileActive) ||
+                    (item.href === "/favourite-list" && isFavouriteActive);
                   return (
                     <Link
                       key={item.href}

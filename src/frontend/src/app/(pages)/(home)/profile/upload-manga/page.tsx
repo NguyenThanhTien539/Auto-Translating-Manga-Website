@@ -3,8 +3,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { useAuth } from "@/app/hooks/useAuth";
 import { useRouter } from "next/navigation";
+import { slugify } from "@/utils/make_slug";
 import { toast } from "sonner";
 import {
   Upload,
@@ -55,6 +55,8 @@ export default function UploadMangaPage() {
   });
   const [myMangas, setMyMangas] = useState<Array<any>>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isUploadingManga, setIsUploadingManga] = useState(false);
+  const [isUploadingChapter, setIsUploadingChapter] = useState(false);
   // Clear errors when files are selected
   useEffect(() => {
     if (coverFile.length > 0 && errors.coverFile) {
@@ -84,33 +86,48 @@ export default function UploadMangaPage() {
   }, [errors.description]);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/languages`)
-      .then((res) => res.json())
-      .then((data) => {
+    const fetchLanguages = async () => {
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/manga/languages`
+        );
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        const data = await res.json();
         if (data.code === "success") {
           setLanguages(data.data);
         }
-      })
-      .catch((error) => {
+      } catch (error) {
         console.error("Error fetching languages:", error);
-      });
+      }
+    };
+    fetchLanguages();
   }, []);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/genres`)
-      .then((res) => res.json())
-      .then((data) => {
+    const fetchGenres = async () => {
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/manga/genres`
+        );
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        const data = await res.json();
         if (data.code === "success") {
           setGenres(data.data);
         }
-      })
-      .catch((error) => {
-        console.error("Error fetching languages:", error);
-      });
+      } catch (error) {
+        console.error("Error fetching genres:", error);
+      }
+    };
+    fetchGenres();
   }, []);
 
   const handleSubmitMangaForm = (event: any) => {
     event.preventDefault();
+    setIsUploadingManga(true);
 
     // Reset errors
     setErrors({
@@ -165,6 +182,7 @@ export default function UploadMangaPage() {
     formData.append("description", mangaDescription);
     formData.append("cover_image", coverFile[0].file);
     formData.append("file_content", contentFile[0].file);
+    formData.append("slug", slugify(form.mangaTitle.value));
 
     // Append multiple genres as JSON string or comma-separated
     formData.append("genres", JSON.stringify(selectedGenres));
@@ -189,11 +207,19 @@ export default function UploadMangaPage() {
               "Đã có lỗi xảy ra khi đăng truyện. Vui lòng thử lại."
           );
         }
+      })
+      .catch((error) => {
+        console.error("Error uploading manga:", error);
+        toast.error("Đã có lỗi xảy ra. Vui lòng thử lại.");
+      })
+      .finally(() => {
+        setIsUploadingManga(false);
       });
   };
 
   const handleSubmitChapterForm = (event: any) => {
     event.preventDefault();
+    setIsUploadingChapter(true);
 
     // Reset errors
     setErrors({
@@ -261,26 +287,36 @@ export default function UploadMangaPage() {
       .catch((error) => {
         console.error("Error uploading chapter:", error);
         toast.error("Đã có lỗi xảy ra. Vui lòng thử lại.");
+      })
+      .finally(() => {
+        setIsUploadingChapter(false);
       });
   };
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/my-mangas`, {
-      method: "GET",
-      credentials: "include",
-    })
-      .then((res) => res.json())
-      .then((data) => {
+    const fetchMyMangas = async () => {
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/manga/my-mangas`,
+          {
+            method: "GET",
+            credentials: "include",
+          }
+        );
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        const data = await res.json();
         if (data.code === "success") {
           setMyMangas(data.data);
         }
-      })
-      .catch((error) => {
+      } catch (error) {
         console.error("Error fetching my mangas:", error);
-      })
-      .finally(() => {
+      } finally {
         setIsLoading(false);
-      });
+      }
+    };
+    fetchMyMangas();
   }, []);
 
   useEffect(() => {
@@ -614,10 +650,17 @@ export default function UploadMangaPage() {
                   </button>
                   <button
                     type="submit"
-                    className="flex items-center gap-2 px-8 py-2.5 rounded-lg font-bold text-white shadow-md transition-all bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+                    disabled={isUploadingManga}
+                    className="flex items-center gap-2 px-8 py-2.5 rounded-lg font-bold text-white shadow-md transition-all bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Upload size={20} />
-                    <span>Đăng Truyện Ngay</span>
+                    {isUploadingManga ? (
+                      <Loader2 size={20} className="animate-spin" />
+                    ) : (
+                      <Upload size={20} />
+                    )}
+                    <span>
+                      {isUploadingManga ? "Đang đăng..." : "Đăng Truyện Ngay"}
+                    </span>
                   </button>
                 </div>
               </form>
@@ -715,10 +758,17 @@ export default function UploadMangaPage() {
                   </button>
                   <button
                     type="submit"
-                    className="flex items-center gap-2 px-8 py-2.5 rounded-lg font-bold text-white shadow-md transition-all bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                    disabled={isUploadingChapter}
+                    className="flex items-center gap-2 px-8 py-2.5 rounded-lg font-bold text-white shadow-md transition-all bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Upload size={20} />
-                    <span>Đăng Chương Mới</span>
+                    {isUploadingChapter ? (
+                      <Loader2 size={20} className="animate-spin" />
+                    ) : (
+                      <Upload size={20} />
+                    )}
+                    <span>
+                      {isUploadingChapter ? "Đang đăng..." : "Đăng Chương Mới"}
+                    </span>
                   </button>
                 </div>
               </form>

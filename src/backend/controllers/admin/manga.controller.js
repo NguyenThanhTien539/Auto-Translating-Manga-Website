@@ -140,3 +140,35 @@ module.exports.getChapterPages = async (req, res) => {
     res.status(500).json({ code: "error", message: "Lỗi server" });
   }
 };
+
+module.exports.setHighlightManga = async (req, res) => {
+  try {
+    const { id } = req.params;
+    let { is_highlight, highlight_duration } = req.body;
+
+    is_highlight = is_highlight === true || is_highlight === "true";
+    highlight_duration = Number(highlight_duration) || 0;
+
+    const dataToUpdate = {
+      is_highlighted: is_highlight,
+      highlight_end_at: null,
+    };
+
+    if (is_highlight) {
+      const days = highlight_duration > 0 ? highlight_duration : 7;
+      dataToUpdate.highlight_end_at = new Date(Date.now() + days * 86400000);
+    }
+
+    await mangaModel.setHighlightManga(id, dataToUpdate);
+
+    return res.json({
+      code: "success",
+      message: is_highlight
+        ? "Đã cập nhật trạng thái nổi bật của truyện"
+        : "Đã gỡ bỏ trạng thái nổi bật của truyện",
+    });
+  } catch (error) {
+    console.error(error);
+    return res.json({ code: "error", message: "Lỗi server" });
+  }
+};

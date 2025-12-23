@@ -35,6 +35,7 @@ export default function RegistrationDetailPage() {
   const editorRef = useRef(null);
   const [registrationDetail, setRegistrationDetail] =
     useState<RegistrationDetail | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   useEffect(() => {
     fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/registration-uploader/detail/${slug}`,
@@ -45,6 +46,9 @@ export default function RegistrationDetailPage() {
         if (data.code === "success") {
           setRegistrationDetail(data.registrationDetail);
         }
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
   }, []);
 
@@ -75,8 +79,12 @@ export default function RegistrationDetailPage() {
       });
   };
   return (
-    registrationDetail && (
-      <div className="w-full min-h-screen px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
+    <div className="w-full min-h-screen px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
+      {isLoading ? (
+        <div className="flex justify-center items-center min-h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        </div>
+      ) : registrationDetail ? (
         <div className="max-w-[1400px] mx-auto">
           <h2 className="text-2xl sm:text-3xl font-semibold mb-4 sm:mb-6">
             Chi tiết đơn đăng ký
@@ -249,7 +257,7 @@ export default function RegistrationDetailPage() {
             </div>
           </div>
         </div>
-      </div>
-    )
+      ) : null}
+    </div>
   );
 }

@@ -200,7 +200,7 @@ const processChaptersInBackground = async (
 
 module.exports.uploadManga = async (req, res) => {
   try {
-    const { title, author, description, genres, language } = req.body;
+    const { title, author, description, genres, language, slug } = req.body;
     const files = req.files;
 
     // Get user ID from request (set by auth middleware)
@@ -236,8 +236,9 @@ module.exports.uploadManga = async (req, res) => {
       description,
       cover_image: coverUpload.secure_url,
       uploader_id: uploader_id,
-      status: "OnGoing", // Valid values: 'OnGoing', 'Completed', 'Dropped'
+      status: "Pending", // Valid values: 'OnGoing', 'Completed', 'Dropped'
       original_language: language,
+      slug: slug,
     };
 
     const newManga = await Manga.createManga(mangaData);
@@ -285,6 +286,19 @@ module.exports.getMyMangas = async (req, res) => {
     const uploader_id = req.infoUser.user_id;
 
     const mangas = await Manga.getMangasByUploader(uploader_id);
+    for (const manga of mangas) {
+      const chapterCount = await Manga.countChaptersByMangaId(manga.manga_id);
+      manga.total_chapters = chapterCount;
+
+      const genres = await Manga.getGenresByMangaId(manga.manga_id);
+      manga.genres = genres.map((g) => g.genre_name);
+
+      const author = await Manga.getAuthorDetailByAuthorId(manga.author_id);
+      manga.author_name = author ? author.author_name : "Unknown";
+
+      const averageRating = await Manga.calculateAverageRating(manga.manga_id);
+      manga.average_rating = averageRating;
+    }
     res.json({ code: "success", data: mangas });
   } catch (error) {
     console.error(error);
@@ -368,7 +382,6 @@ module.exports.getChapterPages = async (req, res) => {
     const chapterId = req.params.id;
     const { language } = req.query; // Get language from query parameter
 
-    
     let pages;
 
     if (language) {
@@ -407,8 +420,8 @@ module.exports.getChapterPages = async (req, res) => {
     const protocol = req.protocol;
     const host = req.get("host");
 
-    const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
-    const apiPrefix = isLocal ? '' : '/api';
+    const isLocal = host.includes("localhost") || host.includes("127.0.0.1");
+    const apiPrefix = isLocal ? "" : "/api";
 
     const baseUrl = `${protocol}://${host}${apiPrefix}`;
 
@@ -479,7 +492,11 @@ module.exports.getPageImage = async (req, res) => {
 
     // 2. STRICT referrer check - MUST have referrer from allowed origins
     const referrer = req.get("referer") || req.get("referrer");
-    const allowedOrigins = ["http://localhost:3000", "http://localhost:5000", "http://ec2-15-134-37-160.ap-southeast-2.compute.amazonaws.com"];
+    const allowedOrigins = [
+      "http://localhost:3000",
+      "http://localhost:5000",
+      "http://54.169.111.98",
+    ];
 
     if (!referrer) {
       return res.status(403).json({
@@ -502,7 +519,9 @@ module.exports.getPageImage = async (req, res) => {
 
     if (!page) {
       console.log(`Page ID ${pageId} not found in DB`); // Log để debug
-      return res.status(404).json({ code: "error", message: `Page ID ${pageId} not found` });
+      return res
+        .status(404)
+        .json({ code: "error", message: `Page ID ${pageId} not found` });
     }
 
     // 4. Fetch image from Cloudinary and stream to client
@@ -668,14 +687,10 @@ module.exports.uploadChapter = async (req, res) => {
     // Get ZIP file buffer for background processing
     const fileContentBuffer = files.file_content[0].buffer;
 
-    // ⚡ Respond immediately to frontend
     res.json({
       code: "success",
       message: "Chương của bạn đang được xử lý.",
     });
-
-    // Process chapters in background (non-blocking)
-    // Don't await this - let it run in background
 
     const originalLanguage = await Manga.getOriginalLanguageByMangaId(manga_id);
 
@@ -793,6 +808,26 @@ module.exports.checkFavoriteManga = async (req, res) => {
     const isFavorite = await Manga.isMangaFavoritedByUser(user_id, manga_id);
     // Trả về boolean trực tiếp thay vì object
     res.json({ code: "success", data: isFavorite });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ code: "error", message: "Lỗi server" });
+  }
+};
+
+module.exports.getMangaStatistics = async (req, res) => {
+  try {
+    const user_id = req.infoUser.user_id;
+    const favoriteCount = await Manga.countFavoriteMangasByUserId(user_id);
+    const { finished_count, reading_count } =
+      await Manga.getFinishedAndReadingCount(user_id);
+    console.log("Finished and Reading Count:", {
+      finished_count,
+      reading_count,
+    });
+    res.json({
+      code: "success",
+      data: { favoriteCount, finished_count, reading_count },
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ code: "error", message: "Lỗi server" });

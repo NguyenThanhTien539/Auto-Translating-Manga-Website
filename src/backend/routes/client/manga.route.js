@@ -118,6 +118,12 @@ route.get(
   mangaController.checkFavoriteManga
 );
 
+route.get(
+  "/statistics",
+  authMiddleware.clientAuth,
+  mangaController.getMangaStatistics
+);
+
 // Translation endpoint
 route.post(
   "/translate-page",

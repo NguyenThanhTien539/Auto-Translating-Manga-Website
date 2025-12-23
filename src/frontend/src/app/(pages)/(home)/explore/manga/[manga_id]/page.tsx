@@ -1,18 +1,14 @@
 "use client";
 
 import React, { use, useEffect, useState } from "react";
-import {
-  MessageCircle,
-  Star,
-  Heart,
-  Share2,
-  Lock,
-  StarHalf,
-} from "lucide-react";
+import { MessageCircle, Star, Heart, Share2, Lock } from "lucide-react";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useAuth } from "@/app/hooks/useAuth";
+
+import { decodeHtml } from "@/utils/utils";
+
 interface Chapter {
   chapter_id: string;
   chapter_number: string;
@@ -50,11 +46,11 @@ export default function ReadPage() {
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const decodeHtml = (html: string) => {
-    const txt = document.createElement("textarea");
-    txt.innerHTML = html;
-    return txt.value;
-  };
+  // const decodeHtml = (html: string) => {
+  //   const txt = document.createElement("textarea");
+  //   txt.innerHTML = html;
+  //   return txt.value;
+  // };
 
   const handleShare = async () => {
     const currentUrl = window.location.href;
@@ -171,7 +167,9 @@ export default function ReadPage() {
     const chapterPrice = parseFloat(chapter.price);
     // Nếu chapter miễn phí HOẶC đã mua, chuyển thẳng đến trang đọc
     if (chapterPrice === 0 || isOwned) {
-      router.push(`/read/${mangaDetail?.manga.manga_id}/${chapter.chapter_id}`);
+      router.push(
+        `/explore/manga/${mangaDetail?.manga.manga_id}/${chapter.chapter_id}`
+      );
     } else {
       // Nếu chapter có giá VÀ chưa mua, hiển thị modal
       setSelectedChapter(chapter);
@@ -212,27 +210,17 @@ export default function ReadPage() {
         toast.success("Mua chapter thành công!");
         setShowPurchaseModal(false);
 
-        // Refresh lại dữ liệu manga để cập nhật usedChapterList
-        fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/manga/detail/${params.manga_id}`,
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            credentials: "include",
-          }
-        )
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.code === "success") {
-              setMangaDetail(data.data);
-              // Sau khi refresh data, chuyển đến trang đọc
-              router.push(
-                `/read/${params.manga_id}/${selectedChapter.chapter_id}`
-              );
-            }
-          });
+        // Cập nhật usedChapterList ngay lập tức để khóa biến mất
+        setMangaDetail((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            usedChapterList: [
+              ...(prev.usedChapterList || []),
+              { chapter_id: Number(selectedChapter.chapter_id) },
+            ],
+          };
+        });
       } else {
         toast.error(data.message || "Không thể mua chapter. Vui lòng thử lại!");
       }
@@ -317,6 +305,10 @@ export default function ReadPage() {
                       </button>
                       <button
                         onClick={() => {
+                          if (!infoUser) {
+                            toast.error("Vui lòng đăng nhập để yêu thích!");
+                            return;
+                          }
                           const newFavoriteState = !isFavorite;
                           fetch(
                             `${process.env.NEXT_PUBLIC_API_URL}/manga/favorite`,
@@ -423,9 +415,7 @@ export default function ReadPage() {
                     Nội dung
                   </h2>
                   <p className="text-slate-300 leading-relaxed">
-                    {decodeHtml(
-                      mangaDetail?.manga.description.replace(/<[^>]+>/g, "")
-                    )}
+                    {decodeHtml(mangaDetail?.manga.description)}
                   </p>
                 </div>
 

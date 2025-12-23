@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Star, Send, ArrowLeft, MessageCircle } from "lucide-react";
 import Image from "next/image";
@@ -14,14 +14,6 @@ interface Comment {
   rating: number;
   avatar?: string;
   created_at: string;
-}
-
-interface MangaInfo {
-  manga_id: string;
-  manga_name: string;
-  cover_image: string;
-  chapter_number?: string;
-  chapter_title?: string;
 }
 
 interface Chapter {
@@ -43,7 +35,7 @@ type Manga = {
   rating?: number;
 };
 
-export default function CommentPage() {
+function CommentContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const manga_id = searchParams.get("manga_id");
@@ -508,5 +500,13 @@ export default function CommentPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function CommentPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CommentContent />
+    </Suspense>
   );
 }

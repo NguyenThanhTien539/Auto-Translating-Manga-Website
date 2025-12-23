@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "@/app/hooks/useAuth";
 import {
   LogOut,
@@ -17,11 +17,19 @@ import {
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { finished } from "stream";
+import { read } from "fs";
 
 export default function ProfilePage() {
   const { infoUser, isLoading } = useAuth();
   const router = useRouter();
   const [loadingLogout, setLoadingLogout] = useState(false);
+  const [statistics, setStatistics] = useState<{
+    reading: number;
+    finished: number;
+    favorite: number;
+    totalChapters: number;
+  } | null>(null);
 
   const handleLogout = async (url: string) => {
     setLoadingLogout(true);
@@ -44,29 +52,22 @@ export default function ProfilePage() {
     }
   };
 
-  const rawStats = infoUser?.readingStats ?? {
-    reading: 30,
-    finished: 15,
-    favorite: 40,
-    totalChapters: 1142,
-  };
-
   const entries = [
     {
       key: "Đang đọc",
-      value: rawStats.reading,
+      value: statistics?.reading ?? 0,
       color: "#60a5fa",
       icon: BookOpen,
     },
     {
       key: "Hoàn thành",
-      value: rawStats.finished,
+      value: statistics?.finished ?? 0,
       color: "#34d399",
       icon: CheckCircle,
     },
     {
       key: "Yêu thích",
-      value: rawStats.favorite,
+      value: statistics?.favorite ?? 0,
       color: "#fb7185",
       icon: Heart,
     },
@@ -82,13 +83,48 @@ export default function ProfilePage() {
     return `${e.color} ${start}% ${end}%`;
   });
 
+  useEffect(() => {
+    if (!infoUser) return;
+
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/statistics`, {
+      credentials: "include",
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.code === "success") {
+          setStatistics({
+            reading: data.data.reading_count || 0,
+            finished: data.data.finished_count || 0,
+            favorite: data.data.favoriteCount || 0,
+            totalChapters: data.data.finished_count + data.data.reading_count,
+          });
+        } else {
+          setStatistics({
+            reading: 0,
+            finished: 0,
+            favorite: 0,
+            totalChapters: 0,
+          });
+        }
+      })
+      .catch((error) => {
+        console.error("Lỗi khi lấy thống kê truyện:", error);
+        setStatistics({
+          reading: 0,
+          finished: 0,
+          favorite: 0,
+          totalChapters: 0,
+        });
+      });
+  }, [infoUser]);
+
   return (
     <>
-      {isLoading ? (
+      {isLoading || !statistics ? (
         <div className="w-full min-h-screen flex items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
-      ) : infoUser ? (
+      ) : (
         <div className="w-full min-h-screen flex items-center justify-center px-4 py-8 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
           <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl overflow-hidden">
             {/* Header with gradient background */}
@@ -232,7 +268,7 @@ export default function ProfilePage() {
                         <span className="font-medium">Tổng chương đã đọc</span>
                       </div>
                       <span className="text-xl font-bold">
-                        {rawStats.totalChapters}
+                        {statistics.totalChapters}
                       </span>
                     </div>
                   </div>
@@ -247,9 +283,7 @@ export default function ProfilePage() {
                         )})`,
                       }}
                     />
-                    <p className="text-sm text-gray-500 font-medium">
-                      Tổng: {total} truyện
-                    </p>
+                    <p className="text-sm text-gray-500 font-medium"></p>
                   </div>
                 </div>
               </div>
@@ -271,10 +305,6 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
-        </div>
-      ) : (
-        <div className="w-full min-h-screen flex items-center justify-center">
-          <p className="text-gray-500">Không có quyền truy cập</p>
         </div>
       )}
     </>

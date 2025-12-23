@@ -4,16 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import {
-  Clock,
-  Grid3X3,
-  Box,
-  Users,
-  User,
-  Settings,
-  UserCheck,
-  LogOut,
-} from "lucide-react";
+import { Clock, Grid3X3, Box, Users, User, LogOut } from "lucide-react";
 
 const baseClass =
   "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition";
@@ -24,8 +15,28 @@ export default function Sidebar() {
   const pathname = usePathname();
   const route = useRouter();
   const isCategoryActive = pathname.startsWith("/admin/genre");
-  const handleLogout = (url: string) => {
-    // Xử lý đăng xuất ở đây
+  const isMangaActive = pathname.startsWith("/admin/manage-manga");
+  const isAuthorActive = pathname.startsWith("/admin/manage-authors");
+  const isRegistrationActive = pathname.startsWith("/admin/registration");
+  const isUserActive = pathname.startsWith("/admin/manage-users");
+
+  const handleLogout = async (url: string) => {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/auth/logout`,
+        {
+          credentials: "include",
+        }
+      );
+      const data = await res.json();
+      if (data.code == "success") {
+        route.push(url);
+        toast.success(data.message || "Đăng xuất thành công");
+      }
+    } catch (error) {
+      toast.error("Có lỗi xảy ra khi đăng xuất");
+    } finally {
+    }
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, {
       credentials: "include",
     })
@@ -61,9 +72,7 @@ export default function Sidebar() {
 
       <Link
         href="/admin/manage-manga"
-        className={`${baseClass} ${
-          pathname === "/admin/manage-manga" ? activeClass : normalClass
-        }`}
+        className={`${baseClass} ${isMangaActive ? activeClass : normalClass}`}
       >
         <Box className="w-4 h-4" />
         <span>Quản lý Manga</span>
@@ -71,9 +80,7 @@ export default function Sidebar() {
 
       <Link
         href="/admin/manage-authors"
-        className={`${baseClass} ${
-          pathname === "/admin/manage-authors" ? activeClass : normalClass
-        }`}
+        className={`${baseClass} ${isAuthorActive ? activeClass : normalClass}`}
       >
         <Box className="w-4 h-4" />
         <span>Quản lý tác giả</span>
@@ -82,7 +89,7 @@ export default function Sidebar() {
       <Link
         href="/admin/registration/list"
         className={`${baseClass} ${
-          pathname === "/admin/registration/list" ? activeClass : normalClass
+          isRegistrationActive ? activeClass : normalClass
         }`}
       >
         <Users className="w-4 h-4" />
@@ -91,13 +98,20 @@ export default function Sidebar() {
 
       <Link
         href="/admin/manage-users"
-        className={`${baseClass} ${
-          pathname === "/admin/manage-users" ? activeClass : normalClass
-        }`}
+        className={`${baseClass} ${isUserActive ? activeClass : normalClass}`}
       >
         <User className="w-4 h-4" />
         <span>Thông tin người dùng</span>
       </Link>
+
+      {/* Logout Button */}
+      <button
+        onClick={() => handleLogout("/")}
+        className={`${baseClass} ${normalClass} w-full text-left cursor-pointer `}
+      >
+        <LogOut className="w-4 h-4" />
+        <span>Đăng xuất</span>
+      </button>
     </nav>
   );
 }

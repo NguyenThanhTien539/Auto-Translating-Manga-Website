@@ -122,7 +122,7 @@ export default function AuthorDetailPage() {
                       key={work.manga_id}
                       className="group cursor-pointer"
                       onClick={() => {
-                        router.push(`/read/${work.manga_id}`);
+                        router.push(`/explore/manga/${work.manga_id}`);
                       }}
                     >
                       <div className="relative aspect-[2/3] bg-gray-200 dark:bg-gray-700 rounded-lg mb-2 overflow-hidden border border-gray-200 dark:border-gray-700">
