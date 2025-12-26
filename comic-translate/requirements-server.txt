@@ -37,3 +37,12 @@ six>=1.16.0
 
 # Optional cloud OCR/Translation
 azure-ai-vision-imageanalysis>=1.0.0b1
+
+
+# Backend server dependencies
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+pydantic>=2.9.0
+pydantic-settings>=2.5.0
+python-multipart>=0.0.9
+

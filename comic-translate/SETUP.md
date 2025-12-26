@@ -26,7 +26,7 @@ uv venv --python 3.12
 uv pip install -r requirements-server.txt
 
 # 5. Cài VietOCR cho tiếng Việt (optional)
-uv pip install vietocr
+# uv pip install vietocr
 
 # 6. Copy file .env
 copy .env.example .env
