@@ -4,7 +4,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Clock, Grid3X3, Box, Users, User, LogOut } from "lucide-react";
+import {
+  Clock,
+  Grid3X3,
+  Box,
+  Users,
+  User,
+  LogOut,
+  PenTool,
+} from "lucide-react";
 
 const baseClass =
   "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition";
@@ -20,7 +28,7 @@ export default function Sidebar() {
   const isRegistrationActive = pathname.startsWith("/admin/registration");
   const isUserActive = pathname.startsWith("/admin/manage-users");
 
-  const handleLogout = async (url: string) => {
+  const   handleLogout = async (url: string) => {
     try {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/auth/logout`,
@@ -82,7 +90,7 @@ export default function Sidebar() {
         href="/admin/manage-authors"
         className={`${baseClass} ${isAuthorActive ? activeClass : normalClass}`}
       >
-        <Box className="w-4 h-4" />
+        <PenTool className="w-4 h-4" />
         <span>Quản lý tác giả</span>
       </Link>
 

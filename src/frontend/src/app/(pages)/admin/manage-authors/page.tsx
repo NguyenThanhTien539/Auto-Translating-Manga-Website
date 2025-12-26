@@ -226,8 +226,6 @@ export default function AuthorManagement() {
             Quản lý tác giả
           </h2>
 
-          <FilterBar search={search} setSearch={setSearch} />
-
           {/* Desktop Table */}
           <div className="mt-4 sm:mt-5 bg-white rounded-xl sm:rounded-2xl border border-gray-200 shadow-sm overflow-hidden hidden lg:block">
             <div className="overflow-x-auto">

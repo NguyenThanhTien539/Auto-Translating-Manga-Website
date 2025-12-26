@@ -21,22 +21,10 @@ interface PaymentMethod {
 
 const paymentMethods: PaymentMethod[] = [
   {
-    id: "momo",
-    name: "Ví MoMo",
-    icon: Smartphone, // MoMo là ví trên điện thoại -> Smartphone là hợp lý
-    description: "Thanh toán siêu tốc qua ứng dụng MoMo",
-  },
-  {
     id: "ZaloPay",
     name: "Ví ZaloPay",
     icon: Wallet, // ZaloPay là ví điện tử -> Dùng icon Wallet
     description: "Thanh toán qua ví ZaloPay hoặc ứng dụng Zalo",
-  },
-  {
-    id: "vnpay",
-    name: "VNPay-QR",
-    icon: QrCode, // VNPay đặc trưng là quét mã -> Dùng icon QrCode
-    description: "Quét mã QR qua ứng dụng ngân hàng/VNPay",
   },
 ];
 

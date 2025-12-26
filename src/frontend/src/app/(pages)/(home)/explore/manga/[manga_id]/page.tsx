@@ -46,11 +46,6 @@ export default function ReadPage() {
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  // const decodeHtml = (html: string) => {
-  //   const txt = document.createElement("textarea");
-  //   txt.innerHTML = html;
-  //   return txt.value;
-  // };
 
   const handleShare = async () => {
     const currentUrl = window.location.href;
