@@ -6,15 +6,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { slugify } from "@/utils/make_slug";
 import { toast } from "sonner";
-import {
-  Upload,
-  FileText,
-  Image as ImageIcon,
-  Book,
-  AlertCircle,
-  CheckCircle2,
-  Loader2,
-} from "lucide-react";
+import { Upload, FileText, Book, AlertCircle, Loader2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import JustValidate from "just-validate";
 import { FilePond, registerPlugin } from "react-filepond";
@@ -31,15 +23,21 @@ const TinyMCEEditor = dynamic(() => import("@/app/components/TinyMCEEditor"), {
 export default function UploadMangaPage() {
   const editorRef = useRef<any>(null);
   const router = useRouter();
+
   const [activeTab, setActiveTab] = useState<"new-manga" | "new-chapter">(
     "new-manga"
   );
+
   const [languages, setLanguages] = useState<Array<any>>([]);
   const [genres, setGenres] = useState<Array<any>>([]);
   const [selectedGenres, setSelectedGenres] = useState<number[]>([]);
+
   const [coverFile, setCoverFile] = useState<any[]>([]);
   const [contentFile, setContentFile] = useState<any[]>([]);
   const [contentFileChapter, setContentFileChapter] = useState<any[]>([]);
+
+  const [selectedMangaForChapter, setSelectedMangaForChapter] = useState("");
+
   const [errors, setErrors] = useState<{
     coverFile: string;
     contentFile: string;
@@ -53,22 +51,26 @@ export default function UploadMangaPage() {
     description: "",
     genres: "",
   });
+
   const [myMangas, setMyMangas] = useState<Array<any>>([]);
   const [isLoading, setIsLoading] = useState(true);
+
   const [isUploadingManga, setIsUploadingManga] = useState(false);
   const [isUploadingChapter, setIsUploadingChapter] = useState(false);
+
   // Clear errors when files are selected
   useEffect(() => {
     if (coverFile.length > 0 && errors.coverFile) {
       setErrors((prev) => ({ ...prev, coverFile: "" }));
     }
-  }, [coverFile]);
+  }, [coverFile, errors.coverFile]);
 
+  // FIX: clear đúng field contentFileChapter
   useEffect(() => {
-    if (contentFileChapter.length > 0 && errors.contentFile) {
-      setErrors((prev) => ({ ...prev, contentFile: "" }));
+    if (contentFileChapter.length > 0 && errors.contentFileChapter) {
+      setErrors((prev) => ({ ...prev, contentFileChapter: "" }));
     }
-  }, [contentFileChapter, errors.contentFile]);
+  }, [contentFileChapter, errors.contentFileChapter]);
 
   // Clear description error when user types in TinyMCE
   useEffect(() => {
@@ -91,13 +93,9 @@ export default function UploadMangaPage() {
         const res = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/manga/languages`
         );
-        if (!res.ok) {
-          throw new Error(`HTTP error! status: ${res.status}`);
-        }
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
-        if (data.code === "success") {
-          setLanguages(data.data);
-        }
+        if (data.code === "success") setLanguages(data.data);
       } catch (error) {
         console.error("Error fetching languages:", error);
       }
@@ -111,13 +109,9 @@ export default function UploadMangaPage() {
         const res = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/manga/genres`
         );
-        if (!res.ok) {
-          throw new Error(`HTTP error! status: ${res.status}`);
-        }
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
-        if (data.code === "success") {
-          setGenres(data.data);
-        }
+        if (data.code === "success") setGenres(data.data);
       } catch (error) {
         console.error("Error fetching genres:", error);
       }
@@ -129,7 +123,6 @@ export default function UploadMangaPage() {
     event.preventDefault();
     setIsUploadingManga(true);
 
-    // Reset errors
     setErrors({
       coverFile: "",
       contentFile: "",
@@ -153,17 +146,14 @@ export default function UploadMangaPage() {
       newErrors.description = "Vui lòng nhập mô tả truyện";
       hasError = true;
     }
-
     if (coverFile.length === 0) {
       newErrors.coverFile = "Vui lòng chọn ảnh bìa truyện";
       hasError = true;
     }
-
     if (contentFile.length === 0) {
       newErrors.contentFile = "Vui lòng chọn file nội dung truyện";
       hasError = true;
     }
-
     if (selectedGenres.length === 0) {
       newErrors.genres = "Vui lòng chọn ít nhất một thể loại";
       hasError = true;
@@ -171,6 +161,7 @@ export default function UploadMangaPage() {
 
     if (hasError) {
       setErrors(newErrors);
+      setIsUploadingManga(false);
       return;
     }
 
@@ -183,9 +174,8 @@ export default function UploadMangaPage() {
     formData.append("cover_image", coverFile[0].file);
     formData.append("file_content", contentFile[0].file);
     formData.append("slug", slugify(form.mangaTitle.value));
-
-    // Append multiple genres as JSON string or comma-separated
     formData.append("genres", JSON.stringify(selectedGenres));
+
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/upload`, {
       method: "POST",
       credentials: "include",
@@ -195,7 +185,6 @@ export default function UploadMangaPage() {
       .then((data) => {
         if (data.code === "success") {
           toast.success(data.message || "Đăng truyện thành công!");
-          // Reset form
           form.reset();
           setCoverFile([]);
           setContentFile([]);
@@ -219,9 +208,7 @@ export default function UploadMangaPage() {
 
   const handleSubmitChapterForm = (event: any) => {
     event.preventDefault();
-    setIsUploadingChapter(true);
 
-    // Reset errors
     setErrors({
       coverFile: "",
       contentFile: "",
@@ -239,32 +226,33 @@ export default function UploadMangaPage() {
       genres: "",
     };
 
-    const form = event.target as HTMLFormElement;
-
-    if (!form.manga_id.value) {
-      newErrors.genres = "Vui lòng chọn truyện"; // reuse genres for this
+    // Dùng state (đảm bảo đúng)
+    if (!selectedMangaForChapter) {
+      newErrors.genres = "Vui lòng chọn truyện";
       hasError = true;
     }
 
-    if (contentFileChapter.length === 0) {
+    // Check file thật sự (filepond item có thể tồn tại nhưng chưa có file)
+    const hasChapterZip = Boolean(contentFileChapter?.[0]?.file);
+    if (!hasChapterZip) {
       newErrors.contentFileChapter = "Vui lòng chọn file nội dung chương";
       hasError = true;
     }
 
     if (hasError) {
       setErrors(newErrors);
-      // Scroll to the file upload section
       document.getElementById("chapterContentFile")?.scrollIntoView({
         behavior: "smooth",
         block: "center",
       });
-      // Also show toast for immediate feedback
-
       return;
     }
 
+    // CHỈ set uploading sau khi validate pass
+    setIsUploadingChapter(true);
+
     const formData = new FormData();
-    formData.append("manga_id", form.manga_id.value);
+    formData.append("manga_id", selectedMangaForChapter);
     formData.append("file_content", contentFileChapter[0].file);
 
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/upload-chapter`, {
@@ -298,18 +286,11 @@ export default function UploadMangaPage() {
       try {
         const res = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/manga/my-mangas`,
-          {
-            method: "GET",
-            credentials: "include",
-          }
+          { method: "GET", credentials: "include" }
         );
-        if (!res.ok) {
-          throw new Error(`HTTP error! status: ${res.status}`);
-        }
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
-        if (data.code === "success") {
-          setMyMangas(data.data);
-        }
+        if (data.code === "success") setMyMangas(data.data);
       } catch (error) {
         console.error("Error fetching my mangas:", error);
       } finally {
@@ -329,22 +310,13 @@ export default function UploadMangaPage() {
 
     validateMangaForm
       .addField("#mangaTitle", [
-        {
-          rule: "required",
-          errorMessage: "Vui lòng nhập tên truyện",
-        },
+        { rule: "required", errorMessage: "Vui lòng nhập tên truyện" },
       ])
       .addField("#mangaAuthor", [
-        {
-          rule: "required",
-          errorMessage: "Vui lòng nhập tên tác giả",
-        },
+        { rule: "required", errorMessage: "Vui lòng nhập tên tác giả" },
       ])
       .addField("#mangaLanguage", [
-        {
-          rule: "required",
-          errorMessage: "Vui lòng chọn ngôn ngữ",
-        },
+        { rule: "required", errorMessage: "Vui lòng chọn ngôn ngữ" },
       ])
       .onSuccess((event: any) => {
         handleSubmitMangaForm(event);
@@ -355,7 +327,7 @@ export default function UploadMangaPage() {
     };
   }, [activeTab, isLoading]);
 
-  // Reset errors when switching tabs
+  // Reset errors + reset form chapter state khi đổi tab (để nút disable đúng)
   useEffect(() => {
     setErrors({
       coverFile: "",
@@ -364,18 +336,31 @@ export default function UploadMangaPage() {
       description: "",
       genres: "",
     });
+
+    if (activeTab === "new-chapter") {
+      // vào tab chapter: reset chọn truyện + file chương
+      setSelectedMangaForChapter("");
+      setContentFileChapter([]);
+      setIsUploadingChapter(false);
+    }
   }, [activeTab]);
+
+  // ✅ điều kiện disable nút chương
+  const chapterDisabled = isUploadingChapter || !contentFileChapter?.[0]?.file;
+
+  // ✅ điều kiện disable nút manga
+  const mangaDisabled = isUploadingManga || !contentFile?.[0]?.file;
 
   return (
     <>
       {isLoading ? (
         <div className="flex justify-center items-center min-h-screen">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
         </div>
       ) : (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 py-8 px-4">
           <div className="max-w-6xl mx-auto">
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6 ">
+            <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
               <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 p-6 text-white">
                 <div className="flex items-center justify-center gap-3">
                   <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm">
@@ -408,9 +393,10 @@ export default function UploadMangaPage() {
                     <span>Đăng Truyện Mới</span>
                   </div>
                   {activeTab === "new-manga" && (
-                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600"></div>
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600" />
                   )}
                 </button>
+
                 <button
                   onClick={() => setActiveTab("new-chapter")}
                   className={`flex-1 py-4 text-sm font-semibold text-center transition-all relative ${
@@ -424,7 +410,7 @@ export default function UploadMangaPage() {
                     <span>Thêm Chương Mới</span>
                   </div>
                   {activeTab === "new-chapter" && (
-                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600"></div>
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600" />
                   )}
                 </button>
               </div>
@@ -446,7 +432,7 @@ export default function UploadMangaPage() {
                   </h2>
 
                   <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                    {/* Ảnh bìa - chiếm 1 cột */}
+                    {/* Ảnh bìa */}
                     <div className="lg:col-span-1">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Ảnh bìa truyện <span className="text-red-500">*</span>
@@ -473,7 +459,7 @@ export default function UploadMangaPage() {
                       )}
                     </div>
 
-                    {/* Thông tin - chiếm 3 cột */}
+                    {/* Thông tin */}
                     <div className="lg:col-span-3 space-y-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -501,6 +487,7 @@ export default function UploadMangaPage() {
                             placeholder="Tên tác giả"
                           />
                         </div>
+
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
                             Ngôn ngữ gốc <span className="text-red-500">*</span>
@@ -527,6 +514,7 @@ export default function UploadMangaPage() {
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Thể loại <span className="text-red-500">*</span>
                         </label>
+
                         <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg border border-gray-300">
                           {genres.map((genre) => (
                             <label
@@ -545,8 +533,8 @@ export default function UploadMangaPage() {
                                 )}
                                 onChange={(e) => {
                                   if (e.target.checked) {
-                                    setSelectedGenres([
-                                      ...selectedGenres,
+                                    setSelectedGenres((prev) => [
+                                      ...prev,
                                       genre.genre_id,
                                     ]);
                                     if (errors.genres) {
@@ -556,10 +544,8 @@ export default function UploadMangaPage() {
                                       }));
                                     }
                                   } else {
-                                    setSelectedGenres(
-                                      selectedGenres.filter(
-                                        (id) => id !== genre.genre_id
-                                      )
+                                    setSelectedGenres((prev) =>
+                                      prev.filter((id) => id !== genre.genre_id)
                                     );
                                   }
                                 }}
@@ -570,6 +556,7 @@ export default function UploadMangaPage() {
                             </label>
                           ))}
                         </div>
+
                         {errors.genres && (
                           <p className="text-red-500 text-sm mt-2">
                             {errors.genres}
@@ -619,6 +606,7 @@ export default function UploadMangaPage() {
                       files={contentFile}
                     />
                   </div>
+
                   {errors.contentFile && (
                     <p className="text-red-500 text-sm mt-2">
                       {errors.contentFile}
@@ -648,10 +636,15 @@ export default function UploadMangaPage() {
                   >
                     Hủy bỏ
                   </button>
+
                   <button
                     type="submit"
-                    disabled={isUploadingManga}
-                    className="flex items-center gap-2 px-8 py-2.5 rounded-lg font-bold text-white shadow-md transition-all bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={mangaDisabled}
+                    className={`flex items-center gap-2 px-8 py-2.5 rounded-lg font-bold text-white shadow-md transition-all ${
+                      mangaDisabled
+                        ? "opacity-50 cursor-not-allowed pointer-events-none bg-gray-400"
+                        : "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+                    }`}
                   >
                     {isUploadingManga ? (
                       <Loader2 size={20} className="animate-spin" />
@@ -683,9 +676,17 @@ export default function UploadMangaPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Chọn truyện <span className="text-red-500">*</span>
                       </label>
+
                       <select
                         id="chapterMangaId"
                         name="manga_id"
+                        value={selectedMangaForChapter}
+                        onChange={(e) => {
+                          setSelectedMangaForChapter(e.target.value);
+                          if (e.target.value && errors.genres) {
+                            setErrors((prev) => ({ ...prev, genres: "" }));
+                          }
+                        }}
                         className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all bg-white cursor-pointer"
                       >
                         <option value="">-- Chọn truyện cần đăng --</option>
@@ -695,6 +696,7 @@ export default function UploadMangaPage() {
                           </option>
                         ))}
                       </select>
+
                       {errors.genres && (
                         <p className="text-red-500 text-sm mt-2">
                           {errors.genres}
@@ -727,6 +729,7 @@ export default function UploadMangaPage() {
                       files={contentFileChapter}
                     />
                   </div>
+
                   {errors.contentFileChapter && (
                     <p className="text-red-500 text-sm mt-2">
                       {errors.contentFileChapter}
@@ -756,10 +759,15 @@ export default function UploadMangaPage() {
                   >
                     Hủy bỏ
                   </button>
+
                   <button
                     type="submit"
-                    disabled={isUploadingChapter}
-                    className="flex items-center gap-2 px-8 py-2.5 rounded-lg font-bold text-white shadow-md transition-all bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={chapterDisabled}
+                    className={`flex items-center gap-2 px-8 py-2.5 rounded-lg font-bold text-white shadow-md transition-all ${
+                      chapterDisabled
+                        ? "opacity-50 cursor-not-allowed pointer-events-none bg-gray-400"
+                        : "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                    }`}
                   >
                     {isUploadingChapter ? (
                       <Loader2 size={20} className="animate-spin" />
