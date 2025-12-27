@@ -2,7 +2,7 @@
 export const dynamic = "force-dynamic";
 import React, { useEffect, useMemo, useState, Suspense } from "react";
 import MangaCard from "@/app/components/client/MangaCard";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 
 type Manga = {
   manga_id: string;
@@ -18,6 +18,7 @@ type Manga = {
 
 function SearchContent() {
   const sp = useSearchParams();
+  const router = useRouter();
   const keyword = useMemo(() => sp.get("keyword") || "", [sp]);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
@@ -48,7 +49,7 @@ function SearchContent() {
         }
 
         setMangas(json.data || []);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (e: any) {
         if (e?.name !== "AbortError") setError("Error fetching search results");
       } finally {
@@ -92,18 +93,23 @@ function SearchContent() {
 
         <section className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {mangas.map((m) => (
-            <MangaCard
+            <div
               key={m.manga_id}
-              manga_id={m.manga_id}
-              manga_name={m.title} // backend là title
-              author={m.author_name || "Unknown"}
-              original_language={m.original_language || ""}
-              genre={(m.genres || []).join(", ")} // nếu có genres[]
-              status={m.status || ""}
-              coverUrl={m.cover_image ?? "/images/placeholder-cover.jpg"}
-              average_rating={m.average_rating ?? 0}
-              totalChapters={m.total_chapters ?? 0}
-            />
+              onClick={() => router.push(`/explore/manga/${m.manga_id}`)}
+              className="cursor-pointer"
+            >
+              <MangaCard
+                manga_id={m.manga_id}
+                manga_name={m.title} // backend là title
+                author={m.author_name || "Unknown"}
+                original_language={m.original_language || ""}
+                genre={(m.genres || []).join(", ")} // nếu có genres[]
+                status={m.status || ""}
+                coverUrl={m.cover_image ?? "/images/placeholder-cover.jpg"}
+                average_rating={m.average_rating ?? 0}
+                totalChapters={m.total_chapters ?? 0}
+              />
+            </div>
           ))}
         </section>
       </div>
