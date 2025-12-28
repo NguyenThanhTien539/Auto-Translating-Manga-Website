@@ -103,6 +103,7 @@ function FilterContent() {
     return () => controller.abort();
   }, [requestUrl, API_URL]);
 
+  const displayMangas = mangas.filter((m) => m.status !== "Pending");
   // UI
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
@@ -144,7 +145,7 @@ function FilterContent() {
               </div>
             ) : (
               <section className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3">
-                {mangas.map((m) => {
+                {displayMangas.map((m) => {
                   const genres = m.genres ?? m.genre_names ?? [];
                   return (
                     <div
