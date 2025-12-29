@@ -75,7 +75,7 @@ export default function FavouriteList() {
             {items.map((manga) => (
               <div
                 key={manga.manga_id}
-                onClick={() => router.push(`/read/${manga.manga_id}`)}
+                onClick={() => router.push(`/explore/manga/${manga.manga_id}`)}
                 className="cursor-pointer group"
               >
                 <MangaCard
