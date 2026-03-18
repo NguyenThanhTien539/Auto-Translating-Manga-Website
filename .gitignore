@@ -26,4 +26,6 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+src/frontend/.env.local
+
 package-lock.json
