@@ -7,10 +7,13 @@ import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import MyCustomGoogleButton from "@/app/hooks/useGoogle";
+import { useTranslations } from "next-intl";
 
 export default function FormRegister() {
   const router = useRouter();
   const googleButtonRef = useRef<HTMLDivElement>(null);
+  const t = useTranslations("RegisterPage");
+  const v = useTranslations("Validation");
 
   const handleSuccessGoogleLogin = async (credentialResponse: any) => {
     const { credential } = credentialResponse;
@@ -29,13 +32,13 @@ export default function FormRegister() {
       const data = await res.json();
 
       if (data.code === "error") {
-        toast.error(data.message || "Google login failed");
+        toast.error(data.message || v("googleFailed"));
       } else if (data.code === "success") {
-        toast.success(data.message || "Login successful!");
+        toast.success(data.message || v("loginSuccess"));
         data.role === "0" ? router.push("/admin/dashboard") : router.push("/");
       }
     } catch (error) {
-      toast.error("Failed to connect to server");
+      toast.error(v("serverError"));
     }
   };
 
@@ -48,54 +51,58 @@ export default function FormRegister() {
       .addField(
         "#fullName",
         [
-          { rule: "required", errorMessage: "Full name is required!" },
+          { rule: "required", errorMessage: v("fullNameRequired") },
           {
             rule: "minLength",
             value: 5,
-            errorMessage: "At least 5 characters!",
+            errorMessage: v("fullNameMinLength"),
           },
-          { rule: "maxLength", value: 50, errorMessage: "Max 50 characters!" },
+          {
+            rule: "maxLength",
+            value: 50,
+            errorMessage: v("fullNameMaxLength"),
+          },
         ],
         { errorContainer: "#fullNameError" },
       )
       .addField(
         "#email",
         [
-          { rule: "required", errorMessage: "Email is required!" },
-          { rule: "email", errorMessage: "Invalid email format!" },
+          { rule: "required", errorMessage: v("emailRequired") },
+          { rule: "email", errorMessage: v("emailInvalid") },
         ],
         { errorContainer: "#emailError" },
       )
       .addField(
         "#password",
         [
-          { rule: "required", errorMessage: "Password is required!" },
+          { rule: "required", errorMessage: v("passwordRequired") },
           {
             validator: (val: string) => val.length >= 8,
-            errorMessage: "At least 8 characters",
+            errorMessage: v("passwordMinLength"),
           },
           {
             validator: (val: string) => /[A-Z]/.test(val),
-            errorMessage: "Need one uppercase letter",
+            errorMessage: v("passwordUppercase"),
           },
           {
             validator: (val: string) => /[a-z]/.test(val),
-            errorMessage: "Need one lowercase letter",
+            errorMessage: v("passwordLowercase"),
           },
           {
             validator: (val: string) => /\d/.test(val),
-            errorMessage: "Need one number",
+            errorMessage: v("passwordNumber"),
           },
           {
             validator: (val: string) => /[@$!%*?&]/.test(val),
-            errorMessage: "Need one special character",
+            errorMessage: v("passwordSpecial"),
           },
         ],
         { errorContainer: "#passwordError" },
       )
       .addField(
         "#agree",
-        [{ rule: "required", errorMessage: "You must agree to the terms!" }],
+        [{ rule: "required", errorMessage: v("agreeRequired") }],
         { errorContainer: "#agreeError" },
       )
       .onSuccess(async (event: any) => {
@@ -122,10 +129,10 @@ export default function FormRegister() {
             );
           }
         } catch (error) {
-          toast.error("Registration failed. Please try again.");
+          toast.error(v("registerFailed"));
         }
       });
-  }, [router]);
+  }, [router, v]);
 
   return (
     <div className="max-w-md mx-auto p-4">
@@ -137,13 +144,13 @@ export default function FormRegister() {
               htmlFor="fullName"
               className="block font-[500] text-[14px] mb-[5px]"
             >
-              Full Name*
+              {t("fullName")}
             </label>
             <input
               id="fullName"
               name="fullName"
               type="text"
-              placeholder="e.g. John Doe"
+              placeholder={t("fullNamePlaceholder")}
               className="border border-gray-400 rounded-lg p-2 w-full focus:outline-blue-500"
             />
             <div id="fullNameError" className="text-sm text-red-500 mt-1"></div>
@@ -155,13 +162,13 @@ export default function FormRegister() {
               htmlFor="email"
               className="block font-[500] text-[14px] mb-[5px]"
             >
-              Email*
+              {t("email")}
             </label>
             <input
               id="email"
               name="email"
               type="email"
-              placeholder="e.g. john@example.com"
+              placeholder={t("emailPlaceholder")}
               className="border border-gray-400 rounded-lg p-2 w-full focus:outline-blue-500"
             />
             <div id="emailError" className="text-sm text-red-500 mt-1"></div>
@@ -173,13 +180,13 @@ export default function FormRegister() {
               htmlFor="password"
               className="block font-[500] text-[14px] mb-[5px]"
             >
-              Password*
+              {t("password")}
             </label>
             <input
               id="password"
               name="password"
               type="password"
-              placeholder="******"
+              placeholder={t("passwordPlaceholder")}
               className="border border-gray-400 rounded-lg p-2 w-full focus:outline-blue-500"
             />
             <div id="passwordError" className="text-sm text-red-500 mt-1"></div>
@@ -194,9 +201,7 @@ export default function FormRegister() {
                 type="checkbox"
                 className="w-4 h-4"
               />
-              <span className="text-[14px]">
-                I agree to the Terms and Conditions
-              </span>
+              <span className="text-[14px]">{t("agreeTerms")}</span>
             </label>
             <div id="agreeError" className="text-sm text-red-500 mt-1"></div>
           </div>
@@ -206,13 +211,13 @@ export default function FormRegister() {
             type="submit"
             className="bg-[#1B6FAB] hover:bg-[#155a8a] transition-colors rounded-lg w-full h-[48px] font-[700] text-[16px] text-white"
           >
-            Sign up
+            {t("signUpButton")}
           </button>
 
           {/* Divider */}
           <div className="flex gap-2 items-center justify-between my-2">
             <div className="flex-1 border-t border-gray-300"></div>
-            <span className="text-gray-500 text-[12px]">OR</span>
+            <span className="text-gray-500 text-[12px]">{t("or")}</span>
             <div className="flex-1 border-t border-gray-300"></div>
           </div>
 
@@ -229,23 +234,23 @@ export default function FormRegister() {
           {/* Footer Link */}
           <div className="text-center text-[14px] mt-2 space-y-5">
             <div>
-              Already have an account?
+              {t("haveAccount")}
               <button
                 type="button"
                 className="pl-1 text-blue-600 font-[600] hover:underline"
                 onClick={() => router.push("/account/login")}
               >
-                Login
+                {t("login")}
               </button>
             </div>
             <div>
-              Go back to
+              {t("goBack")}
               <button
                 type="button"
                 className="pl-1 text-blue-600 font-[600] hover:underline"
                 onClick={() => router.push("/")}
               >
-                homepage?
+                {t("homePage")}
               </button>
             </div>
           </div>

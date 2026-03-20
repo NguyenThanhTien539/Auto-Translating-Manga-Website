@@ -14,7 +14,7 @@ function redirectTo(request: NextRequest, path: string) {
 
 async function verifyJwtFromRequest(
   request: NextRequest,
-  cookieName = "accessToken"
+  cookieName = "accessToken",
 ): Promise<PayloadWithRole | null> {
   const token = request.cookies.get(cookieName)?.value;
   if (!token) return null;

@@ -6,15 +6,25 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import MyCustomGoogleButton from "@/app/hooks/useGoogle";
+import { useTranslations, useLocale } from "next-intl";
 
 const roleRedirectMap: Record<string, string> = {
-  0: "/admin/dashboard",
-  1: "/",
-  2: "/",
+  "0": "/admin/dashboard",
+  "1": "/",
+  "2": "/",
 };
 
 export default function FormLogin() {
   const router = useRouter();
+  const t = useTranslations("LoginPage");
+  const v = useTranslations("Validation");
+  const locale = useLocale(); // Lấy ngôn ngữ hiện tại từ Provider
+
+  const switchLanguage = (newLang: string) => {
+    document.cookie = `NEXT_LOCALE=${newLang}; path=/; max-age=31536000`;
+    window.location.reload();
+  };
+
   const handleSuccessGoogleLogin = async (credentialResponse: any) => {
     const { credential } = credentialResponse;
     const dataFinal = { credential: credential, rememberPassword: false };
@@ -32,15 +42,17 @@ export default function FormLogin() {
       const data = await res.json();
 
       if (data.code === "error") {
-        toast.error(data.message || "Google login failed");
+        toast.error(data.message || v("googleFailed"));
       } else if (data.code === "success") {
-        toast.success(data.message || "Login successful!");
-        data.role === "0" ? router.push("/admin/dashboard") : router.push("/");
+        toast.success(data.message || v("loginSuccess"));
+        const target = roleRedirectMap[data.role] ?? "/";
+        router.push(target);
       }
     } catch (error) {
-      toast.error("Failed to connect to server");
+      toast.error(v("serverError"));
     }
   };
+
   useEffect(() => {
     const validate = new JustValidate("#loginForm", { lockForm: false });
 
@@ -48,86 +60,111 @@ export default function FormLogin() {
       .addField(
         "#email",
         [
-          { rule: "required", errorMessage: "Email is required!" },
-          { rule: "email", errorMessage: "Invalid email format!" },
+          { rule: "required", errorMessage: v("emailRequired") },
+          { rule: "email", errorMessage: v("emailInvalid") },
         ],
         { errorContainer: "#emailError" },
       )
       .addField(
         "#password",
-        [{ rule: "required", errorMessage: "Password is required!" }],
+        [{ rule: "required", errorMessage: v("passwordRequired") }],
         { errorContainer: "#passwordError" },
       )
-      .onSuccess((event: any) => {
+      .onSuccess(async (event: any) => {
         const email = event.target.email.value;
         const password = event.target.password.value;
         const rememberPassword = event.target.rememberPassword.checked;
 
-        const dataFinal = {
-          email,
-          password,
-          rememberPassword,
-        };
+        const dataFinal = { email, password, rememberPassword };
 
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/account/login`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(dataFinal),
-          credentials: "include",
-        })
-          .then((res) => res.json())
-          .then((data) => {
-            if (data.code == "error") {
-              toast.error(data.message || "Login failed!");
-            }
-            if (data.code == "success") {
-              toast.success("Login successful!");
-              const role = data.role as string;
-              const target = roleRedirectMap[role] ?? "/";
-              router.push(target);
-            }
-          });
+        try {
+          const res = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/account/login`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(dataFinal),
+              credentials: "include",
+            },
+          );
+          const data = await res.json();
+
+          if (data.code === "error") {
+            toast.error(data.message || v("loginFailed"));
+          } else if (data.code === "success") {
+            toast.success(v("loginSuccess"));
+            const role = data.role as string;
+            const target = roleRedirectMap[role] ?? "/";
+            router.push(target);
+          }
+        } catch (error) {
+          toast.error(v("serverError"));
+        }
       });
-  }, [router]);
+
+    // Cleanup khi component unmount hoặc locale thay đổi
+    return () => {
+      validate.destroy();
+    };
+  }, [router, v, locale]); // Thêm locale vào deps để update thông báo lỗi khi đổi ngôn ngữ
 
   return (
     <div className="max-w-md mx-auto p-4">
+      {/* Bộ chuyển đổi ngôn ngữ nhanh */}
+      <div className="flex justify-end gap-2 mb-4 text-[12px] font-medium">
+        <button
+          onClick={() => switchLanguage("vi")}
+          className={`hover:text-blue-500 ${locale === "vi" ? "text-blue-600 underline" : "text-gray-400"}`}
+        >
+          Tiếng Việt
+        </button>
+        <span className="text-gray-300">|</span>
+        <button
+          onClick={() => switchLanguage("en")}
+          className={`hover:text-blue-500 ${locale === "en" ? "text-blue-600 underline" : "text-gray-400"}`}
+        >
+          English
+        </button>
+      </div>
+
       <form id="loginForm">
-        <div className="flex flex-col gap-4 mt-[25px]">
+        <div className="flex flex-col gap-4">
           {/* Email */}
           <div>
             <label
               htmlFor="email"
               className="block font-[500] text-[14px] mb-[5px]"
             >
-              Email*
+              {t("email")}
             </label>
             <input
               id="email"
               name="email"
               type="email"
-              placeholder="e.g. john@example.com"
+              placeholder={t("emailPlaceholder")}
               className="border border-gray-400 rounded-lg p-2 w-full focus:outline-blue-500"
             />
             <div id="emailError" className="text-sm text-red-500 mt-1"></div>
           </div>
+
           {/* Password */}
           <div>
             <label
               htmlFor="password"
               className="block font-[500] text-[14px] mb-[5px]"
             >
-              Password*
+              {t("password")}
             </label>
             <input
               id="password"
               name="password"
               type="password"
-              placeholder="******"
+              placeholder={t("passwordPlaceholder")}
               className="border border-gray-400 rounded-lg p-2 w-full focus:outline-blue-500"
             />
             <div id="passwordError" className="text-sm text-red-500 mt-1"></div>
           </div>
+
           {/* Remember me & Forgot password */}
           <div className="flex items-center justify-between">
             <div className="flex items-center">
@@ -141,53 +178,55 @@ export default function FormLogin() {
                 htmlFor="rememberPassword"
                 className="ml-[10px] text-[14px]"
               >
-                Remember me
+                {t("rememberMe")}
               </label>
             </div>
             <button
               type="button"
-              className="text-blue-500 font-[600] hover:underline"
+              className="text-blue-500 font-[600] hover:underline text-[14px]"
               onClick={() => router.push("/account/forgot-password")}
             >
-              Recovery password
+              {t("recoveryPassword")}
             </button>
           </div>
+
           {/* Submit Button */}
           <button
             type="submit"
             className="bg-[#1B6FAB] hover:bg-[#155a8a] transition-colors rounded-lg w-full h-[48px] font-[700] text-[16px] text-white"
           >
-            Log in
+            {t("loginButton")}
           </button>
 
           <div className="flex justify-center w-full">
             <GoogleOAuthProvider
               clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""}
-              locale="en"
+              locale={locale} // Truyền locale vào Google Button
             >
               <MyCustomGoogleButton onSuccess={handleSuccessGoogleLogin} />
             </GoogleOAuthProvider>
           </div>
+
           {/* Footer Link */}
-          <div className="text-center text-[14px] mt-2 space-y-5">
+          <div className="text-center text-[14px] mt-2 space-y-3">
             <div>
-              <span>Don&apos;t have an account?</span>
+              <span>{t("noAccount")}</span>
               <button
                 type="button"
                 className="pl-1 text-blue-600 font-[600] hover:underline"
                 onClick={() => router.push("/account/register")}
               >
-                Sign up
+                {t("signUp")}
               </button>
             </div>
             <div>
-              Go back to
+              {t("goBack")}{" "}
               <button
                 type="button"
-                className="pl-1 text-blue-600 font-[600] hover:underline"
+                className="text-blue-600 font-[600] hover:underline"
                 onClick={() => router.push("/")}
               >
-                home page
+                {t("homePage")}
               </button>
             </div>
           </div>

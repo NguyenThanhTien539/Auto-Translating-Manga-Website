@@ -1,4 +1,8 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from "next-intl/plugin";
+
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
+
 /** @type {import('next').NextConfig} */
 const nextConfig: NextConfig = {
   /* config options here */
@@ -14,14 +18,15 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "**", // hoặc thêm các domain khác bạn cần
-      },{
-        protocol: 'http',
-        hostname: 'localhost',
-        port: '5000',
-        pathname: '/api/manga/page-image/**',
+      },
+      {
+        protocol: "http",
+        hostname: "localhost",
+        port: "5000",
+        pathname: "/api/manga/page-image/**",
       },
     ],
   },
 };
 
-export default nextConfig;
+export default withNextIntl(nextConfig);
