@@ -5,7 +5,8 @@ import JustValidate from "just-validate";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
-import MyCustomGoogleButton from "@/app/hooks/useGoogle";
+import MyCustomGoogleButton from "@/app/components/auth/MyCustomGoogleButton";
+import { useGoogleAuth } from "@/app/hooks/useGoogleAuth";
 import { useTranslations, useLocale } from "next-intl";
 
 const roleRedirectMap: Record<string, string> = {
@@ -19,42 +20,9 @@ export default function FormLogin() {
   const t = useTranslations("LoginPage");
   const v = useTranslations("Validation");
   const locale = useLocale(); // Lấy ngôn ngữ hiện tại từ Provider
-
-  const switchLanguage = (newLang: string) => {
-    document.cookie = `NEXT_LOCALE=${newLang}; path=/; max-age=31536000`;
-    window.location.reload();
-  };
-
-  const handleSuccessGoogleLogin = async (googleUser: any) => {
-    console.log("Google User Info:", googleUser);
-    const dataFinal = {
-      credential: googleUser.credential,
-      rememberMe: true,
-    };
-
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/account/google-login`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(dataFinal),
-          credentials: "include",
-        },
-      );
-      const data = await res.json();
-
-      if (data.code === "error") {
-        toast.error(data.message);
-      } else if (data.code === "success") {
-        toast.success(data.message);
-        const target = roleRedirectMap[data.role] ?? "/";
-        router.push(target);
-      }
-    } catch (error) {
-      toast.error(v("serverError"));
-    }
-  };
+  const { handleGoogleLogin } = useGoogleAuth({
+    serverErrorMessage: v("serverError"),
+  });
 
   useEffect(() => {
     const validate = new JustValidate("#loginForm", { lockForm: false });
@@ -100,7 +68,7 @@ export default function FormLogin() {
             const target = roleRedirectMap[role] ?? "/";
             router.push(target);
           }
-        } catch (error) {
+        } catch {
           toast.error(v("serverError"));
         }
       });
@@ -189,7 +157,7 @@ export default function FormLogin() {
               clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""}
               locale={locale}
             >
-              <MyCustomGoogleButton onSuccess={handleSuccessGoogleLogin} />
+              <MyCustomGoogleButton onSuccess={handleGoogleLogin} />
             </GoogleOAuthProvider>
           </div>
 

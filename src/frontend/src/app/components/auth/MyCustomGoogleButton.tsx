@@ -2,7 +2,6 @@
 "use client";
 
 import { GoogleLogin } from "@react-oauth/google";
-import { toast } from "sonner";
 import { useRef } from "react";
 
 export default function MyCustomGoogleButton({
@@ -59,7 +58,6 @@ export default function MyCustomGoogleButton({
           onSuccess={(credentialResponse) => {
             onSuccess(credentialResponse);
           }}
-          onError={() => toast.error("Google Login Failed")}
           useOneTap={false}
         />
       </div>

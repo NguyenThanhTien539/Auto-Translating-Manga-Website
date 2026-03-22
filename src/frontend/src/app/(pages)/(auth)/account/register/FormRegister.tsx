@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { GoogleOAuthProvider } from "@react-oauth/google";
-import MyCustomGoogleButton from "@/app/hooks/useGoogle";
+import MyCustomGoogleButton from "@/app/hooks/useGoogleAuth";
 import { useTranslations } from "next-intl";
 
 export default function FormRegister() {
