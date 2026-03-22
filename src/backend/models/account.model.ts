@@ -77,6 +77,13 @@ export const findUserByEmail = async (
   return db("users").select("*").where({ email }).first();
 };
 
+export const findUserProvider = async (
+  user_id: number,
+  provider: string,
+): Promise<UserProviderData | undefined> => {
+  return db("user_providers").where({ user_id, provider }).first();
+};
+
 export const findId = async (
   user_id: number,
 ): Promise<UserInfo | undefined> => {

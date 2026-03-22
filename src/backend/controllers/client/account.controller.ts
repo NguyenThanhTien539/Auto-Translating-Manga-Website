@@ -138,6 +138,20 @@ export const googleLogin = async (
       };
 
       account = await AccountModel.createAccount(userData, providerData);
+    } else {
+      const googleProvider = await AccountModel.findUserProvider(
+        account.user_id,
+        "google",
+      );
+
+      if (!googleProvider) {
+        res.status(400).json({
+          code: "error",
+          message:
+            "Email này đã được đăng ký bằng tài khoản thường, không thể đăng nhập bằng Google",
+        });
+        return;
+      }
     }
 
     const accessToken = generateAccessToken(

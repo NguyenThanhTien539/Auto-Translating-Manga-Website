@@ -7,7 +7,7 @@ export const register = (
   next: NextFunction,
 ): void => {
   const schema = Joi.object({
-    fullName: Joi.string().min(5).max(50).required().messages({
+    full_name: Joi.string().min(5).max(50).required().messages({
       "string.empty": "Vui lòng nhập họ tên!",
       "string.min": "Họ tên phải có ít nhất 5 ký tự!",
       "string.max": "Họ tên không được vượt quá 50 ký tự!",
@@ -45,7 +45,7 @@ export const register = (
           "Mật khẩu phải chứa ít nhất một ký tự đặc biệt!",
       }),
 
-    agree: Joi.boolean().valid(true).messages({
+    agree: Joi.boolean().messages({
       "any.only": "Bạn phải đồng ý với các điều khoản và điều kiện!",
     }),
   });

@@ -83,9 +83,14 @@ export default function FormRegister() {
         { errorContainer: "#agreeError" },
       )
       .onSuccess(async (event: any) => {
-        const formData = new FormData(event.target);
-        const finalData = Object.fromEntries(formData.entries());
+        const finalData = {
+          full_name: event.target.fullName.value,
+          email: event.target.email.value,
+          password: event.target.password.value,
+          agree: event.target.agree.checked,
+        };
 
+        console.log("Validated data:", finalData);
         try {
           const res = await fetch(
             `${process.env.NEXT_PUBLIC_API_URL}/account/register`,
