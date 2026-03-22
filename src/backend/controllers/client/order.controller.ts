@@ -113,7 +113,7 @@ export const paymentZaloPayResult = async (
     } else {
       let dataJson = JSON.parse(dataStr);
       const [email, orderId] = dataJson.app_user.split(" - ");
-      const existedRecord = await accountModel.findEmail(email);
+      const existedRecord = await accountModel.findUserByEmail(email);
       const { depositId } = req.query;
       await orderModel.updateDepositStatus(Number(depositId), "Success");
 
@@ -173,7 +173,9 @@ export const detailPayment = async (
 ): Promise<void> => {
   const { orderCode } = req.params;
   try {
-    const paymentDetail = await orderModel.getOrderDetailByCode(orderCode as string);
+    const paymentDetail = await orderModel.getOrderDetailByCode(
+      orderCode as string,
+    );
     res.json({ code: "success", paymentDetail: paymentDetail });
   } catch (error) {
     res.json({ code: "error", message: "Thất bại lấy chi tiết thanh toán." });

@@ -29,4 +29,6 @@ route.post(
 
 route.post("/login", accountValidate.login, accountController.login);
 
+route.post("/google-login", accountController.googleLogin);
+
 export default route;

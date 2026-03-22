@@ -27,29 +27,33 @@ export default function FormLogin() {
 
   const handleSuccessGoogleLogin = async (googleUser: any) => {
     console.log("Google User Info:", googleUser);
-    
-    // try {
-    //   const res = await fetch(
-    //     `${process.env.NEXT_PUBLIC_API_URL}/account/google-login`,
-    //     {
-    //       method: "POST",
-    //       headers: { "Content-Type": "application/json" },
-    //       body: JSON.stringify(dataFinal),
-    //       credentials: "include",
-    //     },
-    //   );
-    //   const data = await res.json();
+    const dataFinal = {
+      credential: googleUser.credential,
+      rememberMe: true,
+    };
 
-    //   if (data.code === "error") {
-    //     toast.error(data.message || v("googleFailed"));
-    //   } else if (data.code === "success") {
-    //     toast.success(data.message || v("loginSuccess"));
-    //     const target = roleRedirectMap[data.role] ?? "/";
-    //     router.push(target);
-    //   }
-    // } catch (error) {
-    //   toast.error(v("serverError"));
-    // }
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/account/google-login`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(dataFinal),
+          credentials: "include",
+        },
+      );
+      const data = await res.json();
+
+      if (data.code === "error") {
+        toast.error(data.message);
+      } else if (data.code === "success") {
+        toast.success(data.message);
+        const target = roleRedirectMap[data.role] ?? "/";
+        router.push(target);
+      }
+    } catch (error) {
+      toast.error(v("serverError"));
+    }
   };
 
   useEffect(() => {

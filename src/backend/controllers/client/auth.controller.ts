@@ -15,7 +15,7 @@ export const check = async (req: Request, res: Response): Promise<void> => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as DecodedToken;
     const { id, email } = decoded;
-    const existedEmail = await AccountModel.findEmail(email);
+    const existedEmail = await AccountModel.findUserByEmail(email);
 
     if (!existedEmail) {
       res.json({ code: "error", message: "Token không hợp lệ" });

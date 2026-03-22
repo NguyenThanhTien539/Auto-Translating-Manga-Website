@@ -1,11 +1,23 @@
+import { Knex } from "knex";
 import db from "../config/database.config";
 import { UserInfo } from "../types";
 
-interface AccountData {
+interface UserData {
   email: string;
   full_name: string;
-  password: string;
+  password?: string;
   username: string;
+}
+
+interface UserProviderData {
+  user_id: number;
+  provider: string;
+  provider_id: string;
+}
+
+interface ProviderDataInput {
+  provider: string;
+  provider_id: string;
 }
 
 interface ProfileUpdateData {
@@ -16,11 +28,50 @@ interface ProfileUpdateData {
   avatar?: string;
 }
 
-export const insertAccount = async (data: AccountData): Promise<void> => {
-  await db("users").insert(data);
+async function createUser(
+  trx: Knex.Transaction,
+  data: UserData,
+): Promise<{ user_id: number }> {
+  const [user] = await trx("users").insert(data).returning("user_id");
+  return user;
+}
+
+async function findUserByIdInTransaction(
+  trx: Knex.Transaction,
+  user_id: number,
+): Promise<UserInfo | undefined> {
+  return trx("users").select("*").where({ user_id }).first();
+}
+
+async function createUserProvider(
+  trx: Knex.Transaction,
+  data: UserProviderData,
+): Promise<void> {
+  await trx("user_providers").insert(data);
+}
+
+export const createAccount = async (
+  userData: UserData,
+  providerData: ProviderDataInput,
+): Promise<UserInfo> => {
+  return db.transaction(async (trx) => {
+    const user = await createUser(trx, userData);
+    console.log("Created user with ID:", user.user_id);
+    await createUserProvider(trx, {
+      ...providerData,
+      user_id: user.user_id,
+    });
+
+    const createdUser = await findUserByIdInTransaction(trx, user.user_id);
+    if (!createdUser) {
+      throw new Error("Cannot fetch created user");
+    }
+
+    return createdUser;
+  });
 };
 
-export const findEmail = async (
+export const findUserByEmail = async (
   email: string,
 ): Promise<UserInfo | undefined> => {
   return db("users").select("*").where({ email }).first();
@@ -115,4 +166,9 @@ export const updateCoinById = async (
   coin: number,
 ): Promise<number> => {
   return db("users").where({ user_id: user_id }).update({ coin_balance: coin });
+};
+
+export const existUserByEmail = async (email: string): Promise<boolean> => {
+  const user = await db("users").select("*").where({ email }).first();
+  return !!user;
 };

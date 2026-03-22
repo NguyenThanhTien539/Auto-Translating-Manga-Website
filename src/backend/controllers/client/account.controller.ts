@@ -1,4 +1,4 @@
-import { Response } from "express";
+import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import * as AccountModel from "../../models/account.model";
@@ -7,6 +7,7 @@ import * as generateHelper from "../../helper/generate.helper";
 import * as mailHelper from "../../helper/mail.helper";
 import * as emailTemplate from "../../helper/email-template.helper";
 import { AuthRequest } from "../../types";
+import { jwtDecode } from "jwt-decode";
 
 const SALT_ROUNDS = 10;
 
@@ -52,7 +53,7 @@ export const register = async (
   req: AuthRequest,
   res: Response,
 ): Promise<void> => {
-  const existedEmail = await AccountModel.findEmail(req.body.email);
+  const existedEmail = await AccountModel.findUserByEmail(req.body.email);
   if (existedEmail) {
     res.json({
       code: "error",
@@ -91,7 +92,10 @@ export const register = async (
   );
 
   const title = "Mã OTP xác nhận đăng ký";
-  const content = emailTemplate.getOTPTemplate(otp, "xác nhận đăng ký tài khoản");
+  const content = emailTemplate.getOTPTemplate(
+    otp,
+    "xác nhận đăng ký tài khoản",
+  );
   mailHelper.sendMail(req.body.email, title, content);
 
   res.cookie("verified_otp_token", verified_otp_token, {
@@ -107,60 +111,113 @@ export const register = async (
   });
 };
 
+export const googleLogin = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const decoded = jwtDecode(req.body.credential);
+    const { email, name, sub } = decoded as any;
+
+    let account = await AccountModel.findUserByEmail(email);
+
+    if (!account) {
+      const countAccounts = (await AccountModel.countAccounts()) + 1;
+      const username = cleanVietnameseName(name) + `@${countAccounts}`;
+
+      const userData = {
+        email,
+        full_name: name,
+        password: null,
+        username,
+      };
+
+      const providerData = {
+        provider: "google",
+        provider_id: String(sub),
+      };
+
+      account = await AccountModel.createAccount(userData, providerData);
+    }
+
+    const accessToken = generateAccessToken(
+      {
+        id: account.user_id,
+        role: account.role_id,
+        email: account.email,
+      },
+      true,
+    );
+
+    res.cookie("accessToken", accessToken, {
+      maxAge: 3 * 24 * 60 * 60 * 1000,
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+    });
+
+    res.json({
+      code: "success",
+      message: "Đăng nhập Google thành công",
+    });
+  } catch (error) {
+    res.json({
+      code: "error",
+      message: "Đăng nhập bằng Google thất bại",
+    });
+  }
+};
+
 export const registerVerify = async (
   req: AuthRequest,
   res: Response,
 ): Promise<void> => {
-  try {
-    const infoUser = (req as any).infoUser;
-    const existedRecord = await VerifyModel.findEmailAndOtp(
-      infoUser.email,
-      req.body.otp,
-    );
-    if (!existedRecord) {
-      res.json({
-        code: "otp error",
-        message: "OTP không hợp lệ!",
-      });
-      return;
-    }
-
-    infoUser.password = await hashPassword(infoUser.password);
-    const countAccounts = (await AccountModel.countAccounts()) + 1;
-    const username =
-      cleanVietnameseName(infoUser.fullName) + `@${countAccounts}`;
-
-    const userData = {
-      email: infoUser.email,
-      full_name: infoUser.fullName,
-      password: infoUser.password,
-      username: username,
-    };
-    await AccountModel.insertAccount(userData);
-    await VerifyModel.deleteOtpByEmail(infoUser.email);
-
-    // Send welcome email
-    const welcomeTitle = "Chào mừng đến với Manga Website";
-    const welcomeContent = emailTemplate.getWelcomeTemplate(infoUser.fullName);
-    mailHelper.sendMail(infoUser.email, welcomeTitle, welcomeContent);
-
-    res.clearCookie("verified_otp_token");
-    res.json({
-      code: "success",
-      message: "Chúc mừng bạn đã đăng ký thành công",
-    });
-  } catch (error) {
-    const infoUser = (req as any).infoUser;
-    res.clearCookie("verified_otp_token");
-    if (infoUser?.email) {
-      await VerifyModel.deleteOtpByEmail(infoUser.email);
-    }
-    res.json({ code: "error", message: "Có lỗi xảy ra ở đây" });
-  }
+  // try {
+  //   const infoUser = (req as any).infoUser;
+  //   const existedRecord = await VerifyModel.findEmailAndOtp(
+  //     infoUser.email,
+  //     req.body.otp,
+  //   );
+  //   if (!existedRecord) {
+  //     res.json({
+  //       code: "otp error",
+  //       message: "OTP không hợp lệ!",
+  //     });
+  //     return;
+  //   }
+  //   infoUser.password = await hashPassword(infoUser.password);
+  //   const countAccounts = (await AccountModel.countAccounts()) + 1;
+  //   const username =
+  //     cleanVietnameseName(infoUser.fullName) + `@${countAccounts}`;
+  //   const userData = {
+  //     email: infoUser.email,
+  //     full_name: infoUser.fullName,
+  //     password: infoUser.password,
+  //     username: username,
+  //   };
+  //   await AccountModel.createAccount(userData);
+  //   await VerifyModel.deleteOtpByEmail(infoUser.email);
+  //   // Send welcome email
+  //   const welcomeTitle = "Chào mừng đến với Manga Website";
+  //   const welcomeContent = emailTemplate.getWelcomeTemplate(infoUser.fullName);
+  //   mailHelper.sendMail(infoUser.email, welcomeTitle, welcomeContent);
+  //   res.clearCookie("verified_otp_token");
+  //   res.json({
+  //     code: "success",
+  //     message: "Chúc mừng bạn đã đăng ký thành công",
+  //   });
+  // } catch (error) {
+  //   const infoUser = (req as any).infoUser;
+  //   res.clearCookie("verified_otp_token");
+  //   if (infoUser?.email) {
+  //     await VerifyModel.deleteOtpByEmail(infoUser.email);
+  //   }
+  //   res.json({ code: "error", message: "Có lỗi xảy ra ở đây" });
+  // }
 };
 
 export const login = async (req: AuthRequest, res: Response): Promise<void> => {
-  const existedAccount = await AccountModel.findEmail(req.body.email);
+  const existedAccount = await AccountModel.findUserByEmail(req.body.email);
   if (!existedAccount) {
     res.json({ code: "error", message: "Email chưa tồn tại trong hệ thống" });
     return;
@@ -212,7 +269,7 @@ export const forgotPassword = async (
   req: AuthRequest,
   res: Response,
 ): Promise<void> => {
-  const existedEmail = await AccountModel.findEmail(req.body.email);
+  const existedEmail = await AccountModel.findUserByEmail(req.body.email);
   if (!existedEmail) {
     res.json({ code: "error", message: "Email không tồn tại trong hệ thống" });
     return;
