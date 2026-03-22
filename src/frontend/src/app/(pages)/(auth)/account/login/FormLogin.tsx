@@ -25,32 +25,31 @@ export default function FormLogin() {
     window.location.reload();
   };
 
-  const handleSuccessGoogleLogin = async (credentialResponse: any) => {
-    const { credential } = credentialResponse;
-    const dataFinal = { credential: credential, rememberPassword: false };
+  const handleSuccessGoogleLogin = async (googleUser: any) => {
+    console.log("Google User Info:", googleUser);
+    
+    // try {
+    //   const res = await fetch(
+    //     `${process.env.NEXT_PUBLIC_API_URL}/account/google-login`,
+    //     {
+    //       method: "POST",
+    //       headers: { "Content-Type": "application/json" },
+    //       body: JSON.stringify(dataFinal),
+    //       credentials: "include",
+    //     },
+    //   );
+    //   const data = await res.json();
 
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/account/google-login`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(dataFinal),
-          credentials: "include",
-        },
-      );
-      const data = await res.json();
-
-      if (data.code === "error") {
-        toast.error(data.message || v("googleFailed"));
-      } else if (data.code === "success") {
-        toast.success(data.message || v("loginSuccess"));
-        const target = roleRedirectMap[data.role] ?? "/";
-        router.push(target);
-      }
-    } catch (error) {
-      toast.error(v("serverError"));
-    }
+    //   if (data.code === "error") {
+    //     toast.error(data.message || v("googleFailed"));
+    //   } else if (data.code === "success") {
+    //     toast.success(data.message || v("loginSuccess"));
+    //     const target = roleRedirectMap[data.role] ?? "/";
+    //     router.push(target);
+    //   }
+    // } catch (error) {
+    //   toast.error(v("serverError"));
+    // }
   };
 
   useEffect(() => {
@@ -184,7 +183,7 @@ export default function FormLogin() {
           <div className="flex justify-center w-full">
             <GoogleOAuthProvider
               clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""}
-              locale={locale} // Truyền locale vào Google Button
+              locale={locale}
             >
               <MyCustomGoogleButton onSuccess={handleSuccessGoogleLogin} />
             </GoogleOAuthProvider>
