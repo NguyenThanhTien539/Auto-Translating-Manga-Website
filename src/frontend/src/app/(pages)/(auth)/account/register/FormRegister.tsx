@@ -6,42 +6,19 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { GoogleOAuthProvider } from "@react-oauth/google";
-import MyCustomGoogleButton from "@/app/hooks/useGoogleAuth";
+import MyCustomGoogleButton from "@/app/components/auth/MyCustomGoogleButton";
+import { useGoogleAuth } from "@/app/hooks/useGoogleAuth";
+
 import { useTranslations } from "next-intl";
 
 export default function FormRegister() {
   const router = useRouter();
-  const googleButtonRef = useRef<HTMLDivElement>(null);
   const t = useTranslations("RegisterPage");
   const v = useTranslations("Validation");
 
-  const handleSuccessGoogleLogin = async (credentialResponse: any) => {
-    const { credential } = credentialResponse;
-    const dataFinal = { credential: credential, rememberPassword: false };
-
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/account/google-login`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(dataFinal),
-          credentials: "include",
-        },
-      );
-      const data = await res.json();
-
-      if (data.code === "error") {
-        toast.error(data.message || v("googleFailed"));
-      } else if (data.code === "success") {
-        toast.success(data.message || v("loginSuccess"));
-        data.role === "0" ? router.push("/admin/dashboard") : router.push("/");
-      }
-    } catch (error) {
-      toast.error(v("serverError"));
-    }
-  };
-
+  const { handleGoogleLogin } = useGoogleAuth({
+    serverErrorMessage: v("serverError"),
+  });
   useEffect(() => {
     const validation = new JustValidate("#registerForm", {
       validateBeforeSubmitting: true,
@@ -227,7 +204,7 @@ export default function FormRegister() {
               clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""}
               locale="en"
             >
-              <MyCustomGoogleButton onSuccess={handleSuccessGoogleLogin} />
+              <MyCustomGoogleButton onSuccess={handleGoogleLogin} />
             </GoogleOAuthProvider>
           </div>
 
