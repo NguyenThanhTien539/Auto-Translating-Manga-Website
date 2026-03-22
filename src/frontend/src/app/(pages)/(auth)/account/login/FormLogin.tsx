@@ -109,24 +109,7 @@ export default function FormLogin() {
   }, [router, v, locale]); // Thêm locale vào deps để update thông báo lỗi khi đổi ngôn ngữ
 
   return (
-    <div className="max-w-md mx-auto p-4">
-      {/* Bộ chuyển đổi ngôn ngữ nhanh */}
-      <div className="flex justify-end gap-2 mb-4 text-[12px] font-medium">
-        <button
-          onClick={() => switchLanguage("vi")}
-          className={`hover:text-blue-500 ${locale === "vi" ? "text-blue-600 underline" : "text-gray-400"}`}
-        >
-          Tiếng Việt
-        </button>
-        <span className="text-gray-300">|</span>
-        <button
-          onClick={() => switchLanguage("en")}
-          className={`hover:text-blue-500 ${locale === "en" ? "text-blue-600 underline" : "text-gray-400"}`}
-        >
-          English
-        </button>
-      </div>
-
+    <>
       <form id="loginForm">
         <div className="flex flex-col gap-4">
           {/* Email */}
@@ -232,6 +215,6 @@ export default function FormLogin() {
           </div>
         </div>
       </form>
-    </div>
+    </>
   );
 }

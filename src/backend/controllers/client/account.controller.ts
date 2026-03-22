@@ -5,6 +5,7 @@ import * as AccountModel from "../../models/account.model";
 import * as VerifyModel from "../../models/verify.model";
 import * as generateHelper from "../../helper/generate.helper";
 import * as mailHelper from "../../helper/mail.helper";
+import * as emailTemplate from "../../helper/email-template.helper";
 import { AuthRequest } from "../../types";
 
 const SALT_ROUNDS = 10;
@@ -90,7 +91,7 @@ export const register = async (
   );
 
   const title = "Mã OTP xác nhận đăng ký";
-  const content = `Mã OTP của bạn là <b>${otp}</b>. Mã OTP có hiệu lực trong 5 phút, vui lòng không cung cấp cho bất kỳ ai`;
+  const content = emailTemplate.getOTPTemplate(otp, "xác nhận đăng ký tài khoản");
   mailHelper.sendMail(req.body.email, title, content);
 
   res.cookie("verified_otp_token", verified_otp_token, {
@@ -137,6 +138,11 @@ export const registerVerify = async (
     };
     await AccountModel.insertAccount(userData);
     await VerifyModel.deleteOtpByEmail(infoUser.email);
+
+    // Send welcome email
+    const welcomeTitle = "Chào mừng đến với Manga Website";
+    const welcomeContent = emailTemplate.getWelcomeTemplate(infoUser.fullName);
+    mailHelper.sendMail(infoUser.email, welcomeTitle, welcomeContent);
 
     res.clearCookie("verified_otp_token");
     res.json({
@@ -240,7 +246,7 @@ export const forgotPassword = async (
   );
 
   const title = "Mã OTP để lấy lại mật khẩu";
-  const content = `Mã OTP của bạn là <b>${otp}</b>. Mã OTP có hiệu lực trong 5 phút, vui lòng không cung cấp cho bất kỳ ai`;
+  const content = emailTemplate.getOTPTemplate(otp, "lấy lại mật khẩu");
   mailHelper.sendMail(req.body.email, title, content);
 
   res.cookie("verified_otp_token", verified_otp_token, {
@@ -286,6 +292,11 @@ export const resetPassword = async (
   const newPassword = await hashPassword(password);
   await AccountModel.updatePassword(email, newPassword);
   await VerifyModel.deleteOtpByEmail(email);
+
+  // Send password reset success email
+  const resetSuccessTitle = "Đổi mật khẩu thành công";
+  const resetSuccessContent = emailTemplate.getPasswordResetSuccessTemplate();
+  mailHelper.sendMail(email, resetSuccessTitle, resetSuccessContent);
 
   res.clearCookie("verified_otp_token");
   res.json({
