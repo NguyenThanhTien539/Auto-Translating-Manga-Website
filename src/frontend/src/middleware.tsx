@@ -128,7 +128,7 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     "/admin/:path*", // check admin
-    "/account/verify/:path*", // check otp
+    // "/account/verify/:path*", // check otp
     "/account/reset-password/:path*", // check otp
     "/profile/:path*", // check user
     "/order-coin/:path",

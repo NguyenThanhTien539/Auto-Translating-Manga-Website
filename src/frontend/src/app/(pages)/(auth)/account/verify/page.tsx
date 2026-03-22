@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // import JustValidate from "just-validate";
 "use client";
-import { useEffect, useState, Suspense } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import OTPForm from "./OTPForm";
 import { toast } from "sonner";
-import Image from "next/image";
 
 function AccountVerify() {
   const router = useRouter();
@@ -32,7 +31,7 @@ function AccountVerify() {
           credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(finalData),
-        }
+        },
       )
         .then((res) => res.json())
         .then((data) => {
@@ -74,67 +73,78 @@ function AccountVerify() {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center">
-      <div className="fixed inset-0 ">
-        <Image
-          src="/bg-account.svg"
-          alt="Hình nền"
-          fill
-          className="object-cover"
-          priority
-          sizes="100vw"
-        />
-      </div>
-
+    <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <form
         id="registerVerify"
         action=""
-        // onSubmit={(e) => e.preventDefault()}
-        className="relative z-20 bg-white/85 w-[40%] min-h-[400px] rounded-[20%] p-6 shadow-2xl shadow-green-500"
+        className="relative bg-white w-full max-w-md mx-4 rounded-2xl p-8 shadow-xl border border-gray-100"
       >
-        <div className="text-center font-bold font-sans text-[30px] p-[20px] text-gray-400">
-          <h1>Nhập mã OTP</h1>
-          <p className="font-medium text-[13px] mt-[10px]">
-            Vui lòng nhập mã OTP để tiếp tục
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 mb-4">
+            <svg
+              className="w-8 h-8 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+              />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">
+            Xác thực tài khoản
+          </h1>
+          <p className="text-sm text-gray-500">
+            Nhập mã OTP đã được gửi đến email của bạn
           </p>
         </div>
 
-        <div className="flex flex-col px-5 gap-4">
-          <div className="flex flex-col items-center">
-            <div
-              id="otpInputWrapper"
-              tabIndex={0}
-              className="w-full flex flex-col items-center mt-[50px]"
-            >
-              <OTPForm
-                className="flex scale-150"
-                onChange={(val) => {
-                  setOtp(val);
-                }}
-              />
-            </div>
-            <div className="text-red-500 flex mt-10 ml-3">{error}</div>
-          </div>
-        </div>
-
-        <div className="mt-[20px]  text-center">
-          <button
-            className="bg-blue-300 hover:bg-green-300 hover:scale-105 transition-all duration-300 border mx-auto  border-[#DEDEDE] rounded-lg px-4 py-2 font-bold text-[16px] text-white cursor-pointer"
-            type="submit"
-            onClick={handleSubmit}
+        {/* OTP Input */}
+        <div className="mb-6">
+          <div
+            id="otpInputWrapper"
+            tabIndex={0}
+            className="w-full flex justify-center mb-3"
           >
-            Xác nhận mã OTP
-          </button>
+            <OTPForm
+              className="flex gap-2"
+              onChange={(val) => {
+                setOtp(val);
+                setError("");
+              }}
+            />
+          </div>
+          {error && (
+            <div className="text-red-500 text-sm text-center mt-3 animate-pulse">
+              {error}
+            </div>
+          )}
         </div>
 
-        <div className="text-center text-[14px] mt-2">
-          Quay lại trang đăng ký?
-          <span
-            className="pl-[10px] cursor-pointer underline"
+        {/* Submit Button */}
+        <button
+          className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 hover:shadow-lg transform hover:-translate-y-0.5 active:translate-y-0"
+          type="submit"
+          onClick={handleSubmit}
+        >
+          Xác nhận
+        </button>
+
+        {/* Footer */}
+        <div className="mt-6 text-center text-sm text-gray-600">
+          Chưa có tài khoản?{" "}
+          <button
+            type="button"
+            className="text-blue-600 hover:text-blue-700 font-medium underline-offset-2 hover:underline"
             onClick={() => router.push("/account/register")}
           >
-            Đăng ký
-          </span>
+            Đăng ký ngay
+          </button>
         </div>
       </form>
     </div>
