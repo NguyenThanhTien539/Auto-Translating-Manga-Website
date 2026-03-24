@@ -8,12 +8,17 @@ import * as mailHelper from "../../helper/mail.helper";
 import * as emailTemplate from "../../helper/email-template.helper";
 import { AuthRequest } from "../../types";
 import { jwtDecode } from "jwt-decode";
-import { redisClient } from "../../config/redis.config"; // sửa lại path cho đúng
-
-const SALT_ROUNDS = 10;
+import { redisClient } from "../../config/redis.config";
+import {
+  ttlSeconds,
+  accessTokenTtlRememberMe,
+  accessTokenTtlDefault,
+  OTPLength,
+  saltRounds,
+} from "../../config/variable.config";
 
 async function hashPassword(password: string): Promise<string> {
-  const salt = await bcrypt.genSalt(SALT_ROUNDS);
+  const salt = await bcrypt.genSalt(saltRounds);
   const hashedPassword = await bcrypt.hash(password, salt);
   return hashedPassword;
 }
@@ -85,7 +90,6 @@ export const register = async (
   const otpHash = await bcrypt.hash(otp, 10);
 
   const challengeKey = `register:challenge:${challengeId}`;
-  const ttlSeconds = 1 * 60; // 2 phút
 
   const registerData = {
     email,
@@ -96,8 +100,6 @@ export const register = async (
     resendCount: 0,
     createdAt: Date.now(),
   };
-  console.log("Register data to store in Redis:", registerData); // Debug log
-  console.log("Challenge ID:", challengeId); // Debug log
 
   try {
     await redisClient
@@ -114,7 +116,6 @@ export const register = async (
 
     await mailHelper.sendMail(email, title, content);
 
-    // Có thể giữ tên cookie cũ để frontend đỡ phải sửa nhiều
     res.cookie("verified_otp_token", challengeId, {
       maxAge: ttlSeconds * 1000,
       httpOnly: true,
@@ -192,7 +193,7 @@ export const googleLogin = async (
     );
 
     res.cookie("accessToken", accessToken, {
-      maxAge: 3 * 24 * 60 * 60 * 1000,
+      maxAge: accessTokenTtlRememberMe,
       httpOnly: true,
       secure: false,
       sameSite: "lax",
@@ -360,7 +361,9 @@ export const login = async (req: AuthRequest, res: Response): Promise<void> => {
   );
 
   res.cookie("accessToken", accessToken, {
-    maxAge: req.body.rememberMe ? 3 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000,
+    maxAge: req.body.rememberMe
+      ? accessTokenTtlRememberMe
+      : accessTokenTtlDefault,
     httpOnly: true,
     secure: false,
     sameSite: "lax",
@@ -393,8 +396,7 @@ export const forgotPassword = async (
     return;
   }
 
-  const length = 6;
-  const otp = generateHelper.generateOTP(length);
+  const otp = generateHelper.generateOTP(OTPLength);
 
   await VerifyModel.insertOtpAndEmail(req.body.email, otp);
 
