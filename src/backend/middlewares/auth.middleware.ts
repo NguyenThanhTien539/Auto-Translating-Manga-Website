@@ -2,9 +2,10 @@ import { Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import * as accountModel from "../models/account.model";
 import * as RoleModel from "../models/role.model";
-import { AuthRequest, DecodedToken, RegisterInfo } from "../types";
+import { AuthRequest, DecodedToken } from "../types";
 import { redisClient } from "../config/redis.config";
-// sửa path cho đúng
+
+
 export const verifyRegisterChallenge = async (
   req: AuthRequest,
   res: Response,

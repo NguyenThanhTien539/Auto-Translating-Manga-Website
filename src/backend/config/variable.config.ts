@@ -9,3 +9,9 @@ export const accessTokenTtlRememberMe = 3 * 24 * 60 * 60 * 1000; // 3 days in mi
 export const OTPLength = 6; // length of the OTP code
 
 export const saltRounds = 10; // number of salt rounds for bcrypt
+
+export enum Provider {
+  LOCAL = "local",
+  GOOGLE = "google",
+  FACEBOOK = "facebook",
+}

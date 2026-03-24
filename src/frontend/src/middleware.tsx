@@ -28,15 +28,6 @@ async function verifyJwtFromRequest(
   }
 }
 
-// Check OTP cho các bước verify / reset password
-function requireOtpToken(request: NextRequest) {
-  const token = request.cookies.get("verified_otp_token")?.value;
-  if (!token) {
-    return redirectTo(request, "/account/login");
-  }
-  return NextResponse.next();
-}
-
 // Check admin (role === "0")
 async function requireAdmin(request: NextRequest) {
   const payload = await verifyJwtFromRequest(request);
@@ -87,14 +78,6 @@ export async function middleware(request: NextRequest) {
     return requireAdmin(request);
   }
 
-  // 2. Bảo vệ verify/reset password bằng OTP
-  if (
-    pathname.startsWith("/account/verify") ||
-    pathname.startsWith("/account/reset-password")
-  ) {
-    return requireOtpToken(request);
-  }
-
   // 3) Uploader-only (PHẢI đặt trước /profile)
 
   if (
@@ -128,7 +111,6 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     "/admin/:path*", // check admin
-    // "/account/verify/:path*", // check otp
     "/account/reset-password/:path*", // check otp
     "/profile/:path*", // check user
     "/order-coin/:path",

@@ -15,6 +15,7 @@ import {
   accessTokenTtlDefault,
   OTPLength,
   saltRounds,
+  Provider,
 } from "../../config/variable.config";
 
 async function hashPassword(password: string): Promise<string> {
@@ -128,11 +129,8 @@ export const register = async (
       message: "Vui lòng nhập mã OTP",
     });
   } catch (error) {
-    // Rollback nếu có lỗi
     await redisClient.del(challengeKey);
     await redisClient.del(emailKey);
-
-    console.error("Register error:", error);
     res.status(500).json({
       code: "error",
       message: "Có lỗi xảy ra, vui lòng thử lại!",
@@ -162,7 +160,7 @@ export const googleLogin = async (
       };
 
       const providerData = {
-        provider: "google",
+        provider: Provider.GOOGLE,
         provider_id: String(sub),
       };
 
@@ -170,7 +168,7 @@ export const googleLogin = async (
     } else {
       const googleProvider = await AccountModel.findUserProvider(
         account.user_id,
-        "google",
+        Provider.GOOGLE,
       );
 
       if (!googleProvider) {
@@ -295,7 +293,7 @@ export const registerVerify = async (
     };
 
     const providerData = {
-      provider: "local",
+      provider: Provider.LOCAL,
       provider_id: null,
     };
     await AccountModel.createAccount(userData, providerData);
