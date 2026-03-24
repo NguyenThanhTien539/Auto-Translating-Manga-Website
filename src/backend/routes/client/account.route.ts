@@ -9,7 +9,7 @@ route.post("/register", accountValidate.register, accountController.register);
 
 route.post(
   "/verify-register",
-  authMiddleware.verifyOTPToken,
+  authMiddleware.verifyRegisterChallenge,
   accountController.registerVerify,
 );
 
@@ -17,13 +17,13 @@ route.post("/forgot-password", accountController.forgotPassword);
 
 route.post(
   "/verify-forgot-password",
-  authMiddleware.verifyOTPToken,
+  // authMiddleware.verifyOTPToken,
   accountController.forgotPasswordVerify,
 );
 
 route.post(
   "/reset-password",
-  authMiddleware.verifyOTPToken,
+  // authMiddleware.verifyOTPToken,
   accountController.resetPassword,
 );
 

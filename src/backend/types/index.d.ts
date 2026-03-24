@@ -19,10 +19,25 @@ export interface UserInfo {
   user_status: string;
 }
 
+export interface RegisterRedisData {
+  email: string;
+  full_name: string;
+  address?: string;
+  passwordHash: string;
+  otpHash: string;
+  attemptCount: number;
+  resendCount: number;
+  createdAt: number;
+}
+
 export interface AuthRequest extends Request {
   infoUser?: UserInfo;
   infoStaff?: UserInfo;
   email?: string;
+
+  registerChallengeId?: string;
+  registerChallengeKey?: string;
+  registerData?: RegisterRedisData;
 }
 
 export interface RegisterInfo {

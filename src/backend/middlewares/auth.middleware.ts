@@ -1,52 +1,65 @@
 import { Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import * as VerifyModel from "../models/verify.model";
 import * as accountModel from "../models/account.model";
 import * as RoleModel from "../models/role.model";
 import { AuthRequest, DecodedToken, RegisterInfo } from "../types";
-
-export const verifyOTPToken = async (
+import { redisClient } from "../config/redis.config";
+// sửa path cho đúng
+export const verifyRegisterChallenge = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction,
 ): Promise<void> => {
-  let email: string | undefined;
   try {
-    const verified_otp_token = req.cookies.verified_otp_token;
-    const decodedData = jwt.verify(
-      verified_otp_token,
-      process.env.JWT_SECRET!,
-    ) as DecodedToken & RegisterInfo;
-    email = decodedData.email;
-    await VerifyModel.deleteExpiredOTP();
-    const existedRecord = await VerifyModel.findEmailAndOtp(
-      decodedData.email,
-      decodedData.otp!,
-    );
+    const challengeId = req.cookies?.verified_otp_token;
 
-    if (!existedRecord) {
+    if (!challengeId) {
       res.clearCookie("verified_otp_token");
-      res.json({ code: "error", message: "Có lỗi xảy ra ở đây" });
+      res.json({
+        code: "error",
+        message: "Phiên xác thực không hợp lệ hoặc đã hết hạn!",
+      });
+      return;
     }
 
-    if (decodedData.email && decodedData.password && decodedData.fullName) {
-      (req as any).infoUser = {
-        email: decodedData.email,
-        password: decodedData.password,
-        fullName: decodedData.fullName,
-      };
-    } else {
-      req.email = decodedData.email;
+    const challengeKey = `register:challenge:${challengeId}`;
+    const rawData = await redisClient.get(challengeKey);
+
+    if (!rawData) {
+      res.clearCookie("verified_otp_token");
+      res.json({
+        code: "error",
+        message: "Mã OTP đã hết hạn hoặc không tồn tại!",
+      });
+      return;
     }
+
+    const rawDataText =
+      typeof rawData === "string" ? rawData : rawData.toString("utf8");
+
+    const registerData = JSON.parse(rawDataText) as {
+      email: string;
+      full_name: string;
+      address?: string;
+      passwordHash: string;
+      otpHash: string;
+      attemptCount: number;
+      resendCount: number;
+      createdAt: number;
+    };
+
+    req.registerChallengeId = challengeId;
+    req.registerChallengeKey = challengeKey;
+    req.registerData = registerData;
 
     next();
   } catch (error) {
-    if (email) {
-      await VerifyModel.deleteOtpByEmail(email);
-    }
-
+    console.error("verifyRegisterChallenge error:", error);
     res.clearCookie("verified_otp_token");
-    res.json({ code: "error", message: "Có lỗi xảy ra ở đây" });
+    res.json({
+      code: "error",
+      message: "Có lỗi xảy ra ở đây",
+    });
   }
 };
 

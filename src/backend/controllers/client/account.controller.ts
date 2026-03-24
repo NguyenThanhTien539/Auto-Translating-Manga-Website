@@ -8,6 +8,7 @@ import * as mailHelper from "../../helper/mail.helper";
 import * as emailTemplate from "../../helper/email-template.helper";
 import { AuthRequest } from "../../types";
 import { jwtDecode } from "jwt-decode";
+import { redisClient } from "../../config/redis.config"; // sửa lại path cho đúng
 
 const SALT_ROUNDS = 10;
 
@@ -53,7 +54,9 @@ export const register = async (
   req: AuthRequest,
   res: Response,
 ): Promise<void> => {
-  const existedEmail = await AccountModel.findUserByEmail(req.body.email);
+  const { email, full_name, password } = req.body;
+
+  const existedEmail = await AccountModel.findUserByEmail(email);
   if (existedEmail) {
     res.json({
       code: "error",
@@ -62,53 +65,78 @@ export const register = async (
     return;
   }
 
-  await VerifyModel.deleteExpiredOTP();
-  const existedOTP = await VerifyModel.findEmail(req.body.email);
+  // Kiểm tra email này đang có OTP/challenge còn sống không
+  const emailKey = `register:email:${email}`;
+  const existedChallengeId = await redisClient.get(emailKey);
 
-  if (existedOTP) {
+  if (existedChallengeId) {
     res.json({
       code: "existedOTP",
       message: "OTP đã được gửi và có hạn trong vòng 2 phút!",
     });
     return;
   }
-  const length = 6;
-  const otp = generateHelper.generateOTP(length);
 
-  await VerifyModel.insertOtpAndEmail(req.body.email, otp);
+  const otp = generateHelper.generateOTP(6);
+  const challengeId = crypto.randomUUID();
 
-  const verified_otp_token = jwt.sign(
-    {
-      otp: otp,
-      email: req.body.email,
-      fullName: req.body.fullName,
-      address: req.body.address,
-      password: req.body.password,
-    },
-    `${process.env.JWT_SECRET}`,
-    {
-      expiresIn: "1m",
-    },
-  );
+  // Hash password và OTP trước khi lưu Redis
+  const passwordHash = await bcrypt.hash(password, 10);
+  const otpHash = await bcrypt.hash(otp, 10);
 
-  const title = "Mã OTP xác nhận đăng ký";
-  const content = emailTemplate.getOTPTemplate(
-    otp,
-    "xác nhận đăng ký tài khoản",
-  );
-  mailHelper.sendMail(req.body.email, title, content);
+  const challengeKey = `register:challenge:${challengeId}`;
+  const ttlSeconds = 1 * 60; // 2 phút
 
-  res.cookie("verified_otp_token", verified_otp_token, {
-    maxAge: 1 * 60 * 1000,
-    httpOnly: true,
-    secure: false,
-    sameSite: "lax",
-  });
+  const registerData = {
+    email,
+    full_name,
+    passwordHash,
+    otpHash,
+    attemptCount: 0,
+    resendCount: 0,
+    createdAt: Date.now(),
+  };
+  console.log("Register data to store in Redis:", registerData); // Debug log
+  console.log("Challenge ID:", challengeId); // Debug log
 
-  res.json({
-    code: "success",
-    message: "Vui lòng nhập mã OTP",
-  });
+  try {
+    await redisClient
+      .multi()
+      .set(challengeKey, JSON.stringify(registerData), { EX: ttlSeconds })
+      .set(emailKey, challengeId, { EX: ttlSeconds })
+      .exec();
+
+    const title = "Mã OTP xác nhận đăng ký";
+    const content = emailTemplate.getOTPTemplate(
+      otp,
+      "xác nhận đăng ký tài khoản",
+    );
+
+    await mailHelper.sendMail(email, title, content);
+
+    // Có thể giữ tên cookie cũ để frontend đỡ phải sửa nhiều
+    res.cookie("verified_otp_token", challengeId, {
+      maxAge: ttlSeconds * 1000,
+      httpOnly: true,
+      secure: false, // production nên là true nếu dùng HTTPS
+      sameSite: "lax",
+    });
+
+    res.json({
+      code: "success",
+      message: "Vui lòng nhập mã OTP",
+    });
+  } catch (error) {
+    // Rollback nếu có lỗi
+    await redisClient.del(challengeKey);
+    await redisClient.del(emailKey);
+
+    console.error("Register error:", error);
+    res.status(500).json({
+      code: "error",
+      message: "Có lỗi xảy ra, vui lòng thử lại!",
+    });
+  }
 };
 
 export const googleLogin = async (
@@ -186,48 +214,113 @@ export const registerVerify = async (
   req: AuthRequest,
   res: Response,
 ): Promise<void> => {
-  // try {
-  //   const infoUser = (req as any).infoUser;
-  //   const existedRecord = await VerifyModel.findEmailAndOtp(
-  //     infoUser.email,
-  //     req.body.otp,
-  //   );
-  //   if (!existedRecord) {
-  //     res.json({
-  //       code: "otp error",
-  //       message: "OTP không hợp lệ!",
-  //     });
-  //     return;
-  //   }
-  //   infoUser.password = await hashPassword(infoUser.password);
-  //   const countAccounts = (await AccountModel.countAccounts()) + 1;
-  //   const username =
-  //     cleanVietnameseName(infoUser.fullName) + `@${countAccounts}`;
-  //   const userData = {
-  //     email: infoUser.email,
-  //     full_name: infoUser.fullName,
-  //     password: infoUser.password,
-  //     username: username,
-  //   };
-  //   await AccountModel.createAccount(userData);
-  //   await VerifyModel.deleteOtpByEmail(infoUser.email);
-  //   // Send welcome email
-  //   const welcomeTitle = "Chào mừng đến với Manga Website";
-  //   const welcomeContent = emailTemplate.getWelcomeTemplate(infoUser.fullName);
-  //   mailHelper.sendMail(infoUser.email, welcomeTitle, welcomeContent);
-  //   res.clearCookie("verified_otp_token");
-  //   res.json({
-  //     code: "success",
-  //     message: "Chúc mừng bạn đã đăng ký thành công",
-  //   });
-  // } catch (error) {
-  //   const infoUser = (req as any).infoUser;
-  //   res.clearCookie("verified_otp_token");
-  //   if (infoUser?.email) {
-  //     await VerifyModel.deleteOtpByEmail(infoUser.email);
-  //   }
-  //   res.json({ code: "error", message: "Có lỗi xảy ra ở đây" });
-  // }
+  try {
+    const inputOtp = req.body.otp;
+    const challengeId = req.registerChallengeId;
+    const challengeKey = req.registerChallengeKey;
+    const registerData = req.registerData;
+
+    if (!challengeId || !challengeKey || !registerData) {
+      res.clearCookie("verified_otp_token");
+      res.json({
+        code: "error",
+        message: "Phiên xác thực không hợp lệ hoặc đã hết hạn!",
+      });
+      return;
+    }
+
+    if (!inputOtp) {
+      res.json({
+        code: "otpError",
+        message: "Vui lòng nhập mã OTP!",
+      });
+      return;
+    }
+
+    const isMatch = await bcrypt.compare(inputOtp, registerData.otpHash);
+
+    if (!isMatch) {
+      registerData.attemptCount += 1;
+
+      const maxAttempts = 5;
+      if (registerData.attemptCount >= maxAttempts) {
+        await redisClient.del(challengeKey);
+        await redisClient.del(`register:email:${registerData.email}`);
+        res.clearCookie("verified_otp_token");
+
+        res.json({
+          code: "otpError",
+          message: "Bạn đã nhập sai OTP quá số lần cho phép!",
+        });
+        return;
+      }
+
+      const ttl = await redisClient.ttl(challengeKey);
+      if ((ttl as number) > 0) {
+        await redisClient.set(challengeKey, JSON.stringify(registerData), {
+          EX: Number(ttl),
+        });
+      }
+
+      res.json({
+        code: "otpError",
+        message: "OTP không hợp lệ!",
+      });
+      return;
+    }
+
+    const existedEmail = await AccountModel.findUserByEmail(registerData.email);
+    if (existedEmail) {
+      await redisClient.del(challengeKey);
+      await redisClient.del(`register:email:${registerData.email}`);
+      res.clearCookie("verified_otp_token");
+
+      res.json({
+        code: "error",
+        message: "Email đã tồn tại trong hệ thống!",
+      });
+      return;
+    }
+
+    const countAccounts = (await AccountModel.countAccounts()) + 1;
+    const username =
+      cleanVietnameseName(registerData.full_name) + `@${countAccounts}`;
+
+    const userData = {
+      email: registerData.email,
+      full_name: registerData.full_name,
+      password: registerData.passwordHash,
+      username,
+    };
+
+    const providerData = {
+      provider: "local",
+      provider_id: null,
+    };
+    await AccountModel.createAccount(userData, providerData);
+
+    await redisClient.del(challengeKey);
+    await redisClient.del(`register:email:${registerData.email}`);
+
+    const welcomeTitle = "Chào mừng đến với Manga Website";
+    const welcomeContent = emailTemplate.getWelcomeTemplate(
+      registerData.full_name,
+    );
+    await mailHelper.sendMail(registerData.email, welcomeTitle, welcomeContent);
+
+    res.clearCookie("verified_otp_token");
+    res.json({
+      code: "success",
+      message: "Chúc mừng bạn đã đăng ký thành công",
+    });
+  } catch (error) {
+    console.error("registerVerify error:", error);
+    res.clearCookie("verified_otp_token");
+    res.json({
+      code: "error",
+      message: "Có lỗi xảy ra ở đây",
+    });
+  }
 };
 
 export const login = async (req: AuthRequest, res: Response): Promise<void> => {

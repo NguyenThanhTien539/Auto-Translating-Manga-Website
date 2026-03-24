@@ -49,6 +49,7 @@ function AccountVerify() {
           }
         });
     } else {
+      console.log("Submitting OTP for registration verification:", finalData); // Debug log
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/account/verify-register`, {
         method: "post",
         credentials: "include",
