@@ -1,4 +1,5 @@
 {
+  "tailwindCSS.lint.suggestCanonicalClasses": "ignore",
   "tailwindCSS.lint.invalidArbitraryValue": "ignore",
   "tailwindCSS.lint.recommendedVariantOrder": "ignore",
   "tailwindCSS.lint.cssConflict": "ignore"
