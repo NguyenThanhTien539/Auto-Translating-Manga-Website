@@ -20,7 +20,7 @@ export default function FormForgotPassword() {
           { rule: "required", errorMessage: "Vui lòng nhập email!" },
           { rule: "email", errorMessage: "Email không đúng định dạng!" },
         ],
-        { errorContainer: "#emailError" }
+        { errorContainer: "#emailError" },
       )
       .onSuccess((event: any) => {
         const email = event.target.email.value;
@@ -42,14 +42,14 @@ export default function FormForgotPassword() {
             if (data.code === "success") {
               toast.success(data.message);
               router.push(
-                `/account/verify?email=${email}&type=forgot-password`
+                `/account/verify?email=${email}&type=forgot-password`,
               );
             }
 
             if (data.code === "existedOTP") {
               toast.success(data.message);
               router.push(
-                `/account/verify?email=${email}&type=forgot-password`
+                `/account/verify?email=${email}&type=forgot-password`,
               );
             }
           });
@@ -58,24 +58,27 @@ export default function FormForgotPassword() {
 
   return (
     <form id="forgotPasswordForm">
-      <div className="flex flex-col gap-4 mt-6">
+      <div className="flex flex-col gap-4">
         <div>
-          <label htmlFor="email" className="block font-medium text-sm mb-1.5">
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium text-gray-700 mb-1.5"
+          >
             Email*
           </label>
           <input
             id="email"
             type="email"
             placeholder="Ví dụ: nva@gmail.com"
-            className="w-full rounded-lg border border-gray-500 p-2"
+            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-gray-800 placeholder:text-gray-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
           />
-          <div id="emailError" className="text-sm text-red-500" />
+          <div id="emailError" className="text-sm text-red-500 mt-1" />
         </div>
 
-        <div className="mt-1 text-center">
+        <div className="mt-2 text-center">
           <button
             type="submit"
-            className="h-10 w-[160px] rounded-lg bg-blue-500 font-bold text-white hover:bg-blue-600 cursor-pointer"
+            className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 hover:shadow-lg transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
           >
             Gửi yêu cầu
           </button>

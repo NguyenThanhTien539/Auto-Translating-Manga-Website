@@ -39,7 +39,7 @@ export default function FormResetPassword() {
             errorMessage: "Mật khẩu phải chứa ít nhất một ký tự đặc biệt!",
           },
         ],
-        { errorContainer: "#passwordError" }
+        { errorContainer: "#passwordError" },
       )
       // Xác nhận mật khẩu
       .addField(
@@ -55,7 +55,7 @@ export default function FormResetPassword() {
             errorMessage: "Mật khẩu xác nhận không khớp!",
           },
         ],
-        { errorContainer: "#confirmPasswordError" }
+        { errorContainer: "#confirmPasswordError" },
       )
       .onSuccess((event: any) => {
         const password = event.target.password.value;
@@ -86,27 +86,27 @@ export default function FormResetPassword() {
 
   return (
     <form id="resetPasswordForm">
-      <div className="flex flex-col gap-4 mt-6">
+      <div className="flex flex-col gap-4">
         <div>
           <label
             htmlFor="password"
-            className="block font-medium text-sm mb-1.5"
+            className="block text-sm font-medium text-gray-700 mb-1.5"
           >
             Mật khẩu mới*
           </label>
           <input
             id="password"
             type="password"
-            placeholder="******"
-            className="w-full rounded-lg border border-gray-500 p-2"
+            placeholder="Nhập mật khẩu mới"
+            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-gray-800 placeholder:text-gray-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
           />
-          <div id="passwordError" className="text-sm text-red-500"></div>
+          <div id="passwordError" className="text-sm text-red-500 mt-1"></div>
         </div>
 
         <div>
           <label
             htmlFor="confirmPassword"
-            className="block font-medium text-sm mb-1.5"
+            className="block text-sm font-medium text-gray-700 mb-1.5"
           >
             Xác nhận mật khẩu*
           </label>
@@ -114,15 +114,18 @@ export default function FormResetPassword() {
             id="confirmPassword"
             type="password"
             placeholder="Nhập lại mật khẩu"
-            className="w-full rounded-lg border border-gray-500 p-2"
+            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-gray-800 placeholder:text-gray-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
           />
-          <div id="confirmPasswordError" className="text-sm text-red-500"></div>
+          <div
+            id="confirmPasswordError"
+            className="text-sm text-red-500 mt-1"
+          ></div>
         </div>
 
-        <div className="mt-1 text-center">
+        <div className="mt-2 text-center">
           <button
             type="submit"
-            className="h-10 w-[120px] rounded-lg bg-blue-500 font-bold text-white hover:bg-blue-600 cursor-pointer"
+            className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 hover:shadow-lg transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
           >
             Xác nhận
           </button>
