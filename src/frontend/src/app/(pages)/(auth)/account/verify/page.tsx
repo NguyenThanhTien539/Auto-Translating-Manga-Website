@@ -44,12 +44,11 @@ function AccountVerify() {
             toast.error(data.message);
             router.push("/account/forgot-password");
           }
-          if (data.code == "otp error") {
+          if (data.code == "otpError") {
             toast.error(data.message);
           }
         });
     } else {
-      console.log("Submitting OTP for registration verification:", finalData); // Debug log
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/account/register/verify-otp`, {
         method: "post",
         credentials: "include",
@@ -66,7 +65,7 @@ function AccountVerify() {
             toast.error(data.message);
             router.push("/account/register");
           }
-          if (data.code == "otp error") {
+          if (data.code == "otpError") {
             toast.error(data.message);
           }
         });

@@ -466,7 +466,6 @@ export const forgotPasswordVerify = async (
       });
       return;
     }
-
     const isMatch = await bcrypt.compare(inputOtp, forgotPasswordData.otpHash);
 
     if (!isMatch) {
@@ -498,6 +497,7 @@ export const forgotPasswordVerify = async (
         );
       }
 
+      console.log("forgotPasswordVerify OTP không hợp lệ:", inputOtp);
       res.json({
         code: "otpError",
         message: "OTP không hợp lệ!",
