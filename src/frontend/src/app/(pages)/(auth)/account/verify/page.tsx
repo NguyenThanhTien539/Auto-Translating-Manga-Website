@@ -35,17 +35,15 @@ function AccountVerify() {
       )
         .then((res) => res.json())
         .then((data) => {
-          if (data.code == "success") {
+          if (data.success) {
             toast.success(data.message);
             const email = searchParams.get("email");
             router.push(`/account/reset-password?email=${email}`);
-          }
-          if (data.code == "error") {
+          } else {
             toast.error(data.message);
-            router.push("/account/forgot-password");
-          }
-          if (data.code == "otpError") {
-            toast.error(data.message);
+            if (!data.data?.otpError) {
+              router.push("/account/forgot-password");
+            }
           }
         });
     } else {
@@ -57,16 +55,14 @@ function AccountVerify() {
       })
         .then((res) => res.json())
         .then((data) => {
-          if (data.code == "success") {
+          if (data.success) {
             toast.success(data.message);
             router.push("/account/login");
-          }
-          if (data.code == "error") {
+          } else {
             toast.error(data.message);
-            router.push("/account/register");
-          }
-          if (data.code == "otpError") {
-            toast.error(data.message);
+            if (!data.data?.otpError) {
+              router.push("/account/register");
+            }
           }
         });
     }

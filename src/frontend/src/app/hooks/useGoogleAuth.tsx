@@ -12,9 +12,13 @@ const roleRedirectMap: Record<string, string> = {
 };
 
 interface GoogleAuthResponse {
-  code?: string;
+  success?: boolean;
   message?: string;
-  role?: string;
+  data?: {
+    userId?: number;
+    email?: string;
+    role?: string;
+  };
 }
 
 interface UseGoogleAuthOptions {
@@ -56,15 +60,15 @@ export function useGoogleAuth(options?: UseGoogleAuthOptions) {
           );
         }
 
-        if (data.code === "error") {
+        if (!data.success) {
           toast.error(
             data.message ??
               options?.serverErrorMessage ??
               "Đăng nhập Google thất bại",
           );
-        } else if (data.code === "success") {
+        } else {
           toast.success(data.message ?? "Đăng nhập Google thành công");
-          const target = roleRedirectMap[data.role ?? ""] ?? "/";
+          const target = roleRedirectMap[data.data?.role ?? ""] ?? "/";
           router.push(target);
         }
       } catch (error) {

@@ -35,18 +35,9 @@ export default function FormForgotPassword() {
         })
           .then((res) => res.json())
           .then((data) => {
-            if (data.code === "error") {
+            if (!data.success) {
               toast.error(data.message);
-            }
-
-            if (data.code === "success") {
-              toast.success(data.message);
-              router.push(
-                `/account/verify?email=${email}&type=forgot-password`,
-              );
-            }
-
-            if (data.code === "existedOTP") {
+            } else {
               toast.success(data.message);
               router.push(
                 `/account/verify?email=${email}&type=forgot-password`,

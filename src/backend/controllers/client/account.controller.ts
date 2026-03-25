@@ -62,9 +62,10 @@ export const register = async (
 
   const existedEmail = await AccountModel.findUserByEmail(email);
   if (existedEmail) {
-    res.json({
-      code: "error",
+    res.status(400).json({
+      success: false,
       message: "Email đã tồn tại trong hệ thống!",
+      data: null,
     });
     return;
   }
@@ -74,9 +75,10 @@ export const register = async (
   const existedChallengeId = await redisClient.get(emailKey);
 
   if (existedChallengeId) {
-    res.json({
-      code: "existedOTP",
+    res.status(200).json({
+      success: true,
       message: "OTP đã được gửi và có hạn trong vòng 2 phút!",
+      data: { otpAlreadySent: true },
     });
     return;
   }
@@ -122,16 +124,18 @@ export const register = async (
       sameSite: "lax",
     });
 
-    res.json({
-      code: "success",
+    res.status(200).json({
+      success: true,
       message: "Vui lòng nhập mã OTP",
+      data: null,
     });
   } catch (error) {
     await redisClient.del(challengeKey);
     await redisClient.del(emailKey);
     res.status(500).json({
-      code: "error",
+      success: false,
       message: "Có lỗi xảy ra, vui lòng thử lại!",
+      data: null,
     });
   }
 };
@@ -171,9 +175,10 @@ export const googleLogin = async (
 
       if (!googleProvider) {
         res.status(400).json({
-          code: "error",
+          success: false,
           message:
             "Email này đã được đăng ký bằng tài khoản thường, không thể đăng nhập bằng Google",
+          data: null,
         });
         return;
       }
@@ -195,14 +200,20 @@ export const googleLogin = async (
       sameSite: "lax",
     });
 
-    res.json({
-      code: "success",
+    res.status(200).json({
+      success: true,
       message: "Đăng nhập Google thành công",
+      data: {
+        userId: account.user_id,
+        email: account.email,
+        role: account.role_id,
+      },
     });
   } catch (error) {
-    res.json({
-      code: "error",
+    res.status(400).json({
+      success: false,
       message: "Đăng nhập bằng Google thất bại",
+      data: null,
     });
   }
 };
@@ -219,17 +230,19 @@ export const registerVerify = async (
 
     if (!challengeId || !challengeKey || !registerData) {
       res.clearCookie("verified_otp_token");
-      res.json({
-        code: "error",
+      res.status(400).json({
+        success: false,
         message: "Phiên xác thực không hợp lệ hoặc đã hết hạn!",
+        data: null,
       });
       return;
     }
 
     if (!inputOtp) {
-      res.json({
-        code: "otpError",
+      res.status(400).json({
+        success: false,
         message: "Vui lòng nhập mã OTP!",
+        data: { otpError: true },
       });
       return;
     }
@@ -245,9 +258,10 @@ export const registerVerify = async (
         await redisClient.del(`register:email:${registerData.email}`);
         res.clearCookie("verified_otp_token");
 
-        res.json({
-          code: "otpError",
+        res.status(400).json({
+          success: false,
           message: "Bạn đã nhập sai OTP quá số lần cho phép!",
+          data: { otpError: true },
         });
         return;
       }
@@ -259,9 +273,10 @@ export const registerVerify = async (
         });
       }
 
-      res.json({
-        code: "otpError",
+      res.status(400).json({
+        success: false,
         message: "OTP không hợp lệ!",
+        data: { otpError: true },
       });
       return;
     }
@@ -272,9 +287,10 @@ export const registerVerify = async (
       await redisClient.del(`register:email:${registerData.email}`);
       res.clearCookie("verified_otp_token");
 
-      res.json({
-        code: "error",
+      res.status(400).json({
+        success: false,
         message: "Email đã tồn tại trong hệ thống!",
+        data: null,
       });
       return;
     }
@@ -306,16 +322,18 @@ export const registerVerify = async (
     await mailHelper.sendMail(registerData.email, welcomeTitle, welcomeContent);
 
     res.clearCookie("verified_otp_token");
-    res.json({
-      code: "success",
+    res.status(200).json({
+      success: true,
       message: "Chúc mừng bạn đã đăng ký thành công",
+      data: null,
     });
   } catch (error) {
     console.error("registerVerify error:", error);
     res.clearCookie("verified_otp_token");
-    res.json({
-      code: "error",
+    res.status(500).json({
+      success: false,
       message: "Có lỗi xảy ra ở đây",
+      data: null,
     });
   }
 };
@@ -323,7 +341,11 @@ export const registerVerify = async (
 export const login = async (req: AuthRequest, res: Response): Promise<void> => {
   const existedAccount = await AccountModel.findUserByEmail(req.body.email);
   if (!existedAccount) {
-    res.json({ code: "error", message: "Email chưa tồn tại trong hệ thống" });
+    res.status(400).json({
+      success: false,
+      message: "Email chưa tồn tại trong hệ thống",
+      data: null,
+    });
     return;
   }
 
@@ -333,16 +355,18 @@ export const login = async (req: AuthRequest, res: Response): Promise<void> => {
   );
 
   if (!isPasswordValidate) {
-    res.json({
-      code: "error",
+    res.status(400).json({
+      success: false,
       message: "Mật khẩu không đúng",
+      data: null,
     });
     return;
   }
   if (existedAccount.user_status == "ban") {
-    res.json({
-      code: "error",
+    res.status(400).json({
+      success: false,
       message: "Tài khoản của bạn đã bị khóa.",
+      data: null,
     });
     return;
   }
@@ -364,10 +388,14 @@ export const login = async (req: AuthRequest, res: Response): Promise<void> => {
     secure: false,
     sameSite: "lax",
   });
-  res.json({
-    role: existedAccount.role_id,
-    code: "success",
+  res.status(200).json({
+    success: true,
     message: "Chúc mừng bạn đã đến website của chúng tôi!",
+    data: {
+      userId: existedAccount.user_id,
+      email: existedAccount.email,
+      role: existedAccount.role_id,
+    },
   });
 };
 
@@ -379,7 +407,11 @@ export const forgotPassword = async (
 
   const existedEmail = await AccountModel.findUserByEmail(email);
   if (!existedEmail) {
-    res.json({ code: "error", message: "Email không tồn tại trong hệ thống" });
+    res.status(400).json({
+      success: false,
+      message: "Email không tồn tại trong hệ thống",
+      data: null,
+    });
     return;
   }
 
@@ -387,9 +419,10 @@ export const forgotPassword = async (
   const existedChallengeId = await redisClient.get(emailKey);
 
   if (existedChallengeId) {
-    res.json({
-      code: "existedOTP",
+    res.status(200).json({
+      success: true,
       message: "OTP đã được gửi và có hạn trong vòng 2 phút!",
+      data: { otpAlreadySent: true },
     });
     return;
   }
@@ -427,16 +460,18 @@ export const forgotPassword = async (
       sameSite: "lax",
     });
 
-    res.json({
-      code: "success",
+    res.status(200).json({
+      success: true,
       message: "Vui lòng nhập mã OTP",
+      data: null,
     });
   } catch (error) {
     await redisClient.del(challengeKey);
     await redisClient.del(emailKey);
     res.status(500).json({
-      code: "error",
+      success: false,
       message: "Có lỗi xảy ra, vui lòng thử lại!",
+      data: null,
     });
   }
 };
@@ -452,17 +487,19 @@ export const forgotPasswordVerify = async (
 
     if (!challengeKey || !forgotPasswordData) {
       res.clearCookie("verified_otp_token");
-      res.json({
-        code: "error",
+      res.status(400).json({
+        success: false,
         message: "Phiên xác thực không hợp lệ hoặc đã hết hạn!",
+        data: null,
       });
       return;
     }
 
     if (!inputOtp) {
-      res.json({
-        code: "otpError",
+      res.status(400).json({
+        success: false,
         message: "Vui lòng nhập mã OTP!",
+        data: { otpError: true },
       });
       return;
     }
@@ -479,9 +516,10 @@ export const forgotPasswordVerify = async (
         );
         res.clearCookie("verified_otp_token");
 
-        res.json({
-          code: "otpError",
+        res.status(400).json({
+          success: false,
           message: "Bạn đã nhập sai OTP quá số lần cho phép!",
+          data: { otpError: true },
         });
         return;
       }
@@ -498,9 +536,10 @@ export const forgotPasswordVerify = async (
       }
 
       console.log("forgotPasswordVerify OTP không hợp lệ:", inputOtp);
-      res.json({
-        code: "otpError",
+      res.status(400).json({
+        success: false,
         message: "OTP không hợp lệ!",
+        data: { otpError: true },
       });
       return;
     }
@@ -513,16 +552,18 @@ export const forgotPasswordVerify = async (
       });
     }
 
-    res.json({
-      code: "success",
+    res.status(200).json({
+      success: true,
       message: "Vui lòng nhập lại mật khẩu",
+      data: null,
     });
   } catch (error) {
     console.error("forgotPasswordVerify error:", error);
     res.clearCookie("verified_otp_token");
-    res.json({
-      code: "error",
+    res.status(500).json({
+      success: false,
       message: "Có lỗi xảy ra ở đây",
+      data: null,
     });
   }
 };
@@ -538,17 +579,19 @@ export const resetPassword = async (
 
     if (!challengeKey || !forgotPasswordData) {
       res.clearCookie("verified_otp_token");
-      res.json({
-        code: "error",
+      res.status(400).json({
+        success: false,
         message: "Phiên xác thực không hợp lệ hoặc đã hết hạn!",
+        data: null,
       });
       return;
     }
 
     if (!forgotPasswordData.isOtpVerified) {
-      res.json({
-        code: "error",
+      res.status(400).json({
+        success: false,
         message: "Vui lòng xác thực OTP trước khi đổi mật khẩu!",
+        data: null,
       });
       return;
     }
@@ -568,16 +611,18 @@ export const resetPassword = async (
     );
 
     res.clearCookie("verified_otp_token");
-    res.json({
-      code: "success",
+    res.status(200).json({
+      success: true,
       message: "Đã đặt lại mật khẩu thành công",
+      data: null,
     });
   } catch (error) {
     console.error("resetPassword error:", error);
     res.clearCookie("verified_otp_token");
-    res.json({
-      code: "error",
+    res.status(500).json({
+      success: false,
       message: "Có lỗi xảy ra ở đây",
+      data: null,
     });
   }
 };

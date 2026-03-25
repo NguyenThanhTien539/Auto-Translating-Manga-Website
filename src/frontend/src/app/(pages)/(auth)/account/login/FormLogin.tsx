@@ -60,11 +60,11 @@ export default function FormLogin() {
           );
           const data = await res.json();
 
-          if (data.code === "error") {
+          if (!data.success) {
             toast.error(data.message || v("loginFailed"));
-          } else if (data.code === "success") {
+          } else {
             toast.success(v("loginSuccess"));
-            const role = data.role as string;
+            const role = data.data?.role as string;
             const target = roleRedirectMap[role] ?? "/";
             router.push(target);
           }

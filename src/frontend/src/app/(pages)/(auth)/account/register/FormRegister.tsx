@@ -103,8 +103,9 @@ export default function FormRegister() {
           );
           const data = await res.json();
 
-          if (data.code === "error") toast.error(data.message);
-          else if (data.code === "success" || data.code === "existedOTP") {
+          if (!data.success) {
+            toast.error(data.message);
+          } else {
             toast.success(data.message);
             router.push(
               `/account/verify?email=${finalData.email}&type=register`,
