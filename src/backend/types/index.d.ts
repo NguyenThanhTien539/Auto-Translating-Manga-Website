@@ -30,6 +30,15 @@ export interface RegisterRedisData {
   createdAt: number;
 }
 
+export interface ForgotPasswordRedisData {
+  email: string;
+  otpHash: string;
+  attemptCount: number;
+  resendCount: number;
+  isOtpVerified: boolean;
+  createdAt: number;
+}
+
 export interface AuthRequest extends Request {
   infoUser?: UserInfo;
   infoStaff?: UserInfo;
@@ -38,6 +47,10 @@ export interface AuthRequest extends Request {
   registerChallengeId?: string;
   registerChallengeKey?: string;
   registerData?: RegisterRedisData;
+
+  forgotPasswordChallengeId?: string;
+  forgotPasswordChallengeKey?: string;
+  forgotPasswordData?: ForgotPasswordRedisData;
 }
 
 export interface RegisterInfo {

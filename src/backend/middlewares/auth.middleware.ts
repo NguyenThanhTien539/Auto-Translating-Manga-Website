@@ -5,7 +5,6 @@ import * as RoleModel from "../models/role.model";
 import { AuthRequest, DecodedToken } from "../types";
 import { redisClient } from "../config/redis.config";
 
-
 export const verifyRegisterChallenge = async (
   req: AuthRequest,
   res: Response,
@@ -56,6 +55,62 @@ export const verifyRegisterChallenge = async (
     next();
   } catch (error) {
     console.error("verifyRegisterChallenge error:", error);
+    res.clearCookie("verified_otp_token");
+    res.json({
+      code: "error",
+      message: "Có lỗi xảy ra ở đây",
+    });
+  }
+};
+
+export const verifyForgotPasswordChallenge = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const challengeId = req.cookies?.verified_otp_token;
+
+    if (!challengeId) {
+      res.clearCookie("verified_otp_token");
+      res.json({
+        code: "error",
+        message: "Phiên xác thực không hợp lệ hoặc đã hết hạn!",
+      });
+      return;
+    }
+
+    const challengeKey = `forgot-password:challenge:${challengeId}`;
+    const rawData = await redisClient.get(challengeKey);
+
+    if (!rawData) {
+      res.clearCookie("verified_otp_token");
+      res.json({
+        code: "error",
+        message: "Mã OTP đã hết hạn hoặc không tồn tại!",
+      });
+      return;
+    }
+
+    const rawDataText =
+      typeof rawData === "string" ? rawData : rawData.toString("utf8");
+
+    const forgotPasswordData = JSON.parse(rawDataText) as {
+      email: string;
+      otpHash: string;
+      attemptCount: number;
+      resendCount: number;
+      isOtpVerified: boolean;
+      createdAt: number;
+    };
+
+    req.forgotPasswordChallengeId = challengeId;
+    req.forgotPasswordChallengeKey = challengeKey;
+    req.forgotPasswordData = forgotPasswordData;
+
+    next();
+  } catch (error) {
+    console.error("verifyForgotPasswordChallenge error:", error);
     res.clearCookie("verified_otp_token");
     res.json({
       code: "error",

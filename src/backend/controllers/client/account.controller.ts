@@ -2,7 +2,6 @@ import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import * as AccountModel from "../../models/account.model";
-import * as VerifyModel from "../../models/verify.model";
 import * as generateHelper from "../../helper/generate.helper";
 import * as mailHelper from "../../helper/mail.helper";
 import * as emailTemplate from "../../helper/email-template.helper";
@@ -13,7 +12,6 @@ import {
   ttlSeconds,
   accessTokenTtlRememberMe,
   accessTokenTtlDefault,
-  OTPLength,
   saltRounds,
   Provider,
 } from "../../config/variable.config";
@@ -377,94 +375,209 @@ export const forgotPassword = async (
   req: AuthRequest,
   res: Response,
 ): Promise<void> => {
-  const existedEmail = await AccountModel.findUserByEmail(req.body.email);
+  const { email } = req.body;
+
+  const existedEmail = await AccountModel.findUserByEmail(email);
   if (!existedEmail) {
     res.json({ code: "error", message: "Email không tồn tại trong hệ thống" });
     return;
   }
 
-  await VerifyModel.deleteExpiredOTP();
-  const existedOTP = await VerifyModel.findEmail(req.body.email);
+  const emailKey = `forgot-password:email:${email}`;
+  const existedChallengeId = await redisClient.get(emailKey);
 
-  if (existedOTP) {
+  if (existedChallengeId) {
     res.json({
       code: "existedOTP",
-      message: "OTP đã được gửi và có hạn trong vòng 5 phút!",
+      message: "OTP đã được gửi và có hạn trong vòng 2 phút!",
     });
     return;
   }
 
-  const otp = generateHelper.generateOTP(OTPLength);
+  const otp = generateHelper.generateOTP(6);
+  const challengeId = crypto.randomUUID();
+  const otpHash = await bcrypt.hash(otp, 10);
 
-  await VerifyModel.insertOtpAndEmail(req.body.email, otp);
+  const challengeKey = `forgot-password:challenge:${challengeId}`;
 
-  const verified_otp_token = jwt.sign(
-    {
-      otp: otp,
-      email: req.body.email,
-    },
-    `${process.env.JWT_SECRET}`,
-    {
-      expiresIn: "1m",
-    },
-  );
+  const forgotPasswordData = {
+    email,
+    otpHash,
+    attemptCount: 0,
+    resendCount: 0,
+    isOtpVerified: false,
+    createdAt: Date.now(),
+  };
 
-  const title = "Mã OTP để lấy lại mật khẩu";
-  const content = emailTemplate.getOTPTemplate(otp, "lấy lại mật khẩu");
-  mailHelper.sendMail(req.body.email, title, content);
+  try {
+    await redisClient
+      .multi()
+      .set(challengeKey, JSON.stringify(forgotPasswordData), { EX: ttlSeconds })
+      .set(emailKey, challengeId, { EX: ttlSeconds })
+      .exec();
 
-  res.cookie("verified_otp_token", verified_otp_token, {
-    maxAge: 1 * 60 * 1000,
-    httpOnly: true,
-    secure: false,
-    sameSite: "lax",
-  });
-  res.json({
-    code: "success",
-    message: "Vui lòng nhập mã OTP",
-  });
+    const title = "Mã OTP để lấy lại mật khẩu";
+    const content = emailTemplate.getOTPTemplate(otp, "lấy lại mật khẩu");
+    await mailHelper.sendMail(email, title, content);
+
+    res.cookie("verified_otp_token", challengeId, {
+      maxAge: ttlSeconds * 1000,
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+    });
+
+    res.json({
+      code: "success",
+      message: "Vui lòng nhập mã OTP",
+    });
+  } catch (error) {
+    await redisClient.del(challengeKey);
+    await redisClient.del(emailKey);
+    res.status(500).json({
+      code: "error",
+      message: "Có lỗi xảy ra, vui lòng thử lại!",
+    });
+  }
 };
 
 export const forgotPasswordVerify = async (
   req: AuthRequest,
   res: Response,
 ): Promise<void> => {
-  const existedRecord = await VerifyModel.findEmailAndOtp(
-    req.email!,
-    req.body.otp,
-  );
+  try {
+    const inputOtp = req.body.otp;
+    const challengeKey = req.forgotPasswordChallengeKey;
+    const forgotPasswordData = req.forgotPasswordData;
 
-  if (!existedRecord) {
+    if (!challengeKey || !forgotPasswordData) {
+      res.clearCookie("verified_otp_token");
+      res.json({
+        code: "error",
+        message: "Phiên xác thực không hợp lệ hoặc đã hết hạn!",
+      });
+      return;
+    }
+
+    if (!inputOtp) {
+      res.json({
+        code: "otpError",
+        message: "Vui lòng nhập mã OTP!",
+      });
+      return;
+    }
+
+    const isMatch = await bcrypt.compare(inputOtp, forgotPasswordData.otpHash);
+
+    if (!isMatch) {
+      forgotPasswordData.attemptCount += 1;
+
+      const maxAttempts = 5;
+      if (forgotPasswordData.attemptCount >= maxAttempts) {
+        await redisClient.del(challengeKey);
+        await redisClient.del(
+          `forgot-password:email:${forgotPasswordData.email}`,
+        );
+        res.clearCookie("verified_otp_token");
+
+        res.json({
+          code: "otpError",
+          message: "Bạn đã nhập sai OTP quá số lần cho phép!",
+        });
+        return;
+      }
+
+      const ttl = await redisClient.ttl(challengeKey);
+      if ((ttl as number) > 0) {
+        await redisClient.set(
+          challengeKey,
+          JSON.stringify(forgotPasswordData),
+          {
+            EX: Number(ttl),
+          },
+        );
+      }
+
+      res.json({
+        code: "otpError",
+        message: "OTP không hợp lệ!",
+      });
+      return;
+    }
+
+    forgotPasswordData.isOtpVerified = true;
+    const ttl = await redisClient.ttl(challengeKey);
+    if ((ttl as number) > 0) {
+      await redisClient.set(challengeKey, JSON.stringify(forgotPasswordData), {
+        EX: Number(ttl),
+      });
+    }
+
     res.json({
-      code: "otp error",
-      message: "OTP không hợp lệ!",
+      code: "success",
+      message: "Vui lòng nhập lại mật khẩu",
     });
-    return;
+  } catch (error) {
+    console.error("forgotPasswordVerify error:", error);
+    res.clearCookie("verified_otp_token");
+    res.json({
+      code: "error",
+      message: "Có lỗi xảy ra ở đây",
+    });
   }
-  res.json({
-    code: "success",
-    message: "Vui lòng nhập lại mật khẩu",
-  });
 };
 
 export const resetPassword = async (
   req: AuthRequest,
   res: Response,
 ): Promise<void> => {
-  const { password } = req.body;
-  const email = req.email!;
-  const newPassword = await hashPassword(password);
-  await AccountModel.updatePassword(email, newPassword);
-  await VerifyModel.deleteOtpByEmail(email);
+  try {
+    const { password } = req.body;
+    const challengeKey = req.forgotPasswordChallengeKey;
+    const forgotPasswordData = req.forgotPasswordData;
 
-  // Send password reset success email
-  const resetSuccessTitle = "Đổi mật khẩu thành công";
-  const resetSuccessContent = emailTemplate.getPasswordResetSuccessTemplate();
-  mailHelper.sendMail(email, resetSuccessTitle, resetSuccessContent);
+    if (!challengeKey || !forgotPasswordData) {
+      res.clearCookie("verified_otp_token");
+      res.json({
+        code: "error",
+        message: "Phiên xác thực không hợp lệ hoặc đã hết hạn!",
+      });
+      return;
+    }
 
-  res.clearCookie("verified_otp_token");
-  res.json({
-    code: "success",
-    message: "Đã đặt lại mật khẩu thành công",
-  });
+    if (!forgotPasswordData.isOtpVerified) {
+      res.json({
+        code: "error",
+        message: "Vui lòng xác thực OTP trước khi đổi mật khẩu!",
+      });
+      return;
+    }
+
+    const newPassword = await hashPassword(password);
+    await AccountModel.updatePassword(forgotPasswordData.email, newPassword);
+
+    await redisClient.del(challengeKey);
+    await redisClient.del(`forgot-password:email:${forgotPasswordData.email}`);
+
+    const resetSuccessTitle = "Đổi mật khẩu thành công";
+    const resetSuccessContent = emailTemplate.getPasswordResetSuccessTemplate();
+    await mailHelper.sendMail(
+      forgotPasswordData.email,
+      resetSuccessTitle,
+      resetSuccessContent,
+    );
+
+    res.clearCookie("verified_otp_token");
+    res.json({
+      code: "success",
+      message: "Đã đặt lại mật khẩu thành công",
+    });
+  } catch (error) {
+    console.error("resetPassword error:", error);
+    res.clearCookie("verified_otp_token");
+    res.json({
+      code: "error",
+      message: "Có lỗi xảy ra ở đây",
+    });
+  }
 };

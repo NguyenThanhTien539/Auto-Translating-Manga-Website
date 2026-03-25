@@ -25,7 +25,7 @@ function AccountVerify() {
 
     if (verifyType == "forgot-password") {
       fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/account/verify-forgot-password`,
+        `${process.env.NEXT_PUBLIC_API_URL}/account/forgot-password/verify-otp`,
         {
           method: "POST",
           credentials: "include",
@@ -50,7 +50,7 @@ function AccountVerify() {
         });
     } else {
       console.log("Submitting OTP for registration verification:", finalData); // Debug log
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/account/verify-register`, {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/account/register/verify-otp`, {
         method: "post",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

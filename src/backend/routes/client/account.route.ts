@@ -8,7 +8,7 @@ const route = Router();
 route.post("/register", accountValidate.register, accountController.register);
 
 route.post(
-  "/verify-register",
+  "/register/verify-otp",
   authMiddleware.verifyRegisterChallenge,
   accountController.registerVerify,
 );
@@ -16,14 +16,14 @@ route.post(
 route.post("/forgot-password", accountController.forgotPassword);
 
 route.post(
-  "/verify-forgot-password",
-  // authMiddleware.verifyOTPToken,
+  "/forgot-password/verify-otp",
+  authMiddleware.verifyForgotPasswordChallenge,
   accountController.forgotPasswordVerify,
 );
 
 route.post(
   "/reset-password",
-  // authMiddleware.verifyOTPToken,
+  authMiddleware.verifyForgotPasswordChallenge,
   accountController.resetPassword,
 );
 
