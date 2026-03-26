@@ -8,8 +8,8 @@ import { toast } from "sonner";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import MyCustomGoogleButton from "@/app/components/auth/MyCustomGoogleButton";
 import { useGoogleAuth } from "@/app/hooks/useGoogleAuth";
-
 import { useTranslations } from "next-intl";
+import { api } from "@/app/utils/api";
 
 export default function FormRegister() {
   const router = useRouter();
@@ -92,16 +92,10 @@ export default function FormRegister() {
 
         console.log("Validated data:", finalData);
         try {
-          const res = await fetch(
+          const data = await api.post(
             `${process.env.NEXT_PUBLIC_API_URL}/account/register`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              credentials: "include",
-              body: JSON.stringify(finalData),
-            },
+            finalData,
           );
-          const data = await res.json();
 
           if (!data.success) {
             toast.error(data.message);

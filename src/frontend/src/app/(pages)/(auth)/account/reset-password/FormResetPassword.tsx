@@ -6,6 +6,7 @@ import JustValidate from "just-validate";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
+import { api } from "@/app/utils/api";
 
 export default function FormResetPassword() {
   const router = useRouter();
@@ -57,28 +58,28 @@ export default function FormResetPassword() {
         ],
         { errorContainer: "#confirmPasswordError" },
       )
-      .onSuccess((event: any) => {
+      .onSuccess(async (event: any) => {
         const password = event.target.password.value;
 
         const finalData = {
           password: password,
         };
 
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/account/reset-password`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(finalData),
-        })
-          .then((res) => res.json())
-          .then((data) => {
-            if (!data.success) {
-              toast.error(data.message);
-            } else {
-              toast.success(data.message);
-              router.push("/account/login");
-            }
-          });
+        try {
+          const data = await api.post(
+            `${process.env.NEXT_PUBLIC_API_URL}/account/reset-password`,
+            finalData,
+          );
+
+          if (!data.success) {
+            toast.error(data.message);
+          } else {
+            toast.success(data.message);
+            router.push("/account/login");
+          }
+        } catch (error) {
+          toast.error("Có lỗi xảy ra, vui lòng thử lại!");
+        }
       });
   }, []);
 

@@ -126,6 +126,16 @@ export const adminAuth = async (
 ): Promise<void> => {
   try {
     const authToken = req.cookies.accessToken;
+
+    if (!authToken) {
+      res.status(401).json({
+        success: false,
+        message: "Không có token xác thực",
+        data: null,
+      });
+      return;
+    }
+
     const decodedData = jwt.verify(
       authToken,
       process.env.JWT_SECRET!,
@@ -138,21 +148,43 @@ export const adminAuth = async (
 
     if (!existedRecord) {
       res.clearCookie("accessToken");
-      res.json({ code: "error", message: "Có lỗi xảy ra ở đây" });
+      res.status(401).json({
+        success: false,
+        message: "Token không hợp lệ",
+        data: null,
+      });
+      return;
     }
 
     const detailedRole = await RoleModel.findById(decodedData.role);
     if (detailedRole?.role_code !== "ADM") {
       res.clearCookie("accessToken");
-      res.json({ code: "error", message: "Có lỗi xảy ra ở đây" });
+      res.status(403).json({
+        success: false,
+        message: "Không có quyền truy cập",
+        data: null,
+      });
+      return;
     }
 
     req.infoStaff = existedRecord;
 
     next();
   } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      res.status(401).json({
+        success: false,
+        message: "Token đã hết hạn",
+        data: { tokenExpired: true },
+      });
+      return;
+    }
     res.clearCookie("accessToken");
-    res.json({ code: "error", message: "Có lỗi xảy ra ở đây" });
+    res.status(401).json({
+      success: false,
+      message: "Token không hợp lệ",
+      data: null,
+    });
   }
 };
 
@@ -163,6 +195,16 @@ export const clientAuth = async (
 ): Promise<void> => {
   try {
     const authToken = req.cookies.accessToken;
+
+    if (!authToken) {
+      res.status(401).json({
+        success: false,
+        message: "Không có token xác thực",
+        data: null,
+      });
+      return;
+    }
+
     const decodedData = jwt.verify(
       authToken,
       process.env.JWT_SECRET!,
@@ -175,14 +217,31 @@ export const clientAuth = async (
 
     if (!existedRecord) {
       res.clearCookie("accessToken");
-      res.json({ code: "error", message: "Có lỗi xảy ra ở đây" });
+      res.status(401).json({
+        success: false,
+        message: "Token không hợp lệ",
+        data: null,
+      });
+      return;
     }
 
     req.infoUser = existedRecord;
     next();
   } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      res.status(401).json({
+        success: false,
+        message: "Token đã hết hạn",
+        data: { tokenExpired: true },
+      });
+      return;
+    }
     res.clearCookie("accessToken");
-    res.json({ code: "error", message: "Có lỗi xảy ra ở đây" });
+    res.status(401).json({
+      success: false,
+      message: "Token không hợp lệ",
+      data: null,
+    });
   }
 };
 
@@ -193,6 +252,16 @@ export const uploaderAuth = async (
 ): Promise<void> => {
   try {
     const authToken = req.cookies.accessToken;
+
+    if (!authToken) {
+      res.status(401).json({
+        success: false,
+        message: "Không có token xác thực",
+        data: null,
+      });
+      return;
+    }
+
     const decodedData = jwt.verify(
       authToken,
       process.env.JWT_SECRET!,
@@ -205,19 +274,31 @@ export const uploaderAuth = async (
 
     if (!existedRecord) {
       res.clearCookie("accessToken");
-      res.json({ code: "error", message: "Có lỗi xảy ra ở đây" });
+      res.status(401).json({
+        success: false,
+        message: "Token không hợp lệ",
+        data: null,
+      });
       return;
     }
 
     if (existedRecord.user_status !== "active") {
       res.clearCookie("accessToken");
-      res.json({ code: "error", message: "Tài khoản không hoạt động" });
+      res.status(403).json({
+        success: false,
+        message: "Tài khoản không hoạt động",
+        data: null,
+      });
       return;
     }
 
     const detailedRole = await RoleModel.findById(decodedData.role);
     if (detailedRole?.role_code !== "UPL") {
-      res.json({ code: "error", message: "Bạn không có quyền truy cập" });
+      res.status(403).json({
+        success: false,
+        message: "Bạn không có quyền truy cập",
+        data: null,
+      });
       return;
     }
 
@@ -225,8 +306,20 @@ export const uploaderAuth = async (
 
     next();
   } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      res.status(401).json({
+        success: false,
+        message: "Token đã hết hạn",
+        data: { tokenExpired: true },
+      });
+      return;
+    }
     res.clearCookie("accessToken");
-    res.json({ code: "error", message: "Có lỗi xảy ra ở đây" });
+    res.status(401).json({
+      success: false,
+      message: "Token không hợp lệ",
+      data: null,
+    });
   }
 };
 

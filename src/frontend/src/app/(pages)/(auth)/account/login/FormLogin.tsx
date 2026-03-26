@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import MyCustomGoogleButton from "@/app/components/auth/MyCustomGoogleButton";
 import { useGoogleAuth } from "@/app/hooks/useGoogleAuth";
 import { useTranslations, useLocale } from "next-intl";
+import { api } from "@/app/utils/api";
 
 const roleRedirectMap: Record<string, string> = {
   "0": "/admin/dashboard",
@@ -49,16 +50,10 @@ export default function FormLogin() {
         const dataFinal = { email, password, rememberPassword };
 
         try {
-          const res = await fetch(
+          const data = await api.post(
             `${process.env.NEXT_PUBLIC_API_URL}/account/login`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(dataFinal),
-              credentials: "include",
-            },
+            dataFinal,
           );
-          const data = await res.json();
 
           if (!data.success) {
             toast.error(data.message || v("loginFailed"));

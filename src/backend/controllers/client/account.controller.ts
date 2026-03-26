@@ -10,8 +10,8 @@ import { jwtDecode } from "jwt-decode";
 import { redisClient } from "../../config/redis.config";
 import {
   ttlSeconds,
-  accessTokenTtlRememberMe,
-  accessTokenTtlDefault,
+  accessTokenTtl,
+  refreshTokenTtl,
   saltRounds,
   Provider,
 } from "../../config/variable.config";
@@ -35,12 +35,15 @@ interface TokenData {
   email: string;
 }
 
-function generateAccessToken(
-  finalData: TokenData,
-  rememberMe: boolean = false,
-): string {
+function generateAccessToken(finalData: TokenData): string {
   return jwt.sign(finalData, process.env.JWT_SECRET!, {
-    expiresIn: rememberMe ? "3d" : "1d",
+    expiresIn: accessTokenTtl, // 15 minutes
+  });
+}
+
+function generateRefreshToken(finalData: TokenData): string {
+  return jwt.sign(finalData, process.env.JWT_SECRET!, {
+    expiresIn: refreshTokenTtl, // 7 days
   });
 }
 
@@ -184,17 +187,32 @@ export const googleLogin = async (
       }
     }
 
-    const accessToken = generateAccessToken(
-      {
-        id: account.user_id,
-        role: account.role_id,
-        email: account.email,
-      },
-      true,
-    );
+    const tokenPayload = {
+      id: account.user_id,
+      role: account.role_id,
+      email: account.email,
+    };
 
+    const accessToken = generateAccessToken(tokenPayload);
+    const refreshToken = generateRefreshToken(tokenPayload);
+
+    // Store refresh token in Redis
+    const refreshTokenKey = `refresh_token:${account.user_id}`;
+    await redisClient.set(refreshTokenKey, refreshToken, {
+      EX: refreshTokenTtl,
+    });
+
+    // Set access token cookie
     res.cookie("accessToken", accessToken, {
-      maxAge: accessTokenTtlRememberMe,
+      maxAge: accessTokenTtl * 1000,
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+    });
+
+    // Set refresh token cookie
+    res.cookie("refreshToken", refreshToken, {
+      maxAge: refreshTokenTtl * 1000,
       httpOnly: true,
       secure: false,
       sameSite: "lax",
@@ -371,23 +389,37 @@ export const login = async (req: AuthRequest, res: Response): Promise<void> => {
     return;
   }
 
-  const accessToken = generateAccessToken(
-    {
-      id: existedAccount.user_id,
-      role: existedAccount.role_id,
-      email: existedAccount.email,
-    },
-    req.body.rememberMe,
-  );
+  const tokenPayload = {
+    id: existedAccount.user_id,
+    role: existedAccount.role_id,
+    email: existedAccount.email,
+  };
 
+  const accessToken = generateAccessToken(tokenPayload);
+  const refreshToken = generateRefreshToken(tokenPayload);
+
+  // Store refresh token in Redis with user ID as key
+  const refreshTokenKey = `refresh_token:${existedAccount.user_id}`;
+  await redisClient.set(refreshTokenKey, refreshToken, {
+    EX: refreshTokenTtl, // 7 days
+  });
+
+  // Set access token cookie (15 minutes)
   res.cookie("accessToken", accessToken, {
-    maxAge: req.body.rememberMe
-      ? accessTokenTtlRememberMe
-      : accessTokenTtlDefault,
+    maxAge: accessTokenTtl * 1000,
     httpOnly: true,
     secure: false,
     sameSite: "lax",
   });
+
+  // Set refresh token cookie (7 days)
+  res.cookie("refreshToken", refreshToken, {
+    maxAge: refreshTokenTtl * 1000,
+    httpOnly: true,
+    secure: false,
+    sameSite: "lax",
+  });
+
   res.status(200).json({
     success: true,
     message: "Chúc mừng bạn đã đến website của chúng tôi!",
@@ -622,6 +654,104 @@ export const resetPassword = async (
     res.status(500).json({
       success: false,
       message: "Có lỗi xảy ra ở đây",
+      data: null,
+    });
+  }
+};
+
+export const refreshToken = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+
+    if (!refreshToken) {
+      res.status(401).json({
+        success: false,
+        message: "Refresh token không tồn tại",
+        data: null,
+      });
+      return;
+    }
+
+    // Verify the refresh token
+    let decodedToken: TokenData;
+    try {
+      decodedToken = jwt.verify(
+        refreshToken,
+        process.env.JWT_SECRET!,
+      ) as TokenData;
+    } catch (error) {
+      res.clearCookie("accessToken");
+      res.clearCookie("refreshToken");
+      res.status(401).json({
+        success: false,
+        message: "Refresh token không hợp lệ hoặc đã hết hạn",
+        data: null,
+      });
+      return;
+    }
+
+    // Check if refresh token exists in Redis
+    const refreshTokenKey = `refresh_token:${decodedToken.id}`;
+    const storedToken = await redisClient.get(refreshTokenKey);
+
+    if (!storedToken || storedToken !== refreshToken) {
+      res.clearCookie("accessToken");
+      res.clearCookie("refreshToken");
+      res.status(401).json({
+        success: false,
+        message: "Refresh token không hợp lệ",
+        data: null,
+      });
+      return;
+    }
+
+    // Verify user still exists and is active
+    const existedAccount = await AccountModel.findUserByEmail(decodedToken.email);
+    if (!existedAccount || existedAccount.user_status == "ban") {
+      await redisClient.del(refreshTokenKey);
+      res.clearCookie("accessToken");
+      res.clearCookie("refreshToken");
+      res.status(401).json({
+        success: false,
+        message: "Tài khoản không tồn tại hoặc đã bị khóa",
+        data: null,
+      });
+      return;
+    }
+
+    // Generate new access token
+    const tokenPayload = {
+      id: decodedToken.id,
+      role: decodedToken.role,
+      email: decodedToken.email,
+    };
+    const newAccessToken = generateAccessToken(tokenPayload);
+
+    // Set new access token cookie
+    res.cookie("accessToken", newAccessToken, {
+      maxAge: accessTokenTtl * 1000,
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Đã làm mới access token thành công",
+      data: {
+        userId: decodedToken.id,
+        email: decodedToken.email,
+        role: decodedToken.role,
+      },
+    });
+  } catch (error) {
+    console.error("refreshToken error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Có lỗi xảy ra khi làm mới token",
       data: null,
     });
   }

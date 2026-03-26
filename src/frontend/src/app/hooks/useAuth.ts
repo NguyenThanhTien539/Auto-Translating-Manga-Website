@@ -2,6 +2,12 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { api } from "@/app/utils/api";
+
+interface AuthUserPayload {
+  user?: unknown;
+  banned?: boolean;
+}
 
 export function useAuth() {
   const router = useRouter();
@@ -15,22 +21,22 @@ export function useAuth() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsLoading(true);
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/check`, {
-      credentials: "include",
-    })
-      .then((res) => res.json())
+    api
+      .get<AuthUserPayload>(`${process.env.NEXT_PUBLIC_API_URL}/auth/check`)
       .then((data) => {
-        if (data.code == "success") {
-          setIsLogin(true);
-          setInfoUser(data.infoUser);
-        }
+        const userFromResponse = data.data?.user ?? null;
+        const isSuccess = data.success === true;
+        const isBanned = data.data?.banned === true;
 
-        if (data.code == "error") {
+        if (isSuccess && userFromResponse) {
+          setIsLogin(true);
+          setInfoUser(userFromResponse);
+        } else {
           setIsLogin(false);
           setInfoUser(null);
         }
 
-        if (data.code == "ban") {
+        if (isBanned) {
           setIsLogin(false);
           setInfoUser(null);
           toast.error("Tài khoản của bạn đã bị khóa.");
@@ -44,6 +50,6 @@ export function useAuth() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [pathName]);
+  }, [pathName, router]);
   return { infoUser, isLogin, isLoading };
 }

@@ -5,6 +5,7 @@ import JustValidate from "just-validate";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { api } from "@/app/utils/api";
 
 export default function FormForgotPassword() {
   const router = useRouter();
@@ -22,28 +23,26 @@ export default function FormForgotPassword() {
         ],
         { errorContainer: "#emailError" },
       )
-      .onSuccess((event: any) => {
+      .onSuccess(async (event: any) => {
         const email = event.target.email.value;
 
         const finalData = { email: email };
 
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/account/forgot-password`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(finalData),
-        })
-          .then((res) => res.json())
-          .then((data) => {
-            if (!data.success) {
-              toast.error(data.message);
-            } else {
-              toast.success(data.message);
-              router.push(
-                `/account/verify?email=${email}&type=forgot-password`,
-              );
-            }
-          });
+        try {
+          const data = await api.post(
+            `${process.env.NEXT_PUBLIC_API_URL}/account/forgot-password`,
+            finalData,
+          );
+
+          if (!data.success) {
+            toast.error(data.message);
+          } else {
+            toast.success(data.message);
+            router.push(`/account/verify?email=${email}&type=forgot-password`);
+          }
+        } catch (error) {
+          toast.error("Có lỗi xảy ra, vui lòng thử lại!");
+        }
       });
   }, []);
 

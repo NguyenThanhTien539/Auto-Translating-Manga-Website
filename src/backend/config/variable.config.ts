@@ -2,9 +2,11 @@ export const pathAdmin: string = "admin";
 
 export const ttlSeconds = 2 * 60; // time to live for OTP in seconds (2 minutes)
 
-export const accessTokenTtlDefault = 24 * 60 * 60 * 1000; // 1 day in milliseconds
+// Access token: 15 minutes
+export const accessTokenTtl = 15 * 60; // 15 minutes in seconds
 
-export const accessTokenTtlRememberMe = 3 * 24 * 60 * 60 * 1000; // 3 days in milliseconds
+// Refresh token: 7 days
+export const refreshTokenTtl = 7 * 24 * 60 * 60; // 7 days in seconds
 
 export const OTPLength = 6; // length of the OTP code
 

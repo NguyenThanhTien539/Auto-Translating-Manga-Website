@@ -38,10 +38,10 @@ export default function ProfilePage() {
         `${process.env.NEXT_PUBLIC_API_URL}/auth/logout`,
         {
           credentials: "include",
-        }
+        },
       );
       const data = await res.json();
-      if (data.code == "success") {
+      if (res.ok && data.success) {
         router.push(url);
         toast.success(data.message || "Đăng xuất thành công");
       }
@@ -182,8 +182,8 @@ export default function ProfilePage() {
                             {infoUser?.role === "Uploader"
                               ? "Uploader"
                               : infoUser?.role === "Admin"
-                              ? "Quản trị viên"
-                              : "Độc giả"}
+                                ? "Quản trị viên"
+                                : "Độc giả"}
                           </span>
                         </div>
                       </div>
@@ -279,7 +279,7 @@ export default function ProfilePage() {
                       className="w-52 h-52 rounded-full shadow-lg border-4 border-white"
                       style={{
                         background: `conic-gradient(${gradientParts.join(
-                          ", "
+                          ", ",
                         )})`,
                       }}
                     />

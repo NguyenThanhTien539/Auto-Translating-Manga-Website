@@ -5,6 +5,7 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import OTPForm from "./OTPForm";
 import { toast } from "sonner";
+import { api } from "@/app/utils/api";
 
 function AccountVerify() {
   const router = useRouter();
@@ -14,7 +15,7 @@ function AccountVerify() {
   const [otpValue, setOtp] = useState("");
   const [error, setError] = useState("");
 
-  const handleSubmit = (event: any) => {
+  const handleSubmit = async (event: any) => {
     event.preventDefault();
 
     if (otpValue.trim().length !== 6) {
@@ -23,48 +24,41 @@ function AccountVerify() {
     }
     const finalData = { otp: otpValue };
 
-    if (verifyType == "forgot-password") {
-      fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/account/forgot-password/verify-otp`,
-        {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(finalData),
-        },
-      )
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.success) {
-            toast.success(data.message);
-            const email = searchParams.get("email");
-            router.push(`/account/reset-password?email=${email}`);
-          } else {
-            toast.error(data.message);
-            if (!data.data?.otpError) {
-              router.push("/account/forgot-password");
-            }
+    try {
+      if (verifyType == "forgot-password") {
+        const data = await api.post(
+          `${process.env.NEXT_PUBLIC_API_URL}/account/forgot-password/verify-otp`,
+          finalData,
+        );
+
+        if (data.success) {
+          toast.success(data.message);
+          const email = searchParams.get("email");
+          router.push(`/account/reset-password?email=${email}`);
+        } else {
+          toast.error(data.message);
+          if (!data.data?.otpError) {
+            router.push("/account/forgot-password");
           }
-        });
-    } else {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/account/register/verify-otp`, {
-        method: "post",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(finalData),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.success) {
-            toast.success(data.message);
-            router.push("/account/login");
-          } else {
-            toast.error(data.message);
-            if (!data.data?.otpError) {
-              router.push("/account/register");
-            }
+        }
+      } else {
+        const data = await api.post(
+          `${process.env.NEXT_PUBLIC_API_URL}/account/register/verify-otp`,
+          finalData,
+        );
+
+        if (data.success) {
+          toast.success(data.message);
+          router.push("/account/login");
+        } else {
+          toast.error(data.message);
+          if (!data.data?.otpError) {
+            router.push("/account/register");
           }
-        });
+        }
+      }
+    } catch (error) {
+      toast.error("Có lỗi xảy ra, vui lòng thử lại!");
     }
   };
 

@@ -28,33 +28,22 @@ export default function Sidebar() {
   const isRegistrationActive = pathname.startsWith("/admin/registration");
   const isUserActive = pathname.startsWith("/admin/manage-users");
 
-  const   handleLogout = async (url: string) => {
+  const handleLogout = async (url: string) => {
     try {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/auth/logout`,
         {
           credentials: "include",
-        }
+        },
       );
       const data = await res.json();
-      if (data.code == "success") {
+      if (res.ok && data.success) {
         route.push(url);
         toast.success(data.message || "Đăng xuất thành công");
       }
     } catch (error) {
       toast.error("Có lỗi xảy ra khi đăng xuất");
-    } finally {
     }
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, {
-      credentials: "include",
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.code == "success") {
-          route.push(url);
-          toast.success(data.message || "Đăng xuất thành công");
-        }
-      });
   };
   return (
     <nav className="p-3 space-y-3 min-w-[230px]  border-r border-gray-300">
