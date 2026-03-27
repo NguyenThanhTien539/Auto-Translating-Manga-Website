@@ -19,7 +19,7 @@ let refreshPromise: Promise<boolean> | null = null;
 async function refreshAccessToken(): Promise<boolean> {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh-token`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/refresh-token`,
       {
         method: "POST",
         credentials: "include",
@@ -141,4 +141,3 @@ export const api = {
   delete: <T = any>(url: string, options?: FetchOptions) =>
     apiFetchJson<T>(url, { ...options, method: "DELETE" }),
 };
-

@@ -98,7 +98,7 @@ export default function ProfileDetailPage() {
       formData.append("avatar", avt);
     }
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/profile`, {
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/profile`, {
       method: "PATCH",
       credentials: "include",
       body: formData,
@@ -114,7 +114,7 @@ export default function ProfileDetailPage() {
       });
   };
 
-  return (  
+  return (
     <>
       {infoUser && (
         <div className="w-full min-h-screen px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">

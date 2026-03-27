@@ -15,7 +15,7 @@ export default function OrderListPage() {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useRouter();
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/order-coin/list`)
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/order-coin/list`)
       .then((response) => response.json())
       .then((data) => {
         if (data.code == "success") setCoinPackages(data.coinPackages);
@@ -93,7 +93,7 @@ export default function OrderListPage() {
                       onClick={() => {
                         if (selectedPackage) {
                           navigate.push(
-                            `/order-coin/detail/${selectedPackage}`
+                            `/order-coin/detail/${selectedPackage}`,
                           );
                         }
                       }}
@@ -145,7 +145,7 @@ export default function OrderListPage() {
                         <div className="relative">
                           <div
                             className={`${getCoinIconSize(
-                              pkg.coins
+                              pkg.coins,
                             )} transition-transform duration-300`}
                           >
                             🪙

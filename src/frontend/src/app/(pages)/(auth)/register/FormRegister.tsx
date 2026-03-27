@@ -3,7 +3,7 @@
 "use client";
 import JustValidate from "just-validate";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { toast } from "sonner";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import MyCustomGoogleButton from "@/app/components/auth/MyCustomGoogleButton";
@@ -93,7 +93,7 @@ export default function FormRegister() {
         console.log("Validated data:", finalData);
         try {
           const data = await api.post(
-            `${process.env.NEXT_PUBLIC_API_URL}/account/register`,
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/account/register`,
             finalData,
           );
 
@@ -101,9 +101,7 @@ export default function FormRegister() {
             toast.error(data.message);
           } else {
             toast.success(data.message);
-            router.push(
-              `/verify?email=${finalData.email}&type=register`,
-            );
+            router.push(`/verify?email=${finalData.email}&type=register`);
           }
         } catch (error) {
           toast.error(v("registerFailed"));
@@ -236,4 +234,3 @@ export default function FormRegister() {
     </div>
   );
 }
-

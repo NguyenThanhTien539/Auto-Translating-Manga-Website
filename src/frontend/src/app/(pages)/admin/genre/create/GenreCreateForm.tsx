@@ -16,7 +16,7 @@ export function GenreCreateForm() {
       .addField(
         "#genre_name",
         [{ rule: "required", errorMessage: "Vui lòng nhập tên thể loại!" }],
-        { errorContainer: "#errorName" }
+        { errorContainer: "#errorName" },
       )
 
       .onSuccess((event: any) => {
@@ -28,13 +28,13 @@ export function GenreCreateForm() {
           slug: slug,
         };
         fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/genre/create`,
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/genre/create`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(dataFinal),
             credentials: "include",
-          }
+          },
         )
           .then((res) => res.json())
           .then((data) => {

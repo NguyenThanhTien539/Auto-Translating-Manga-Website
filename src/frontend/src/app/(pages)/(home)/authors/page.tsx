@@ -21,7 +21,7 @@ export default function AuthorsPage() {
   useEffect(() => {
     setLoading(true);
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/authors/all`)
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/authors/all`)
       .then((res) => res.json())
       .then((data) => {
         if (data.code === "success") {

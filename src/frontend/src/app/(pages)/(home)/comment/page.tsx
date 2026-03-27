@@ -54,7 +54,7 @@ function CommentContent() {
 
   useEffect(() => {
     fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/manga/detail?manga_id=${manga_id}&chapter_id=${chapter_id}`
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/manga/detail?manga_id=${manga_id}&chapter_id=${chapter_id}`,
     )
       .then((response) => response.json())
       .then((data) => {
@@ -74,7 +74,7 @@ function CommentContent() {
 
   useEffect(() => {
     fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/comments/list?chapter_id=${chapter_id}`
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/comments/list?chapter_id=${chapter_id}`,
     )
       .then((response) => response.json())
       .then((data) => {
@@ -102,7 +102,7 @@ function CommentContent() {
 
     setIsSubmitting(true);
     fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/comments/add?chapter_id=${chapter_id}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/comments/add?chapter_id=${chapter_id}`,
       {
         method: "POST",
         headers: {
@@ -113,7 +113,7 @@ function CommentContent() {
           content: newComment,
           rating: newRating,
         }),
-      }
+      },
     )
       .then((response) => response.json())
       .then((data) => {

@@ -137,8 +137,8 @@ export default function AuthorManagement() {
           prev.map((a) =>
             a.author_id === editingAuthor.author_id
               ? ({ ...a, ...formData, author_id: idForApi } as Author)
-              : a
-          )
+              : a,
+          ),
         );
       } else {
         setAuthors((prev) => [
@@ -163,7 +163,7 @@ export default function AuthorManagement() {
       }
 
       // 4) Call API
-      const url = `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manage-authors/update/${idForApi}`;
+      const url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manage-authors/update/${idForApi}`;
 
       const res = await fetch(url, {
         method: "PATCH",
@@ -196,7 +196,7 @@ export default function AuthorManagement() {
 
   useEffect(() => {
     fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manage-authors/all`
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manage-authors/all`,
     )
       .then((res) => res.json())
       .then((data) => {

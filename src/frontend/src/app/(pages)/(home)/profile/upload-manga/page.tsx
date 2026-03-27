@@ -25,7 +25,7 @@ export default function UploadMangaPage() {
   const router = useRouter();
 
   const [activeTab, setActiveTab] = useState<"new-manga" | "new-chapter">(
-    "new-manga"
+    "new-manga",
   );
 
   const [languages, setLanguages] = useState<Array<any>>([]);
@@ -91,7 +91,7 @@ export default function UploadMangaPage() {
     const fetchLanguages = async () => {
       try {
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/manga/languages`
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/manga/languages`,
         );
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
@@ -107,7 +107,7 @@ export default function UploadMangaPage() {
     const fetchGenres = async () => {
       try {
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/manga/genres`
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/manga/genres`,
         );
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
@@ -176,7 +176,7 @@ export default function UploadMangaPage() {
     formData.append("slug", slugify(form.mangaTitle.value));
     formData.append("genres", JSON.stringify(selectedGenres));
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/upload`, {
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/manga/upload`, {
       method: "POST",
       credentials: "include",
       body: formData,
@@ -193,7 +193,7 @@ export default function UploadMangaPage() {
         } else {
           toast.error(
             data.message ||
-              "Đã có lỗi xảy ra khi đăng truyện. Vui lòng thử lại."
+              "Đã có lỗi xảy ra khi đăng truyện. Vui lòng thử lại.",
           );
         }
       })
@@ -255,7 +255,7 @@ export default function UploadMangaPage() {
     formData.append("manga_id", selectedMangaForChapter);
     formData.append("file_content", contentFileChapter[0].file);
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/upload-chapter`, {
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/manga/upload-chapter`, {
       method: "POST",
       credentials: "include",
       body: formData,
@@ -268,7 +268,7 @@ export default function UploadMangaPage() {
         } else {
           toast.error(
             data.message ||
-              "Đã có lỗi xảy ra khi đăng chương. Vui lòng thử lại."
+              "Đã có lỗi xảy ra khi đăng chương. Vui lòng thử lại.",
           );
         }
       })
@@ -285,8 +285,8 @@ export default function UploadMangaPage() {
     const fetchMyMangas = async () => {
       try {
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/manga/my-mangas`,
-          { method: "GET", credentials: "include" }
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/manga/my-mangas`,
+          { method: "GET", credentials: "include" },
         );
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
@@ -529,7 +529,7 @@ export default function UploadMangaPage() {
                                 type="checkbox"
                                 className="hidden"
                                 checked={selectedGenres.includes(
-                                  genre.genre_id
+                                  genre.genre_id,
                                 )}
                                 onChange={(e) => {
                                   if (e.target.checked) {
@@ -545,7 +545,9 @@ export default function UploadMangaPage() {
                                     }
                                   } else {
                                     setSelectedGenres((prev) =>
-                                      prev.filter((id) => id !== genre.genre_id)
+                                      prev.filter(
+                                        (id) => id !== genre.genre_id,
+                                      ),
                                     );
                                   }
                                 }}

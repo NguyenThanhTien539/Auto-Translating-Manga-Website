@@ -67,7 +67,7 @@ export default function FormResetPassword() {
 
         try {
           const data = await api.post(
-            `${process.env.NEXT_PUBLIC_API_URL}/account/reset-password`,
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/account/reset-password`,
             finalData,
           );
 
@@ -133,4 +133,3 @@ export default function FormResetPassword() {
     </form>
   );
 }
-

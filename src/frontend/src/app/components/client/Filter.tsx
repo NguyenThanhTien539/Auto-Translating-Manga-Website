@@ -5,7 +5,7 @@ import React, { useEffect, useMemo, useState } from "react";
 export type MangaFilterValues = {
   chaptersMin: number;
   chaptersMax: number;
-  state: string;        // m.status hoặc "all"
+  state: string; // m.status hoặc "all"
   categories: string[]; // genre_name[]
 };
 
@@ -31,7 +31,7 @@ export default function Filter({
   onApply,
   onCancel,
 }: MangaFilterPanelProps) {
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+  const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
   const [loading, setLoading] = useState(true);
   const [panelData, setPanelData] = useState<FilterPanelData>({
@@ -41,16 +41,16 @@ export default function Filter({
 
   // ---- local values
   const [chaptersMin, setChaptersMin] = useState<number>(
-    initialValues?.chaptersMin ?? 0
+    initialValues?.chaptersMin ?? 0,
   );
   const [chaptersMax, setChaptersMax] = useState<number>(
-    initialValues?.chaptersMax ?? 255
+    initialValues?.chaptersMax ?? 255,
   );
 
   const [state, setState] = useState<string>(initialValues?.state ?? "all");
 
   const [selectedCategories, setSelectedCategories] = useState<string[]>(
-    initialValues?.categories ?? []
+    initialValues?.categories ?? [],
   );
 
   const [categorySearch, setCategorySearch] = useState("");
@@ -117,13 +117,13 @@ export default function Filter({
   // ---- actions
   const toggleCategory = (name: string) => {
     setSelectedCategories((prev) =>
-      prev.includes(name) ? prev.filter((x) => x !== name) : [...prev, name]
+      prev.includes(name) ? prev.filter((x) => x !== name) : [...prev, name],
     );
   };
 
   const handleApply = () => {
     const cleanedCategories = Array.from(
-      new Set(selectedCategories.map((x) => x.trim()).filter(Boolean))
+      new Set(selectedCategories.map((x) => x.trim()).filter(Boolean)),
     );
 
     onApply({
@@ -152,7 +152,7 @@ export default function Filter({
 
   // get list of status excluding notShownStatus
   const filteredStatusOptions = statusOptions.filter(
-    (s) => !notShownStatus.includes(s)
+    (s) => !notShownStatus.includes(s),
   );
 
   return (

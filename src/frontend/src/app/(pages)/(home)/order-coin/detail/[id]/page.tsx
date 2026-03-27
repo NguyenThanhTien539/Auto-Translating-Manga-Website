@@ -35,7 +35,9 @@ export default function OrderDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const params = useParams();
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/order-coin/detail/${params.id}`)
+    fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/order-coin/detail/${params.id}`,
+    )
       .then((response) => response.json())
       .then((data) => {
         if (data.code == "success") setOrderDetail(data.orderDetail);
@@ -53,8 +55,8 @@ export default function OrderDetailPage() {
     try {
       // 1) Confirm-payment -> lấy depositId
       const confirmRes = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/order-coin/confirm-payment?orderCode=${orderDetail.id}&payment_method=${selectedPayment}`,
-        { credentials: "include" }
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/order-coin/confirm-payment?orderCode=${orderDetail.id}&payment_method=${selectedPayment}`,
+        { credentials: "include" },
       );
 
       const confirmData = await confirmRes.json();
@@ -72,8 +74,8 @@ export default function OrderDetailPage() {
       }
 
       const payRes = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/order-coin/payment-${selectedPayment}?orderCode=${orderDetail.id}&depositId=${depositId}`,
-        { credentials: "include" }
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/order-coin/payment-${selectedPayment}?orderCode=${orderDetail.id}&depositId=${depositId}`,
+        { credentials: "include" },
       );
 
       const payData = await payRes.json();

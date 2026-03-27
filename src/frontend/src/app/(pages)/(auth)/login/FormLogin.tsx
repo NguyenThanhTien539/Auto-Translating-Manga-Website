@@ -51,7 +51,7 @@ export default function FormLogin() {
 
         try {
           const data = await api.post(
-            `${process.env.NEXT_PUBLIC_API_URL}/account/login`,
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/account/login`,
             dataFinal,
           );
 

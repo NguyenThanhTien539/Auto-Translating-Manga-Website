@@ -19,10 +19,10 @@ export default function ManagePage() {
     const fetchMangas = async () => {
       try {
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/manga/my-mangas`,
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/manga/my-mangas`,
           {
             credentials: "include",
-          }
+          },
         );
         const data = await res.json();
         if (data.code === "success") {
@@ -148,7 +148,7 @@ export default function ManagePage() {
                       >
                         {page}
                       </button>
-                    )
+                    ),
                   )}
                 </div>
 

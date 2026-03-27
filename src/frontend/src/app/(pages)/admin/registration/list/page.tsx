@@ -53,7 +53,7 @@ export default function UserListPage() {
 
   const toggleOne = (id: number) => {
     setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   };
 
@@ -94,8 +94,8 @@ export default function UserListPage() {
 
   useEffect(() => {
     fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/registration-uploader/list`,
-      { credentials: "include" }
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/registration-uploader/list`,
+      { credentials: "include" },
     )
       .then((res) => res.json())
       .then((data) => {
@@ -128,7 +128,7 @@ export default function UserListPage() {
             statusFilter={statusFilter}
             setStatusFilter={(value: string) =>
               setStatusFilter(
-                value as "all" | "pending" | "accepted" | "rejected"
+                value as "all" | "pending" | "accepted" | "rejected",
               )
             }
             statusOptions={[
@@ -321,7 +321,7 @@ export default function UserListPage() {
                         className="flex-1 px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors shadow-sm cursor-pointer"
                         onClick={() =>
                           router.push(
-                            `/admin/registration/detail/${request.request_id}`
+                            `/admin/registration/detail/${request.request_id}`,
                           )
                         }
                       >

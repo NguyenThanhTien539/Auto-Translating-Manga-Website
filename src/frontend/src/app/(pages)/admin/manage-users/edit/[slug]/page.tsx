@@ -42,8 +42,8 @@ export default function EditUserPage() {
 
   useEffect(() => {
     fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/user/detail/${userId}`,
-      { credentials: "include" }
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/user/detail/${userId}`,
+      { credentials: "include" },
     )
       .then((res) => res.json())
       .then((data) => {
@@ -66,7 +66,7 @@ export default function EditUserPage() {
       user_status: event.target.user_status.value,
     };
     fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/user/update/${userId}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/user/update/${userId}`,
       {
         method: "PATCH",
         credentials: "include",
@@ -74,7 +74,7 @@ export default function EditUserPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(formData),
-      }
+      },
     )
       .then((res) => res.json())
       .then((data) => {
@@ -116,7 +116,7 @@ export default function EditUserPage() {
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-3xl sm:text-5xl font-bold text-white bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500">
                         {getInitials(
-                          userDetail.full_name || userDetail.username
+                          userDetail.full_name || userDetail.username,
                         )}
                       </div>
                     )}

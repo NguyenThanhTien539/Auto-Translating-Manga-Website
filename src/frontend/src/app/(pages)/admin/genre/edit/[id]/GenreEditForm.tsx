@@ -14,8 +14,8 @@ export function GenreEditForm() {
 
   useEffect(() => {
     fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/genre/detail/${params.id}`,
-      { credentials: "include" }
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/genre/detail/${params.id}`,
+      { credentials: "include" },
     )
       .then((res) => res.json())
       .then((data) => {
@@ -30,7 +30,7 @@ export function GenreEditForm() {
       .addField(
         "#genre_name",
         [{ rule: "required", errorMessage: "Vui lòng nhập tên thể loại!" }],
-        { errorContainer: "#errorName" }
+        { errorContainer: "#errorName" },
       )
 
       .onSuccess((event: any) => {
@@ -43,13 +43,13 @@ export function GenreEditForm() {
           slug: slug,
         };
         fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/genre/edit/${params.id}`,
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/genre/edit/${params.id}`,
           {
             method: "PATCH",
             credentials: "include",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(dataFinal),
-          }
+          },
         )
           .then((res) => res.json())
           .then((data) => {

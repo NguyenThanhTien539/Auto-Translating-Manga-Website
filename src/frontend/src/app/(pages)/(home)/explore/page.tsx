@@ -29,7 +29,7 @@ export default function Explore() {
     .slice(startIndex, endIndex)
     .filter((manga) => manga.status !== "Pending");
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/all`)
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/manga/all`)
       .then((response) => response.json())
       .then((data) => {
         if (data.code === "success") {

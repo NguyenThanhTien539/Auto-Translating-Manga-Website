@@ -37,8 +37,8 @@ export default function ManageUsersPage() {
 
   useEffect(() => {
     fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/user/list`,
-      { credentials: "include" }
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/user/list`,
+      { credentials: "include" },
     )
       .then((res) => res.json())
       .then((data) => {
@@ -71,7 +71,7 @@ export default function ManageUsersPage() {
 
   const toggleOne = (id: number) => {
     setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   };
 
@@ -390,7 +390,7 @@ export default function ManageUsersPage() {
                         className="px-3 py-2.5 bg-purple-500 hover:bg-purple-600 text:white rounded-lg text-sm font-medium flex items-center justify-center cursor-pointer gap-1.5 transition-colors shadow-sm"
                         onClick={() =>
                           router.push(
-                            `/admin/manage-users/edit/${user.user_id}`
+                            `/admin/manage-users/edit/${user.user_id}`,
                           )
                         }
                         title="Chỉnh sửa"

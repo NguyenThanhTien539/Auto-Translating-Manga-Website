@@ -21,7 +21,7 @@ function SearchContent() {
   const router = useRouter();
   const keyword = useMemo(() => sp.get("keyword") || "", [sp]);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+  const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
   const [mangas, setMangas] = useState<Manga[]>([]);
   const [loading, setLoading] = useState(false);
@@ -37,7 +37,7 @@ function SearchContent() {
 
         const res = await fetch(
           `${API_URL}/search?keyword=${encodeURIComponent(keyword)}`,
-          { signal: controller.signal }
+          { signal: controller.signal },
         );
 
         const json = await res.json();

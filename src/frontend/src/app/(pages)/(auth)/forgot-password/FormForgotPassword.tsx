@@ -30,7 +30,7 @@ export default function FormForgotPassword() {
 
         try {
           const data = await api.post(
-            `${process.env.NEXT_PUBLIC_API_URL}/account/forgot-password`,
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/account/forgot-password`,
             finalData,
           );
 

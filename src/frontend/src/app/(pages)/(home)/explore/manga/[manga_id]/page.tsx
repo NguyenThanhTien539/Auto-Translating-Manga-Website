@@ -40,7 +40,7 @@ export default function ReadPage() {
   } | null>(null);
 
   const [activeTab, setActiveTab] = useState<"overview" | "chapters">(
-    "overview"
+    "overview",
   );
   const [isFavorite, setIsFavorite] = useState(false);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
@@ -55,7 +55,7 @@ export default function ReadPage() {
     const mangaDescription = decodeHtml(
       mangaDetail?.manga.description
         ?.replace(/<[^>]+>/g, "")
-        .substring(0, 200) || ""
+        .substring(0, 200) || "",
     );
 
     // Tạo nội dung chia sẻ chi tiết
@@ -77,13 +77,13 @@ export default function ReadPage() {
 
       // Mở Facebook share dialog
       const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-        currentUrl
+        currentUrl,
       )}`;
 
       window.open(
         facebookShareUrl,
         "facebook-share-dialog",
-        "width=800,height=600"
+        "width=800,height=600",
       );
 
       // Thông báo cho người dùng
@@ -95,12 +95,12 @@ export default function ReadPage() {
 
       // Fallback: mở Facebook share mà không copy
       const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-        currentUrl
+        currentUrl,
       )}`;
       window.open(
         facebookShareUrl,
         "facebook-share-dialog",
-        "width=800,height=600"
+        "width=800,height=600",
       );
 
       toast.info("Đang mở Facebook share...");
@@ -109,7 +109,7 @@ export default function ReadPage() {
 
   useEffect(() => {
     fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/manga/detail/${params.manga_id}
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/manga/detail/${params.manga_id}
         
         `,
       {
@@ -119,7 +119,7 @@ export default function ReadPage() {
         },
         credentials: "include",
         body: JSON.stringify({ user_id: infoUser?.id }),
-      }
+      },
     )
       .then((response) => response.json())
       .then((data) => {
@@ -139,14 +139,14 @@ export default function ReadPage() {
 
   useEffect(() => {
     fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/manga/check-favorite?manga_id=${params.manga_id}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/manga/check-favorite?manga_id=${params.manga_id}`,
       {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
         },
         credentials: "include",
-      }
+      },
     )
       .then((response) => response.json())
       .then((data) => {
@@ -163,7 +163,7 @@ export default function ReadPage() {
     // Nếu chapter miễn phí HOẶC đã mua, chuyển thẳng đến trang đọc
     if (chapterPrice === 0 || isOwned) {
       router.push(
-        `/explore/manga/${mangaDetail?.manga.manga_id}/${chapter.chapter_id}`
+        `/explore/manga/${mangaDetail?.manga.manga_id}/${chapter.chapter_id}`,
       );
     } else {
       // Nếu chapter có giá VÀ chưa mua, hiển thị modal
@@ -185,7 +185,7 @@ export default function ReadPage() {
     }
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/order-chapter/payment-chapter`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/order-chapter/payment-chapter`,
         {
           method: "POST",
           headers: {
@@ -196,7 +196,7 @@ export default function ReadPage() {
             chapter_id: selectedChapter.chapter_id,
             price_at_purchase: parseFloat(selectedChapter.price),
           }),
-        }
+        },
       );
 
       const data = await response.json();
@@ -306,7 +306,7 @@ export default function ReadPage() {
                           }
                           const newFavoriteState = !isFavorite;
                           fetch(
-                            `${process.env.NEXT_PUBLIC_API_URL}/manga/favorite`,
+                            `${process.env.NEXT_PUBLIC_API_BASE_URL}/manga/favorite`,
                             {
                               method: "POST",
                               headers: {
@@ -317,7 +317,7 @@ export default function ReadPage() {
                                 manga_id: mangaDetail?.manga.manga_id,
                                 type: isFavorite ? "remove" : "add",
                               }),
-                            }
+                            },
                           )
                             .then((response) => response.json())
                             .then((data) => {
@@ -380,7 +380,7 @@ export default function ReadPage() {
                         <span className="text-2xl font-bold text-yellow-400">
                           {mangaDetail?.manga.average_rating
                             ? Number(mangaDetail.manga.average_rating).toFixed(
-                                1
+                                1,
                               )
                             : "0"}
                         </span>
@@ -443,7 +443,7 @@ export default function ReadPage() {
                     const chapterPrice = parseFloat(chapter.price);
                     // Kiểm tra chapter đã được mua chưa
                     const isOwned = mangaDetail?.usedChapterList?.some(
-                      (used) => used.chapter_id === Number(chapter.chapter_id)
+                      (used) => used.chapter_id === Number(chapter.chapter_id),
                     );
                     // Chỉ hiển thị khóa nếu: có giá VÀ chưa mua
                     const showLock = chapterPrice > 0 && !isOwned;
@@ -484,7 +484,7 @@ export default function ReadPage() {
 
                                   const qs = new URLSearchParams({
                                     manga_id: String(
-                                      mangaDetail?.manga.manga_id ?? ""
+                                      mangaDetail?.manga.manga_id ?? "",
                                     ),
                                     chapter_id: String(chapter.chapter_id),
                                   });

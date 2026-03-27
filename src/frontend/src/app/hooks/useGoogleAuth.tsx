@@ -45,7 +45,7 @@ export function useGoogleAuth(options?: UseGoogleAuthOptions) {
 
       try {
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/account/google-login`,
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/account/google-login`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },

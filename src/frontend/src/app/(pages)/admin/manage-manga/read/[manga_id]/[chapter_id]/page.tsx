@@ -32,7 +32,7 @@ export default function AdminChapterReadPage() {
   const [pages, setPages] = useState<PageData[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+  const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
   const ADMIN_PATH = process.env.NEXT_PUBLIC_PATH_ADMIN || "";
 
   useEffect(() => {

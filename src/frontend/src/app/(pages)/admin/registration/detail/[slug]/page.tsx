@@ -38,8 +38,8 @@ export default function RegistrationDetailPage() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   useEffect(() => {
     fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/registration-uploader/detail/${slug}`,
-      { credentials: "include" }
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/registration-uploader/detail/${slug}`,
+      { credentials: "include" },
     )
       .then((res) => res.json())
       .then((data) => {
@@ -54,13 +54,13 @@ export default function RegistrationDetailPage() {
 
   const handleStatusUpdate = (newStatus: "accepted" | "rejected") => {
     fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/registration-uploader/update-status/${slug}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/registration-uploader/update-status/${slug}`,
       {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ request_status: newStatus }),
-      }
+      },
     )
       .then((res) => res.json())
       .then((data) => {
@@ -111,15 +111,15 @@ export default function RegistrationDetailPage() {
                       registrationDetail?.request_status === "pending"
                         ? "bg-yellow-100 text-yellow-700 border border-yellow-300"
                         : registrationDetail?.request_status === "accepted"
-                        ? "bg-emerald-100 text-emerald-700 border border-emerald-300"
-                        : "bg-red-100 text-red-600 border border-red-300"
+                          ? "bg-emerald-100 text-emerald-700 border border-emerald-300"
+                          : "bg-red-100 text-red-600 border border-red-300"
                     }`}
                   >
                     {registrationDetail.request_status === "pending"
                       ? "⏳ Chờ duyệt"
                       : registrationDetail?.request_status === "accepted"
-                      ? "✓ Đã chấp nhận"
-                      : "✗ Đã từ chối"}
+                        ? "✓ Đã chấp nhận"
+                        : "✗ Đã từ chối"}
                   </span>
                   <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
                     <Calendar size={16} className="flex-shrink-0" />

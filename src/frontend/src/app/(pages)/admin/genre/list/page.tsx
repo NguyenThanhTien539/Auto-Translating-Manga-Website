@@ -22,8 +22,8 @@ export default function CategoryListPage() {
 
   useEffect(() => {
     fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/genre/list`,
-      { credentials: "include" }
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/genre/list`,
+      { credentials: "include" },
     )
       .then((res) => res.json())
       .then((data) => {

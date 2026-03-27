@@ -22,7 +22,9 @@ export function useAuth() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsLoading(true);
     api
-      .get<AuthUserPayload>(`${process.env.NEXT_PUBLIC_API_URL}/auth/check`)
+      .get<AuthUserPayload>(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/check`,
+      )
       .then((data) => {
         const userFromResponse = data.data?.user ?? null;
         const isSuccess = data.success === true;

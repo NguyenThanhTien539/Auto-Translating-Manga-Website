@@ -35,7 +35,7 @@ export default function ProfilePage() {
     setLoadingLogout(true);
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/auth/logout`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/logout`,
         {
           credentials: "include",
         },
@@ -86,7 +86,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!infoUser) return;
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/statistics`, {
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/manga/statistics`, {
       credentials: "include",
     })
       .then((res) => res.json())

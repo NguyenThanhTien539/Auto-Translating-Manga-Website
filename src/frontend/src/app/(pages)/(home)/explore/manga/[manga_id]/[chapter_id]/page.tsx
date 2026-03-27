@@ -43,10 +43,10 @@ export default function ChapterReadPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/manga/chapter/${params.chapter_id}/pages?language=${selectedLanguage}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/manga/chapter/${params.chapter_id}/pages?language=${selectedLanguage}`,
       {
         credentials: "include",
-      }
+      },
     )
       .then(async (response) => {
         // Parse JSON trước
@@ -92,7 +92,7 @@ export default function ChapterReadPage() {
               } Coin để đọc. Vui lòng mua chapter!`,
               {
                 duration: 5000,
-              }
+              },
             );
             setTimeout(() => {
               window.location.href = `/read/${params.manga_id}`;
@@ -124,10 +124,10 @@ export default function ChapterReadPage() {
     if (!isLogin || !infoUser || pages.length === 0) return;
 
     fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/reading-history/chapter/${params.chapter_id}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/reading-history/chapter/${params.chapter_id}`,
       {
         credentials: "include",
-      }
+      },
     )
       .then((response) => response.json())
       .then((data) => {
@@ -166,7 +166,7 @@ export default function ChapterReadPage() {
       saveTimeoutRef.current = setTimeout(() => {
         if (pageNumber <= lastSavedPage.current) return;
 
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/reading-history/add`, {
+        fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/reading-history/add`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -190,7 +190,7 @@ export default function ChapterReadPage() {
           });
       }, 2000);
     },
-    [isLogin, infoUser, params.chapter_id, params.manga_id]
+    [isLogin, infoUser, params.chapter_id, params.manga_id],
   );
 
   // Translate page function
@@ -200,7 +200,7 @@ export default function ChapterReadPage() {
       toast.loading(`Đang dịch trang...`, { id: `translate-${pageId}` });
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/manga/translate-page`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/manga/translate-page`,
         {
           method: "POST",
           headers: {
@@ -210,7 +210,7 @@ export default function ChapterReadPage() {
             pageId: pageId,
             targetLanguage: selectedLanguage,
           }),
-        }
+        },
       );
 
       const data = await response.json();
@@ -220,7 +220,7 @@ export default function ChapterReadPage() {
 
         // Refresh pages to get the new translated image
         const pagesResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/manga/chapter/${params.chapter_id}/pages?language=${selectedLanguage}`
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/manga/chapter/${params.chapter_id}/pages?language=${selectedLanguage}`,
         );
         const pagesData = await pagesResponse.json();
 
@@ -263,7 +263,7 @@ export default function ChapterReadPage() {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
           const pageNum = parseInt(
-            entry.target.getAttribute("data-page") || "1"
+            entry.target.getAttribute("data-page") || "1",
           );
           const rect = entry.boundingClientRect;
           const viewportHeight = window.innerHeight;
@@ -292,7 +292,7 @@ export default function ChapterReadPage() {
 
     const observer = new IntersectionObserver(
       observerCallback,
-      observerOptions
+      observerOptions,
     );
 
     // Observe all page elements

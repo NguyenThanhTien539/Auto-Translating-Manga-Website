@@ -20,7 +20,7 @@ type Manga = {
 function FilterContent() {
   const sp = useSearchParams();
   const router = useRouter();
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+  const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
@@ -58,11 +58,11 @@ function FilterContent() {
       categoriesMulti.length > 0
         ? categoriesMulti
         : categoriesOne
-        ? categoriesOne
-            .split(",")
-            .map((x) => x.trim())
-            .filter(Boolean)
-        : [];
+          ? categoriesOne
+              .split(",")
+              .map((x) => x.trim())
+              .filter(Boolean)
+          : [];
 
     ids.forEach((id) => q.append("categories", id));
 

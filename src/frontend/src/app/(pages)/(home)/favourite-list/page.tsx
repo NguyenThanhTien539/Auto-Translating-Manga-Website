@@ -22,7 +22,7 @@ export default function FavouriteList() {
   const router = useRouter();
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/favorite-list`, {
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/manga/favorite-list`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",

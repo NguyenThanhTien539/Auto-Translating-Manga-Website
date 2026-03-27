@@ -95,7 +95,7 @@ export default function RegisterUploaderPage() {
           ],
           {
             errorContainer: "#errorCheckbox",
-          }
+          },
         )
         .onSuccess((event: any) => {
           event.preventDefault();
@@ -106,20 +106,23 @@ export default function RegisterUploaderPage() {
           }
           const finalData = { reason: reason };
 
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/register-uploader`, {
-            method: "POST",
-            credentials: "include",
-            headers: {
-              "Content-Type": "application/json",
+          fetch(
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/user/register-uploader`,
+            {
+              method: "POST",
+              credentials: "include",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(finalData),
             },
-            body: JSON.stringify(finalData),
-          })
+          )
             .then((res) => res.json())
             .then((data) => {
               if (data.code === "success") {
                 toast.success(
                   data.message ||
-                    "Đăng ký thành công! Vui lòng chờ admin duyệt."
+                    "Đăng ký thành công! Vui lòng chờ admin duyệt.",
                 );
                 router.push("/profile");
               } else {

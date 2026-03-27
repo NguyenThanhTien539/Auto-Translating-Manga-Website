@@ -109,7 +109,7 @@ const getMangaStatusBadge = (status?: string) => {
 };
 
 const mapChapterStatusToOption = (
-  status?: string
+  status?: string,
 ): "Pending" | "Published" | "Rejected" => {
   const s = (status || "pending").toLowerCase();
   if (s === "pending") return "Pending";
@@ -146,7 +146,7 @@ export default function ReadPage() {
   const [statusDraft, setStatusDraft] = useState<string>("");
 
   const [chapterDrafts, setChapterDrafts] = useState<Record<string, string>>(
-    {}
+    {},
   );
   const [coinDrafts, setCoinDrafts] = useState<Record<string, number>>({});
   const [isHighlight, setIsHighlight] = useState<boolean>(false);
@@ -170,17 +170,23 @@ export default function ReadPage() {
     setStatusDraft(mangaDetail.manga.status ?? "Pending");
 
     setChapterDrafts(
-      (mangaDetail.chapters || []).reduce((acc, c) => {
-        acc[c.chapter_id] = c.status ?? "Pending";
-        return acc;
-      }, {} as Record<string, string>)
+      (mangaDetail.chapters || []).reduce(
+        (acc, c) => {
+          acc[c.chapter_id] = c.status ?? "Pending";
+          return acc;
+        },
+        {} as Record<string, string>,
+      ),
     );
 
     setCoinDrafts(
-      (mangaDetail.chapters || []).reduce((acc, c) => {
-        acc[c.chapter_id] = c.coin_price ?? 0;
-        return acc;
-      }, {} as Record<string, number>)
+      (mangaDetail.chapters || []).reduce(
+        (acc, c) => {
+          acc[c.chapter_id] = c.coin_price ?? 0;
+          return acc;
+        },
+        {} as Record<string, number>,
+      ),
     );
   }, [activeTab, mangaDetail]);
 
@@ -202,10 +208,10 @@ export default function ReadPage() {
     setLoading(true);
 
     fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manage-manga/detail/${mangaId}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manage-manga/detail/${mangaId}`,
       {
         credentials: "include",
-      }
+      },
     )
       .then((res) => res.json())
       .then((data) => {
@@ -281,16 +287,22 @@ export default function ReadPage() {
                 setActiveTab("edit-status");
                 setStatusDraft(mangaDetail.manga.status);
                 setChapterDrafts(
-                  (mangaDetail?.chapters || []).reduce((acc, c) => {
-                    acc[c.chapter_id] = c.status || "pending";
-                    return acc;
-                  }, {} as Record<string, string>)
+                  (mangaDetail?.chapters || []).reduce(
+                    (acc, c) => {
+                      acc[c.chapter_id] = c.status || "pending";
+                      return acc;
+                    },
+                    {} as Record<string, string>,
+                  ),
                 );
                 setCoinDrafts(
-                  (mangaDetail?.chapters || []).reduce((acc, c) => {
-                    acc[c.chapter_id] = c.coin_price ?? 0;
-                    return acc;
-                  }, {} as Record<string, number>)
+                  (mangaDetail?.chapters || []).reduce(
+                    (acc, c) => {
+                      acc[c.chapter_id] = c.coin_price ?? 0;
+                      return acc;
+                    },
+                    {} as Record<string, number>,
+                  ),
                 );
               }}
               className={`py-4 font-semibold text-sm sm:text-base transition-colors ${
@@ -348,7 +360,7 @@ export default function ReadPage() {
 
                             try {
                               const res = await fetch(
-                                `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manage-manga/set-highlight/${mangaDetail.manga.manga_id}`,
+                                `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manage-manga/set-highlight/${mangaDetail.manga.manga_id}`,
                                 {
                                   method: "PATCH",
                                   credentials: "include",
@@ -359,18 +371,19 @@ export default function ReadPage() {
                                     is_highlight: next,
                                     highlight_duration: 0,
                                   }),
-                                }
+                                },
                               );
                               const data = await res.json();
                               if (data.code === "success") {
                                 toast.success(
-                                  data.message || "Bỏ truyện nổi bật thành công"
+                                  data.message ||
+                                    "Bỏ truyện nổi bật thành công",
                                 );
                               } else {
                                 setIsHighlight(prev);
                                 setHighlightDuration(prevDuration);
                                 toast.error(
-                                  data?.message || "Bỏ truyện nổi bật thất bại"
+                                  data?.message || "Bỏ truyện nổi bật thất bại",
                                 );
                               }
                             } catch (err) {
@@ -432,7 +445,7 @@ export default function ReadPage() {
 
                                   try {
                                     const res = await fetch(
-                                      `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manage-manga/set-highlight/${mangaDetail.manga.manga_id}`,
+                                      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manage-manga/set-highlight/${mangaDetail.manga.manga_id}`,
                                       {
                                         method: "PATCH",
                                         credentials: "include",
@@ -443,14 +456,14 @@ export default function ReadPage() {
                                           is_highlight: next,
                                           highlight_duration: days,
                                         }),
-                                      }
+                                      },
                                     );
 
                                     const data = await res.json();
                                     if (data.code === "success") {
                                       toast.success(
                                         data.message ||
-                                          "Đặt truyện nổi bật thành công"
+                                          "Đặt truyện nổi bật thành công",
                                       );
                                     } else {
                                       {
@@ -458,7 +471,7 @@ export default function ReadPage() {
                                         setHighlightDuration(prevDuration);
                                         toast.error(
                                           data?.message ||
-                                            "Đặt truyện nổi bật thất bại"
+                                            "Đặt truyện nổi bật thất bại",
                                         );
                                       }
                                     }
@@ -476,10 +489,10 @@ export default function ReadPage() {
                                   {days === 3
                                     ? "Ngắn hạn"
                                     : days === 7
-                                    ? "1 tuần"
-                                    : days === 14
-                                    ? "2 tuần"
-                                    : "1 tháng"}
+                                      ? "1 tuần"
+                                      : days === 14
+                                        ? "2 tuần"
+                                        : "1 tháng"}
                                 </span>
                               </button>
                             ))}
@@ -543,7 +556,7 @@ export default function ReadPage() {
                   }`}
                 >
                   {decodeHtml(
-                    mangaDetail?.manga.description.replace(/<[^>]+>/g, "")
+                    mangaDetail?.manga.description.replace(/<[^>]+>/g, ""),
                   )}
                 </p>
                 <button
@@ -581,7 +594,7 @@ export default function ReadPage() {
                     className="px-5 sm:px-6 py-4 hover:bg-blue-50/50 cursor-pointer transition-colors"
                     onClick={() =>
                       router.push(
-                        `/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manage-manga/read/${mangaDetail.manga.manga_id}/${chapter.chapter_id}`
+                        `/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manage-manga/read/${mangaDetail.manga.manga_id}/${chapter.chapter_id}`,
                       )
                     }
                   >
@@ -635,7 +648,7 @@ export default function ReadPage() {
                     onClick={async () => {
                       try {
                         const res = await fetch(
-                          `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manage-manga/update-manga-status/${mangaDetail.manga.manga_id}`,
+                          `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manage-manga/update-manga-status/${mangaDetail.manga.manga_id}`,
                           {
                             method: "PATCH",
                             credentials: "include",
@@ -643,12 +656,12 @@ export default function ReadPage() {
                               "Content-Type": "application/json",
                             },
                             body: JSON.stringify({ status: statusDraft }),
-                          }
+                          },
                         );
                         const data = await res.json();
                         if (data.code === "success") {
                           toast.success(
-                            "Cập nhật trạng thái truyện thành công"
+                            "Cập nhật trạng thái truyện thành công",
                           );
 
                           setMangaDetail((prev) => {
@@ -658,8 +671,8 @@ export default function ReadPage() {
                               statusDraft === "OnGoing"
                                 ? "Published"
                                 : statusDraft === "Rejected"
-                                ? "Rejected"
-                                : null;
+                                  ? "Rejected"
+                                  : null;
 
                             return {
                               ...prev,
@@ -684,7 +697,7 @@ export default function ReadPage() {
                             setChapterDrafts((prev) => {
                               const copy = { ...prev };
                               (mangaDetail?.chapters || []).forEach(
-                                (c) => (copy[c.chapter_id] = next)
+                                (c) => (copy[c.chapter_id] = next),
                               );
                               return copy;
                             });
@@ -811,7 +824,7 @@ export default function ReadPage() {
                                 };
 
                                 const res = await fetch(
-                                  `${process.env.NEXT_PUBLIC_API_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manage-manga/update-chapter-status/${ch.chapter_id}`,
+                                  `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manage-manga/update-chapter-status/${ch.chapter_id}`,
                                   {
                                     method: "PATCH",
                                     credentials: "include",
@@ -819,7 +832,7 @@ export default function ReadPage() {
                                       "Content-Type": "application/json",
                                     },
                                     body: JSON.stringify(body),
-                                  }
+                                  },
                                 );
                                 const data = await res.json();
                                 if (data?.code === "success") {
@@ -837,14 +850,14 @@ export default function ReadPage() {
                                                     ? coinDraft
                                                     : cc.coin_price,
                                                 }
-                                              : cc
+                                              : cc,
                                           ),
                                         }
-                                      : prev
+                                      : prev,
                                   );
                                 } else {
                                   toast.error(
-                                    data?.message || "Cập nhật thất bại"
+                                    data?.message || "Cập nhật thất bại",
                                   );
                                 }
                               } catch (err) {

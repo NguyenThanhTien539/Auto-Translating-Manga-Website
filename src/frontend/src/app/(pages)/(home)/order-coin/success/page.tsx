@@ -18,10 +18,10 @@ function OrderSuccessContent() {
 
   useEffect(() => {
     fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/order-coin/history?depositId=${depositId}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/order-coin/history?depositId=${depositId}`,
       {
         credentials: "include",
-      }
+      },
     )
       .then((res) => res.json())
       .then((data) => {
@@ -124,7 +124,7 @@ function OrderSuccessContent() {
                       <span>
                         {depositDetail?.created_at
                           ? new Date(depositDetail.created_at).toLocaleString(
-                              "vi-VN"
+                              "vi-VN",
                             )
                           : "—"}
                       </span>

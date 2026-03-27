@@ -30,7 +30,7 @@ export default function Home() {
   const [mangas, setMangas] = useState<Manga[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/all`)
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/manga/all`)
       .then((res) => res.json())
       .then((data) => {
         if (data.code === "success") {
@@ -68,7 +68,7 @@ export default function Home() {
 
   const handlePrev = () => {
     setActiveIndex((prev) =>
-      prev === 0 ? slider_mangas.length - 1 : prev - 1
+      prev === 0 ? slider_mangas.length - 1 : prev - 1,
     );
   };
 
@@ -83,7 +83,7 @@ export default function Home() {
   const [genres, setGenres] = useState([]);
   const [isLoadingGenres, setIsLoadingGenres] = useState(true);
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/manga/genres`)
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/manga/genres`)
       .then((res) => res.json())
       .then((data) => {
         if (data.code === "success") {

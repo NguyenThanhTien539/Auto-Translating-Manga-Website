@@ -27,7 +27,7 @@ function AccountVerify() {
     try {
       if (verifyType == "forgot-password") {
         const data = await api.post(
-          `${process.env.NEXT_PUBLIC_API_URL}/account/forgot-password/verify-otp`,
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/account/forgot-password/verify-otp`,
           finalData,
         );
 
@@ -43,7 +43,7 @@ function AccountVerify() {
         }
       } else {
         const data = await api.post(
-          `${process.env.NEXT_PUBLIC_API_URL}/account/register/verify-otp`,
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/account/register/verify-otp`,
           finalData,
         );
 
@@ -148,4 +148,3 @@ export default function AccountVerifyPage() {
     </Suspense>
   );
 }
-
