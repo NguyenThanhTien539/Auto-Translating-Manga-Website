@@ -133,7 +133,7 @@ export default function FormLogin() {
             <button
               type="button"
               className="text-blue-500 font-[600] hover:underline text-[14px]"
-              onClick={() => router.push("/account/forgot-password")}
+              onClick={() => router.push("/forgot-password")}
             >
               {t("recoveryPassword")}
             </button>
@@ -163,7 +163,7 @@ export default function FormLogin() {
               <button
                 type="button"
                 className="pl-1 text-blue-600 font-[600] hover:underline"
-                onClick={() => router.push("/account/register")}
+                onClick={() => router.push("/register")}
               >
                 {t("signUp")}
               </button>
@@ -184,3 +184,4 @@ export default function FormLogin() {
     </>
   );
 }
+

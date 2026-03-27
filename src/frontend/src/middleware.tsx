@@ -33,7 +33,7 @@ async function requireAdmin(request: NextRequest) {
   const payload = await verifyJwtFromRequest(request);
   if (!payload) {
     // Chưa login hoặc token sai
-    return redirectTo(request, "/account/login");
+    return redirectTo(request, "/login");
   }
 
   if (payload.role !== "0") {
@@ -46,7 +46,7 @@ async function requireAdmin(request: NextRequest) {
 
 async function requireUploader(request: NextRequest) {
   const payload = await verifyJwtFromRequest(request);
-  if (!payload) return redirectTo(request, "/account/login");
+  if (!payload) return redirectTo(request, "/login");
 
   // cho admin vào luôn (optional)
   if (payload.role === "0") return NextResponse.next();
@@ -117,3 +117,4 @@ export const config = {
     "/comment/:path*",
   ],
 };
+

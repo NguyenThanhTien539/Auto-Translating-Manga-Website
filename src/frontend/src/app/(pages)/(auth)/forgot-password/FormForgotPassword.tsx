@@ -38,7 +38,7 @@ export default function FormForgotPassword() {
             toast.error(data.message);
           } else {
             toast.success(data.message);
-            router.push(`/account/verify?email=${email}&type=forgot-password`);
+            router.push(`/verify?email=${email}&type=forgot-password`);
           }
         } catch (error) {
           toast.error("Có lỗi xảy ra, vui lòng thử lại!");
@@ -77,3 +77,4 @@ export default function FormForgotPassword() {
     </form>
   );
 }
+

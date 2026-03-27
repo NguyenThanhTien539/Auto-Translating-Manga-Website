@@ -84,7 +84,7 @@ export async function apiFetch<T = any>(
           response = await fetch(url, defaultOptions);
         } else {
           if (typeof window !== "undefined") {
-            window.location.href = "/account/login";
+            window.location.href = "/login";
           }
         }
       }
@@ -141,3 +141,4 @@ export const api = {
   delete: <T = any>(url: string, options?: FetchOptions) =>
     apiFetchJson<T>(url, { ...options, method: "DELETE" }),
 };
+

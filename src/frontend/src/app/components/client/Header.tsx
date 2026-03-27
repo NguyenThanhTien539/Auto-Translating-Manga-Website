@@ -98,14 +98,14 @@ export default function Header() {
           <button
             type="button"
             className="h-8 px-4 rounded-md bg-sky-700 text-white text-[15px] font-semibold hover:bg-sky-800 cursor-pointer"
-            onClick={() => router.push("/account/login")}
+            onClick={() => router.push("/login")}
           >
             Đăng nhập
           </button>
           <button
             type="button"
             className="text-[15px] text-gray-700 font-bold hover:text-gray-900 cursor-pointer"
-            onClick={() => router.push("/account/register")}
+            onClick={() => router.push("/register")}
           >
             Đăng ký
           </button>
@@ -132,3 +132,4 @@ export default function Header() {
     </header>
   );
 }
+

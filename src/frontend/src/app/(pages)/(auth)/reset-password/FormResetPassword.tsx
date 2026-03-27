@@ -75,7 +75,7 @@ export default function FormResetPassword() {
             toast.error(data.message);
           } else {
             toast.success(data.message);
-            router.push("/account/login");
+            router.push("/login");
           }
         } catch (error) {
           toast.error("Có lỗi xảy ra, vui lòng thử lại!");
@@ -133,3 +133,4 @@ export default function FormResetPassword() {
     </form>
   );
 }
+

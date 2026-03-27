@@ -102,7 +102,7 @@ export default function FormRegister() {
           } else {
             toast.success(data.message);
             router.push(
-              `/account/verify?email=${finalData.email}&type=register`,
+              `/verify?email=${finalData.email}&type=register`,
             );
           }
         } catch (error) {
@@ -215,7 +215,7 @@ export default function FormRegister() {
               <button
                 type="button"
                 className="pl-1 text-blue-600 font-[600] hover:underline"
-                onClick={() => router.push("/account/login")}
+                onClick={() => router.push("/login")}
               >
                 {t("login")}
               </button>
@@ -236,3 +236,4 @@ export default function FormRegister() {
     </div>
   );
 }
+

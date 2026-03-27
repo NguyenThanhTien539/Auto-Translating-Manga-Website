@@ -34,11 +34,11 @@ function AccountVerify() {
         if (data.success) {
           toast.success(data.message);
           const email = searchParams.get("email");
-          router.push(`/account/reset-password?email=${email}`);
+          router.push(`/reset-password?email=${email}`);
         } else {
           toast.error(data.message);
           if (!data.data?.otpError) {
-            router.push("/account/forgot-password");
+            router.push("/forgot-password");
           }
         }
       } else {
@@ -49,11 +49,11 @@ function AccountVerify() {
 
         if (data.success) {
           toast.success(data.message);
-          router.push("/account/login");
+          router.push("/login");
         } else {
           toast.error(data.message);
           if (!data.data?.otpError) {
-            router.push("/account/register");
+            router.push("/register");
           }
         }
       }
@@ -131,7 +131,7 @@ function AccountVerify() {
           <button
             type="button"
             className="text-blue-600 hover:text-blue-700 font-medium underline-offset-2 hover:underline"
-            onClick={() => router.push("/account/register")}
+            onClick={() => router.push("/register")}
           >
             Đăng ký ngay
           </button>
@@ -148,3 +148,4 @@ export default function AccountVerifyPage() {
     </Suspense>
   );
 }
+
