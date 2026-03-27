@@ -1,6 +1,3 @@
-import dotenv from "dotenv";
-dotenv.config();
-
 import { Worker } from "bullmq";
 import type { SendMailJobData } from "../types/mail.queue";
 import { MAIL_QUEUE_NAME } from "../config/queue.variable.config";
