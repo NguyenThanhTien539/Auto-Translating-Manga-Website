@@ -4,6 +4,7 @@
 # build outputs
 **/.next
 **/build
+**/dist
 **/out
 **/coverage
 

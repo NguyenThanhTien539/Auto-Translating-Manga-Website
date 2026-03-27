@@ -1,21 +1,20 @@
 import nodemailer from "nodemailer";
-import { SentMessageInfo } from "nodemailer";
 
-export const sendMail = (
+const transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false,
+  auth: {
+    user: process.env.GMAIL_ADDRESS,
+    pass: process.env.GMAIL_APP_PASSWORD,
+  },
+});
+
+export const sendMail = async (
   email: string,
   title: string,
   content: string,
-): void => {
-  const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false,
-    auth: {
-      user: process.env.GMAIL_ADDRESS,
-      pass: process.env.GMAIL_APP_PASSWORD,
-    },
-  });
-
+): Promise<void> => {
   const mailOptions = {
     from: process.env.GMAIL_ADDRESS,
     to: email,
@@ -23,14 +22,6 @@ export const sendMail = (
     html: content,
   };
 
-  transporter.sendMail(
-    mailOptions,
-    function (error: Error | null, info: SentMessageInfo) {
-      if (error) {
-        console.log("Error:", error);
-      } else {
-        console.log("Email sent: ", info.response);
-      }
-    },
-  );
+  const info = await transporter.sendMail(mailOptions);
+  console.log("Email sent:", info.response);
 };

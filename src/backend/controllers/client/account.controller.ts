@@ -3,11 +3,11 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import * as AccountModel from "../../models/account.model";
 import * as generateHelper from "../../helper/generate.helper";
-import * as mailHelper from "../../helper/mail.helper";
 import * as emailTemplate from "../../helper/email-template.helper";
 import { AuthRequest } from "../../types";
 import { jwtDecode } from "jwt-decode";
 import { redisClient } from "../../config/redis.config";
+import { enqueueSendMail } from "../../queues/mail.queue";
 import {
   ttlSeconds,
   accessTokenTtl,
@@ -118,7 +118,7 @@ export const register = async (
       "xác nhận đăng ký tài khoản",
     );
 
-    await mailHelper.sendMail(email, title, content);
+    await enqueueSendMail({ email, title, content });
 
     res.cookie("verified_otp_token", challengeId, {
       maxAge: ttlSeconds * 1000,
@@ -337,7 +337,15 @@ export const registerVerify = async (
     const welcomeContent = emailTemplate.getWelcomeTemplate(
       registerData.full_name,
     );
-    await mailHelper.sendMail(registerData.email, welcomeTitle, welcomeContent);
+    try {
+      await enqueueSendMail({
+        email: registerData.email,
+        title: welcomeTitle,
+        content: welcomeContent,
+      });
+    } catch (queueError) {
+      console.error("Failed to enqueue welcome email:", queueError);
+    }
 
     res.clearCookie("verified_otp_token");
     res.status(200).json({
@@ -483,7 +491,7 @@ export const forgotPassword = async (
 
     const title = "Mã OTP để lấy lại mật khẩu";
     const content = emailTemplate.getOTPTemplate(otp, "lấy lại mật khẩu");
-    await mailHelper.sendMail(email, title, content);
+    await enqueueSendMail({ email, title, content });
 
     res.cookie("verified_otp_token", challengeId, {
       maxAge: ttlSeconds * 1000,
@@ -567,7 +575,6 @@ export const forgotPasswordVerify = async (
         );
       }
 
-      console.log("forgotPasswordVerify OTP không hợp lệ:", inputOtp);
       res.status(400).json({
         success: false,
         message: "OTP không hợp lệ!",
@@ -636,11 +643,15 @@ export const resetPassword = async (
 
     const resetSuccessTitle = "Đổi mật khẩu thành công";
     const resetSuccessContent = emailTemplate.getPasswordResetSuccessTemplate();
-    await mailHelper.sendMail(
-      forgotPasswordData.email,
-      resetSuccessTitle,
-      resetSuccessContent,
-    );
+    try {
+      await enqueueSendMail({
+        email: forgotPasswordData.email,
+        title: resetSuccessTitle,
+        content: resetSuccessContent,
+      });
+    } catch (queueError) {
+      console.error("Failed to enqueue reset-success email:", queueError);
+    }
 
     res.clearCookie("verified_otp_token");
     res.status(200).json({
@@ -709,7 +720,9 @@ export const refreshToken = async (
     }
 
     // Verify user still exists and is active
-    const existedAccount = await AccountModel.findUserByEmail(decodedToken.email);
+    const existedAccount = await AccountModel.findUserByEmail(
+      decodedToken.email,
+    );
     if (!existedAccount || existedAccount.user_status == "ban") {
       await redisClient.del(refreshTokenKey);
       res.clearCookie("accessToken");
