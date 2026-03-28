@@ -1,8 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import MangaCard from "@/app/components/client/MangaCard";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { apiFetch } from "@/app/utils/api";
 
 type Manga = {
   manga_id: string;
@@ -16,36 +18,65 @@ type Manga = {
   total_chapters: number;
 };
 export default function Explore() {
-  const [allMangas, setAllMangas] = useState<Manga[]>([]);
+  const [allMangas, setAllMangas] = useState<Manga[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
   const itemsPerPage = 5;
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  const totalPages = Math.ceil(allMangas.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const mangasToShow = allMangas
-    .slice(startIndex, endIndex)
-    .filter((manga) => manga.status !== "Pending");
+  const pageFromQuery = Number(searchParams.get("page") || "1");
+  const currentPage =
+    Number.isFinite(pageFromQuery) && pageFromQuery > 0
+      ? Math.floor(pageFromQuery)
+      : 1;
+
+  const mangasToShow = (allMangas || []).filter(
+    (manga) => manga.status !== "Pending",
+  );
+
+  const goToPage = (nextPage: number) => {
+    const safePage = Math.max(1, Math.min(totalPages || 1, nextPage));
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.set("page", String(safePage));
+    setIsLoading(true);
+    router.push(`${pathname}?${nextParams.toString()}`);
+  };
+
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/manga/all`)
+    apiFetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas?page=${currentPage}&limit=${itemsPerPage}`,
+    )
       .then((response) => response.json())
       .then((data) => {
-        if (data.code === "success") {
-          setAllMangas(data.mangas);
-          setCurrentPage(1); // Reset to first page when new data loads
+        if (data.success) {
+          const mapped = (data.data?.items || []).map((item: any) => ({
+            manga_id: String(item.mangaId),
+            title: item.title,
+            author_name: item.authorName,
+            original_language: "",
+            genres: item.genres || [],
+            status: item.status,
+            cover_image: item.coverImage,
+            average_rating: item.averageRating,
+            total_chapters: item.totalChapters,
+          }));
+          setAllMangas(mapped);
+          setTotalPages(data.data?.pagination?.totalPages || 0);
         } else {
           setAllMangas([]);
+          setTotalPages(0);
         }
       })
       .catch(() => {
         setAllMangas([]);
+        setTotalPages(0);
       })
       .finally(() => {
         setIsLoading(false);
       });
-  }, []);
+  }, [currentPage]);
 
   // Scroll to top when component mounts
 
@@ -69,9 +100,7 @@ export default function Explore() {
               {mangasToShow.map((manga) => (
                 <div
                   key={manga.manga_id}
-                  onClick={() =>
-                    router.push(`/manga/${manga.manga_id}`)
-                  }
+                  onClick={() => router.push(`/manga/${manga.manga_id}`)}
                   className="cursor-pointer"
                 >
                   <MangaCard
@@ -93,7 +122,7 @@ export default function Explore() {
             {totalPages > 1 && (
               <div className="flex justify-center items-center space-x-4 mt-8">
                 <button
-                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  onClick={() => goToPage(currentPage - 1)}
                   disabled={currentPage === 1}
                   className="cursor-pointer px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-600"
                 >
@@ -103,9 +132,7 @@ export default function Explore() {
                   Trang {currentPage} của {totalPages}
                 </span>
                 <button
-                  onClick={() =>
-                    setCurrentPage(Math.min(totalPages, currentPage + 1))
-                  }
+                  onClick={() => goToPage(currentPage + 1)}
                   disabled={currentPage === totalPages}
                   className="cursor-pointer px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-600"
                 >

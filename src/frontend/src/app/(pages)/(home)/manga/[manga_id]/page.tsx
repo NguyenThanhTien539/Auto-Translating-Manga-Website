@@ -109,7 +109,7 @@ export default function ReadPage() {
 
   useEffect(() => {
     fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/manga/detail/${params.manga_id}
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/detail/${params.manga_id}
         
         `,
       {
@@ -139,7 +139,7 @@ export default function ReadPage() {
 
   useEffect(() => {
     fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/manga/check-favorite?manga_id=${params.manga_id}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/check-favorite?manga_id=${params.manga_id}`,
       {
         method: "GET",
         headers: {
@@ -306,7 +306,7 @@ export default function ReadPage() {
                           }
                           const newFavoriteState = !isFavorite;
                           fetch(
-                            `${process.env.NEXT_PUBLIC_API_BASE_URL}/manga/favorite`,
+                            `${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/favorite`,
                             {
                               method: "POST",
                               headers: {

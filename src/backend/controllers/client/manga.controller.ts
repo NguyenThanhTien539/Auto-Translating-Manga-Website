@@ -6,6 +6,7 @@ import crypto from "crypto";
 import * as Manga from "../../models/manga.model";
 import * as Coin from "../../models/coin.model";
 import { AuthRequest, Page } from "../../types";
+import * as MangaService from "../../services/client/manga.service";
 
 const cloudinaryV2 = cloudinary.v2;
 
@@ -322,27 +323,33 @@ export const getGenres = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-export const getAllMangasOfClient = async (
+export const listMangas = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
   try {
-    const mangas = await Manga.getAllMangasOfClient();
-    for (const manga of mangas) {
-      const chapterCount = await Manga.countChaptersByMangaId(manga.manga_id);
-      (manga as any).total_chapters = chapterCount;
+    const pageValue = parseInt(String(req.query.page || "1"), 10);
+    const limitValue = parseInt(String(req.query.limit || "12"), 10);
 
-      const genres = await Manga.getGenresByMangaId(manga.manga_id);
-      (manga as any).genres = genres.map((g) => g.genre_name);
+    const page = Number.isFinite(pageValue) && pageValue > 0 ? pageValue : 1;
+    const limit =
+      Number.isFinite(limitValue) && limitValue > 0
+        ? Math.min(limitValue, 50)
+        : 12;
 
-      const author = await Manga.getAuthorDetailByAuthorId(manga.author_id!);
-      (manga as any).author_name = author ? author.author_name : "Unknown";
+    const result = await MangaService.listMangas({
+      page,
+      limit,
+    });
 
-      const averageRating = await Manga.calculateAverageRating(manga.manga_id);
-      (manga as any).average_rating = averageRating;
-    }
-
-    res.json({ code: "success", mangas: mangas });
+    res.status(200).json({
+      success: true,
+      message: "Lấy danh sách manga thành công",
+      data: {
+        items: result.data,
+        pagination: result.pagination,
+      },
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ code: "error", message: "Lỗi server" });
@@ -461,7 +468,7 @@ export const getChapterPages = async (
           page.image_url &&
           page.image_url !== "processing" &&
           page.image_url !== ""
-            ? `${baseUrl}/manga/page-image/${page.page_id}?token=${token}`
+            ? `${baseUrl}/mangas/page-image/${page.page_id}?token=${token}`
             : null,
       };
     });

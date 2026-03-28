@@ -43,7 +43,7 @@ export default function ChapterReadPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/manga/chapter/${params.chapter_id}/pages?language=${selectedLanguage}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/chapter/${params.chapter_id}/pages?language=${selectedLanguage}`,
       {
         credentials: "include",
       },
@@ -200,7 +200,7 @@ export default function ChapterReadPage() {
       toast.loading(`Đang dịch trang...`, { id: `translate-${pageId}` });
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/manga/translate-page`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/translate-page`,
         {
           method: "POST",
           headers: {
@@ -220,7 +220,7 @@ export default function ChapterReadPage() {
 
         // Refresh pages to get the new translated image
         const pagesResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/manga/chapter/${params.chapter_id}/pages?language=${selectedLanguage}`,
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/chapter/${params.chapter_id}/pages?language=${selectedLanguage}`,
         );
         const pagesData = await pagesResponse.json();
 

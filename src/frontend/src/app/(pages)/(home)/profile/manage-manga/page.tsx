@@ -19,7 +19,7 @@ export default function ManagePage() {
     const fetchMangas = async () => {
       try {
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/manga/my-mangas`,
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/my-mangas`,
           {
             credentials: "include",
           },

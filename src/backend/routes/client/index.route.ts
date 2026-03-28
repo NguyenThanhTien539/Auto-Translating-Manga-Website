@@ -25,7 +25,7 @@ route.use("/order-coin", orderRoute);
 
 route.use("/order-chapter", orderChapterRoute);
 
-route.use("/manga", mangaRoute);
+route.use("/mangas", mangaRoute);
 
 route.use("/comments", commentRoute);
 

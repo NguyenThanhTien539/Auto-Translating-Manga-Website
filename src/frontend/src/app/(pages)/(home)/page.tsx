@@ -30,11 +30,26 @@ export default function Home() {
   const [mangas, setMangas] = useState<Manga[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/manga/all`)
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas?page=1&limit=50`)
       .then((res) => res.json())
       .then((data) => {
-        if (data.code === "success") {
-          setMangas(data.mangas);
+        if (data.success) {
+          const mapped = (data.data?.items || []).map((item: any) => ({
+            manga_id: String(item.mangaId),
+            title: item.title,
+            author_name: item.authorName,
+            original_language: "",
+            genres: item.genres || [],
+            status: item.status,
+            cover_image: item.coverImage,
+            description: "",
+            type: "Manga",
+            chapter: "",
+            average_rating: item.averageRating,
+            total_chapters: item.totalChapters,
+            is_highlighted: false,
+          }));
+          setMangas(mapped);
         }
       })
       .catch((error) => {
@@ -83,7 +98,7 @@ export default function Home() {
   const [genres, setGenres] = useState([]);
   const [isLoadingGenres, setIsLoadingGenres] = useState(true);
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/manga/genres`)
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/genres`)
       .then((res) => res.json())
       .then((data) => {
         if (data.code === "success") {

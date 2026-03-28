@@ -23,7 +23,7 @@ const nextConfig: NextConfig = {
         protocol: "http",
         hostname: "localhost",
         port: "5000",
-        pathname: "/api/manga/page-image/**",
+        pathname: "/api/mangas/page-image/**",
       },
     ],
   },

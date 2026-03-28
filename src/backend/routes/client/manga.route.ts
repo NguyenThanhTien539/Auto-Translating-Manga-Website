@@ -74,7 +74,7 @@ route.post(
   mangaController.uploadChapter,
 );
 
-route.get("/all", mangaController.getAllMangasOfClient);
+route.get("/", mangaController.listMangas);
 
 route.post("/detail/:id", mangaController.getMangaDetailOfClient);
 

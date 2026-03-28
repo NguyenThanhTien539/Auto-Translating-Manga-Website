@@ -47,6 +47,26 @@ interface ChapterReadingData {
   total_pages: number | null;
 }
 
+export interface PublicMangaListFilters {
+  page: number;
+  limit: number;
+}
+
+export interface PublicMangaListRow {
+  manga_id: number;
+  title: string;
+  author_id: number | null;
+  author_name: string;
+  cover_image: string | null;
+  status: string;
+  total_chapters: number;
+  average_rating: number;
+  created_at: Date | string;
+  updated_at: Date | string;
+}
+
+const PUBLIC_MANGA_STATUSES = ["OnGoing", "Completed", "Completed"];
+
 export const createManga = async (data: MangaData): Promise<{ id: number }> => {
   const [id] = await db("mangas").insert(data).returning("manga_id");
   return { id: typeof id === "object" ? (id as any).manga_id : id };
@@ -99,11 +119,74 @@ export const getAllMangas = async (): Promise<Manga[]> => {
   return db("mangas").select("*").orderBy("manga_id", "asc");
 };
 
-export const getAllMangasOfClient = async (): Promise<Manga[]> => {
-  return db("mangas")
-    .select("*")
-    .whereIn("status", ["OnGoing", "Completed", "Dropped"])
-    .orderBy("manga_id", "asc");
+export const listPublicMangas = async (
+  filters: PublicMangaListFilters,
+): Promise<PublicMangaListRow[]> => {
+  const { page, limit } = filters;
+
+  const chapterCountSubquery = db("chapters as c")
+    .select("c.manga_id")
+    .countDistinct("c.chapter_id as total_chapters")
+    .groupBy("c.manga_id")
+    .as("chapter_counts");
+
+  const averageRatingSubquery = db("chapters as c")
+    .leftJoin("comments as cm", "cm.chapter_id", "c.chapter_id")
+    .select("c.manga_id")
+    .avg("cm.rating as average_rating")
+    .groupBy("c.manga_id")
+    .as("rating_stats");
+
+  const rows = await db("mangas as m")
+    .leftJoin("authors as a", "a.author_id", "m.author_id")
+    .leftJoin(chapterCountSubquery, "chapter_counts.manga_id", "m.manga_id")
+    .leftJoin(averageRatingSubquery, "rating_stats.manga_id", "m.manga_id")
+    .whereIn("m.status", PUBLIC_MANGA_STATUSES)
+    .select(
+      "m.manga_id",
+      "m.title",
+      "m.author_id",
+      "m.cover_image",
+      "m.status",
+      "m.created_at",
+      "m.updated_at",
+      db.raw("COALESCE(a.author_name, 'Unknown') as author_name"),
+      db.raw(
+        "COALESCE(chapter_counts.total_chapters, 0)::int as total_chapters",
+      ),
+      db.raw(
+        "COALESCE(rating_stats.average_rating, 0)::float as average_rating",
+      ),
+    )
+    .orderBy("m.updated_at", "asc")
+    .orderBy("m.manga_id", "asc")
+    .limit(limit)
+    .offset((page - 1) * limit);
+
+  return rows as PublicMangaListRow[];
+};
+
+export const countPublicMangas = async (): Promise<number> => {
+  const result = await db("mangas as m")
+    .whereIn("m.status", PUBLIC_MANGA_STATUSES)
+    .countDistinct("m.manga_id as count")
+    .first();
+
+  return parseInt(String(result?.count || 0), 10);
+};
+
+export const getGenresByMangaIds = async (
+  mangaIds: number[],
+): Promise<Array<{ manga_id: number; genre_name: string }>> => {
+  if (mangaIds.length === 0) {
+    return [];
+  }
+
+  return db("manga_genre as mg")
+    .innerJoin("genres as g", "g.genre_id", "mg.genre_id")
+    .whereIn("mg.manga_id", mangaIds)
+    .select("mg.manga_id", "g.genre_name")
+    .orderBy("g.genre_name", "asc");
 };
 
 export const getAllLanguages = async (): Promise<

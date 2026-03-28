@@ -54,7 +54,7 @@ function CommentContent() {
 
   useEffect(() => {
     fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/manga/detail?manga_id=${manga_id}&chapter_id=${chapter_id}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/detail?manga_id=${manga_id}&chapter_id=${chapter_id}`,
     )
       .then((response) => response.json())
       .then((data) => {
