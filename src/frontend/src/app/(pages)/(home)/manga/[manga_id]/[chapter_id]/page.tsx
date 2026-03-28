@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -28,6 +28,24 @@ interface TranslatingPage {
 export default function ChapterReadPage() {
   const params = useParams();
   const { isLogin, infoUser } = useAuth();
+  const mangaRouteParam = useMemo(() => {
+    const raw = (params as any).manga_id ?? (params as any).mangaSlug;
+    if (Array.isArray(raw)) return raw[0] || "";
+    return String(raw || "");
+  }, [params]);
+  const chapterRouteParam = useMemo(() => {
+    const raw = (params as any).chapter_id ?? (params as any).chapterId;
+    if (Array.isArray(raw)) return raw[0] || "";
+    return String(raw || "");
+  }, [params]);
+  const fallbackMangaPath = useMemo(() => {
+    return mangaRouteParam ? `/manga/${mangaRouteParam}` : "/explore";
+  }, [mangaRouteParam]);
+  const [resolvedMangaId, setResolvedMangaId] = useState<string>("");
+  const mangaIdForTracking = useMemo(() => {
+    if (resolvedMangaId) return resolvedMangaId;
+    return /^\d+$/.test(mangaRouteParam) ? mangaRouteParam : "";
+  }, [resolvedMangaId, mangaRouteParam]);
   const [pages, setPages] = useState<PageData[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedLanguage, setSelectedLanguage] = useState<"vi" | "en">("vi");
@@ -38,12 +56,33 @@ export default function ChapterReadPage() {
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedPage = useRef(1);
 
+  useEffect(() => {
+    if (!chapterRouteParam) return;
+
+    fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/chapter/${chapterRouteParam}/detail`,
+      {
+        credentials: "include",
+      },
+    )
+      .then((response) => response.json())
+      .then((data) => {
+        if (data?.code === "success" && data?.data?.chapter?.manga_id) {
+          setResolvedMangaId(String(data.data.chapter.manga_id));
+        }
+      })
+      .catch(() => {
+        setResolvedMangaId("");
+      });
+  }, [chapterRouteParam]);
+
   // Fetch pages data
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!chapterRouteParam) return;
+
     setLoading(true);
     fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/chapter/${params.chapter_id}/pages?language=${selectedLanguage}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/chapter/${chapterRouteParam}/pages?language=${selectedLanguage}`,
       {
         credentials: "include",
       },
@@ -53,7 +92,7 @@ export default function ChapterReadPage() {
         let data;
         try {
           data = await response.json();
-        } catch (e) {
+        } catch {
           throw new Error("Không thể tải dữ liệu chapter");
         }
 
@@ -95,36 +134,37 @@ export default function ChapterReadPage() {
               },
             );
             setTimeout(() => {
-              window.location.href = `/read/${params.manga_id}`;
+              window.location.href = fallbackMangaPath;
             }, 3000);
           } else {
             toast.error(error.message || "Không thể tải chapter");
             setTimeout(() => {
-              window.location.href = `/read/${params.manga_id}`;
+              window.location.href = fallbackMangaPath;
             }, 2000);
           }
         } else if (error instanceof Error) {
           // Lỗi JavaScript
           toast.error(error.message);
           setTimeout(() => {
-            window.location.href = `/read/${params.manga_id}`;
+            window.location.href = fallbackMangaPath;
           }, 2000);
         } else {
           // Lỗi không xác định
           toast.error("Có lỗi xảy ra khi tải chapter");
           setTimeout(() => {
-            window.location.href = `/read/${params.manga_id}`;
+            window.location.href = fallbackMangaPath;
           }, 2000);
         }
       });
-  }, [params.chapter_id, params.manga_id, selectedLanguage]);
+  }, [chapterRouteParam, selectedLanguage, fallbackMangaPath]);
 
   // Fetch reading history and auto-scroll to last read page
   useEffect(() => {
-    if (!isLogin || !infoUser || pages.length === 0) return;
+    if (!isLogin || !infoUser || pages.length === 0 || !chapterRouteParam)
+      return;
 
     fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/reading-history/chapter/${params.chapter_id}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/reading-history/chapter/${chapterRouteParam}`,
       {
         credentials: "include",
       },
@@ -150,12 +190,13 @@ export default function ChapterReadPage() {
       .catch((error) => {
         console.error("Error fetching reading history:", error);
       });
-  }, [isLogin, infoUser, pages.length, params.chapter_id]);
+  }, [isLogin, infoUser, pages.length, chapterRouteParam]);
 
   // Save reading progress function
   const saveReadingProgress = useCallback(
     (pageNumber: number) => {
-      if (!isLogin || !infoUser) return;
+      if (!isLogin || !infoUser || !chapterRouteParam || !mangaIdForTracking)
+        return;
 
       // Clear previous timeout
       if (saveTimeoutRef.current) {
@@ -173,8 +214,8 @@ export default function ChapterReadPage() {
           },
           credentials: "include",
           body: JSON.stringify({
-            chapterId: params.chapter_id,
-            mangaId: params.manga_id,
+            chapterId: chapterRouteParam,
+            mangaId: mangaIdForTracking,
             lastPageRead: pageNumber,
           }),
         })
@@ -190,7 +231,7 @@ export default function ChapterReadPage() {
           });
       }, 2000);
     },
-    [isLogin, infoUser, params.chapter_id, params.manga_id],
+    [isLogin, infoUser, chapterRouteParam, mangaIdForTracking],
   );
 
   // Translate page function
@@ -220,7 +261,7 @@ export default function ChapterReadPage() {
 
         // Refresh pages to get the new translated image
         const pagesResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/chapter/${params.chapter_id}/pages?language=${selectedLanguage}`,
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/chapter/${chapterRouteParam}/pages?language=${selectedLanguage}`,
         );
         const pagesData = await pagesResponse.json();
 
@@ -517,12 +558,12 @@ export default function ChapterReadPage() {
               <div className="mt-8 mb-6">
                 <div className="bg-gray-800 rounded-lg p-8 text-center">
                   <h3 className="text-white text-xl font-bold mb-4">
-                    Hết chương {params.chapter_id}
+                    Hết chương {chapterRouteParam}
                   </h3>
 
                   <div className="flex items-center justify-center gap-4">
                     <Link
-                      href={`/explore/manga/${params.manga_id}`}
+                      href={fallbackMangaPath}
                       className="px-6 py-3 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-medium transition-colors"
                     >
                       Danh sách chương

@@ -7,6 +7,7 @@ export interface ListMangasInput {
 
 export interface ExploreMangaItem {
   mangaId: number;
+  slug: string;
   title: string;
   authorId: number | null;
   authorName: string;
@@ -27,6 +28,16 @@ export interface ListMangasResult {
     totalItems: number;
     totalPages: number;
   };
+}
+
+interface PublicMangaOverview {
+  manga: any;
+}
+
+interface PublicMangaChapters {
+  manga_id: number;
+  chapters: any[];
+  usedChapterList: Array<{ chapter_id: number }>;
 }
 
 export const listMangas = async (
@@ -55,6 +66,7 @@ export const listMangas = async (
 
   const data: ExploreMangaItem[] = rows.map((row) => ({
     mangaId: row.manga_id,
+    slug: row.slug || String(row.manga_id),
     title: row.title,
     authorId: row.author_id ?? null,
     authorName: row.author_name || "Unknown",
@@ -75,5 +87,57 @@ export const listMangas = async (
       totalItems,
       totalPages: totalItems > 0 ? Math.ceil(totalItems / limit) : 0,
     },
+  };
+};
+
+const buildMangaOverview = async (manga: any): Promise<any> => {
+  const mangaId = Number(manga.manga_id);
+
+  const [genres, author, chapters, averageRating] = await Promise.all([
+    MangaModel.getGenresByMangaId(mangaId),
+    manga.author_id
+      ? MangaModel.getAuthorDetailByAuthorId(manga.author_id)
+      : null,
+    MangaModel.getPublishedChaptersByMangaId(mangaId),
+    MangaModel.calculateAverageRating(mangaId),
+  ]);
+
+  return {
+    ...manga,
+    genres: genres.map((g) => g.genre_name),
+    author_name: author ? author.author_name : "Unknown",
+    totalChapters: chapters.length,
+    average_rating: averageRating,
+  };
+};
+
+export const getPublicMangaOverviewBySlug = async (
+  slug: string,
+): Promise<PublicMangaOverview | null> => {
+  const manga = await MangaModel.getMangaBySlug(slug);
+  if (!manga) return null;
+
+  const finalManga = await buildMangaOverview(manga);
+  return { manga: finalManga };
+};
+
+export const getPublicMangaChaptersBySlug = async (
+  slug: string,
+  userId?: number,
+): Promise<PublicMangaChapters | null> => {
+  const manga = await MangaModel.getMangaBySlug(slug);
+  if (!manga) return null;
+
+  const chapters = await MangaModel.getPublishedChaptersByMangaId(
+    manga.manga_id,
+  );
+  const usedChapterList = userId
+    ? await MangaModel.getPurchasedChaptersList(userId)
+    : [];
+
+  return {
+    manga_id: manga.manga_id,
+    chapters,
+    usedChapterList,
   };
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { use, useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { MessageCircle, Star, Heart, Share2, Lock } from "lucide-react";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
@@ -19,6 +19,7 @@ interface Chapter {
 
 type Manga = {
   manga_id: string;
+  slug?: string;
   title: string;
   author_name: string;
   cover_image: string;
@@ -35,17 +36,28 @@ export default function ReadPage() {
   const params = useParams();
   const [mangaDetail, setMangaDetail] = useState<{
     manga: Manga;
-    chapters: Chapter[];
-    usedChapterList?: Array<{ chapter_id: number }>;
   } | null>(null);
+  const [chapters, setChapters] = useState<Chapter[]>([]);
+  const [usedChapterList, setUsedChapterList] = useState<
+    Array<{ chapter_id: number }>
+  >([]);
+  const [isChaptersLoading, setIsChaptersLoading] = useState(false);
+  const [chaptersFetchKey, setChaptersFetchKey] = useState("");
 
-  const [activeTab, setActiveTab] = useState<"overview" | "chapters">(
-    "overview",
-  );
+  const [activeTab, setActiveTab] = useState<"overview" | "chapters">(() => {
+    if (typeof window === "undefined") return "overview";
+    const tab = new URLSearchParams(window.location.search).get("tab");
+    return tab === "chapters" ? "chapters" : "overview";
+  });
   const [isFavorite, setIsFavorite] = useState(false);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const mangaParam = useMemo(() => {
+    const raw = params.manga_id;
+    if (Array.isArray(raw)) return raw[0] || "";
+    return String(raw || "");
+  }, [params.manga_id]);
 
   const handleShare = async () => {
     const currentUrl = window.location.href;
@@ -108,23 +120,78 @@ export default function ReadPage() {
   };
 
   useEffect(() => {
-    fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/detail/${params.manga_id}
-        
-        `,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({ user_id: infoUser?.id }),
+    const url = new URL(window.location.href);
+    const tab = url.searchParams.get("tab");
+    if (tab === "overview" || tab === "chapters") return;
+    url.searchParams.set("tab", "overview");
+    window.history.replaceState({}, "", url);
+  }, []);
+
+  useEffect(() => {
+    if (!mangaParam || activeTab !== "chapters") return;
+
+    const viewerKey = infoUser?.id ? String(infoUser.id) : "guest";
+    const currentFetchKey = `${mangaParam}:${viewerKey}`;
+    if (chaptersFetchKey === currentFetchKey) return;
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsChaptersLoading(true);
+    const chaptersUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/${encodeURIComponent(
+      mangaParam,
+    )}/chapters`;
+
+    fetch(chaptersUrl, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
       },
-    )
+      credentials: "include",
+    })
       .then((response) => response.json())
       .then((data) => {
         if (data.code === "success") {
-          setMangaDetail(data.data);
+          console.log("Chapters data:", data.data);
+          setChapters(data?.data?.chapters || []);
+          setUsedChapterList(data?.data?.usedChapterList || []);
+          setChaptersFetchKey(currentFetchKey);
+        } else {
+          setChapters([]);
+          setUsedChapterList([]);
+        }
+      })
+      .catch(() => {
+        setChapters([]);
+        setUsedChapterList([]);
+      })
+      .finally(() => {
+        setIsChaptersLoading(false);
+      });
+  }, [activeTab, mangaParam, infoUser?.id, chaptersFetchKey]);
+
+  useEffect(() => {
+    if (!mangaParam) return;
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsLoading(true);
+    setChapters([]);
+    setUsedChapterList([]);
+    setChaptersFetchKey("");
+
+    const overviewUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/${encodeURIComponent(
+      mangaParam,
+    )}`;
+
+    fetch(overviewUrl, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.code === "success" && data?.data?.manga) {
+          setMangaDetail({ manga: data.data.manga });
         } else {
           setMangaDetail(null);
         }
@@ -135,11 +202,14 @@ export default function ReadPage() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [params.manga_id, infoUser]);
+  }, [mangaParam]);
 
   useEffect(() => {
+    const mangaId = mangaDetail?.manga?.manga_id;
+    if (!mangaId) return;
+
     fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/check-favorite?manga_id=${params.manga_id}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/check-favorite?manga_id=${mangaId}`,
       {
         method: "GET",
         headers: {
@@ -155,15 +225,18 @@ export default function ReadPage() {
         } else {
           setIsFavorite(false);
         }
+      })
+      .catch(() => {
+        setIsFavorite(false);
       });
-  }, [params.manga_id]);
+  }, [mangaDetail?.manga?.manga_id]);
 
   const handleChapterClick = (chapter: Chapter, isOwned: boolean) => {
     const chapterPrice = parseFloat(chapter.price);
     // Nếu chapter miễn phí HOẶC đã mua, chuyển thẳng đến trang đọc
     if (chapterPrice === 0 || isOwned) {
       router.push(
-        `/manga/${mangaDetail?.manga.manga_id}/${chapter.chapter_id}`,
+        `/manga/${mangaDetail?.manga.slug || mangaParam}/chapters/${chapter.chapter_id}`,
       );
     } else {
       // Nếu chapter có giá VÀ chưa mua, hiển thị modal
@@ -206,15 +279,10 @@ export default function ReadPage() {
         setShowPurchaseModal(false);
 
         // Cập nhật usedChapterList ngay lập tức để khóa biến mất
-        setMangaDetail((prev) => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            usedChapterList: [
-              ...(prev.usedChapterList || []),
-              { chapter_id: Number(selectedChapter.chapter_id) },
-            ],
-          };
+        setUsedChapterList((prev) => {
+          const chapterId = Number(selectedChapter.chapter_id);
+          if (prev.some((item) => item.chapter_id === chapterId)) return prev;
+          return [...prev, { chapter_id: chapterId }];
         });
       } else {
         toast.error(data.message || "Không thể mua chapter. Vui lòng thử lại!");
@@ -223,6 +291,13 @@ export default function ReadPage() {
       console.error("Purchase error:", error);
       toast.error("Đã có lỗi xảy ra. Vui lòng thử lại!");
     }
+  };
+
+  const handleChangeTab = (tab: "overview" | "chapters") => {
+    setActiveTab(tab);
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", tab);
+    window.history.pushState({}, "", url);
   };
 
   return (
@@ -238,7 +313,7 @@ export default function ReadPage() {
             <div className="container mx-auto px-4">
               <div className="grid grid-cols-2 gap-0">
                 <button
-                  onClick={() => setActiveTab("overview")}
+                  onClick={() => handleChangeTab("overview")}
                   className={`px-6 md:px-8 py-4 font-semibold transition-all text-center text-sm md:text-base border-r border-slate-700 ${
                     activeTab === "overview"
                       ? "bg-white text-slate-900"
@@ -248,7 +323,7 @@ export default function ReadPage() {
                   Tổng quan
                 </button>
                 <button
-                  onClick={() => setActiveTab("chapters")}
+                  onClick={() => handleChangeTab("chapters")}
                   className={`px-6 md:px-8 py-4 font-semibold transition-all text-center text-sm md:text-base ${
                     activeTab === "chapters"
                       ? "bg-blue-500 text-white"
@@ -439,67 +514,83 @@ export default function ReadPage() {
             {activeTab === "chapters" && (
               <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-xl overflow-hidden">
                 <div className="max-h-[600px] overflow-y-auto">
-                  {mangaDetail?.chapters.map((chapter) => {
-                    const chapterPrice = parseFloat(chapter.price);
-                    // Kiểm tra chapter đã được mua chưa
-                    const isOwned = mangaDetail?.usedChapterList?.some(
-                      (used) => used.chapter_id === Number(chapter.chapter_id),
-                    );
-                    // Chỉ hiển thị khóa nếu: có giá VÀ chưa mua
-                    const showLock = chapterPrice > 0 && !isOwned;
+                  {isChaptersLoading && (
+                    <div className="flex justify-center items-center py-16">
+                      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
+                    </div>
+                  )}
+                  {!isChaptersLoading &&
+                    chapters.map((chapter) => {
+                      const chapterPrice = parseFloat(chapter.price);
+                      // Kiểm tra chapter đã được mua chưa
+                      const isOwned = usedChapterList.some(
+                        (used) =>
+                          used.chapter_id === Number(chapter.chapter_id),
+                      );
+                      // Chỉ hiển thị khóa nếu: có giá VÀ chưa mua
+                      const showLock = chapterPrice > 0 && !isOwned;
 
-                    return (
-                      <div
-                        key={chapter.chapter_id}
-                        className={`border-b border-slate-700 transition-colors ${
-                          showLock
-                            ? "hover:bg-yellow-500/10 cursor-pointer"
-                            : "hover:bg-blue-500/10 cursor-pointer"
-                        }`}
-                        onClick={() =>
-                          handleChapterClick(chapter, isOwned || false)
-                        }
-                      >
-                        <div className="p-5">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3 flex-1">
-                              <span className="font-semibold text-white">
-                                Chương {chapter.chapter_number}: {chapter.title}
-                              </span>
-                              {showLock && (
-                                <div className="flex items-center gap-2 bg-yellow-500/20 border border-yellow-500/50 px-3 py-1 rounded-lg">
-                                  <Lock size={14} className="text-yellow-400" />
-                                  <span className="text-yellow-400 text-sm font-semibold">
-                                    {chapterPrice.toFixed(0)} Coin
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-6 text-slate-400">
-                              <button
-                                type="button"
-                                className="hover:text-blue-400 transition-colors"
-                                onClick={(e) => {
-                                  e.stopPropagation();
+                      return (
+                        <div
+                          key={chapter.chapter_id}
+                          className={`border-b border-slate-700 transition-colors ${
+                            showLock
+                              ? "hover:bg-yellow-500/10 cursor-pointer"
+                              : "hover:bg-blue-500/10 cursor-pointer"
+                          }`}
+                          onClick={() =>
+                            handleChapterClick(chapter, isOwned || false)
+                          }
+                        >
+                          <div className="p-5">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3 flex-1">
+                                <span className="font-semibold text-white">
+                                  Chương {chapter.chapter_number}:{" "}
+                                  {chapter.title}
+                                </span>
+                                {showLock && (
+                                  <div className="flex items-center gap-2 bg-yellow-500/20 border border-yellow-500/50 px-3 py-1 rounded-lg">
+                                    <Lock
+                                      size={14}
+                                      className="text-yellow-400"
+                                    />
+                                    <span className="text-yellow-400 text-sm font-semibold">
+                                      {chapterPrice.toFixed(0)} Coin
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-6 text-slate-400">
+                                <button
+                                  type="button"
+                                  className="hover:text-blue-400 transition-colors"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
 
-                                  const qs = new URLSearchParams({
-                                    manga_id: String(
-                                      mangaDetail?.manga.manga_id ?? "",
-                                    ),
-                                    chapter_id: String(chapter.chapter_id),
-                                  });
+                                    const qs = new URLSearchParams({
+                                      manga_slug: String(
+                                        mangaDetail?.manga.slug || mangaParam,
+                                      ),
+                                      chapter_id: String(chapter.chapter_id),
+                                    });
 
-                                  router.push(`/comment?${qs.toString()}`);
-                                }}
-                              >
-                                <MessageCircle size={18} />
-                              </button>
+                                    router.push(`/comment?${qs.toString()}`);
+                                  }}
+                                >
+                                  <MessageCircle size={18} />
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  {!isChaptersLoading && chapters.length === 0 && (
+                    <div className="py-10 text-center text-slate-300">
+                      Chua co chapter nao.
+                    </div>
+                  )}
                 </div>
               </div>
             )}

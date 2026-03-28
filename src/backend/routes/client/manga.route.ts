@@ -74,7 +74,7 @@ route.post(
 
 route.get("/", mangaController.listMangas);
 
-route.post("/detail/:id", mangaController.getMangaDetailOfClient);
+route.get("/chapter/:id/detail", mangaController.getChapterDetailOfClient);
 
 route.get(
   "/chapter/:id/pages",
@@ -84,8 +84,6 @@ route.get(
 );
 
 route.get("/page-image/:pageId", mangaController.getPageImage);
-
-route.get("/detail", mangaController.getMangaAndSpecificChapter);
 
 route.get("/filter", rateLimit(50, 60000), mangaController.filterMangas);
 
@@ -124,5 +122,12 @@ route.post(
   rateLimit(10, 60000),
   translateController.translateSinglePage,
 );
+
+route.get(
+  "/:slug/chapters",
+  authMiddleware.optionalAuth,
+  mangaController.getPublicMangaChaptersBySlug,
+);
+route.get("/:slug", mangaController.getPublicMangaOverviewBySlug);
 
 export default route;

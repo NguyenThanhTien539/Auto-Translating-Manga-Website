@@ -8,6 +8,7 @@ import { apiFetch } from "@/utils/api";
 
 type Manga = {
   manga_id: string;
+  slug: string;
   title: string;
   author_name: string;
   original_language: string;
@@ -53,6 +54,7 @@ export default function Explore() {
         if (data.success) {
           const mapped = (data.data?.items || []).map((item: any) => ({
             manga_id: String(item.mangaId),
+            slug: String(item.slug || item.mangaId),
             title: item.title,
             author_name: item.authorName,
             original_language: "",
@@ -100,7 +102,7 @@ export default function Explore() {
               {mangasToShow.map((manga) => (
                 <div
                   key={manga.manga_id}
-                  onClick={() => router.push(`/manga/${manga.manga_id}`)}
+                  onClick={() => router.push(`/manga/${manga.slug}`)}
                   className="cursor-pointer"
                 >
                   <MangaCard

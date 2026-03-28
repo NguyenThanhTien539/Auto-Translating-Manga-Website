@@ -38,7 +38,7 @@ type Manga = {
 function CommentContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const manga_id = searchParams.get("manga_id");
+  const manga_slug = searchParams.get("manga_slug");
   const chapter_id = searchParams.get("chapter_id");
   const { infoUser } = useAuth();
   const [comments, setComments] = useState<Comment[]>([]);
@@ -53,24 +53,39 @@ function CommentContent() {
   const [chapterDetail, setChapterDetail] = useState<Chapter | null>(null);
 
   useEffect(() => {
-    fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/detail?manga_id=${manga_id}&chapter_id=${chapter_id}`,
-    )
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.code === "success") {
-          if (data.data.chapter) {
-            setChapterDetail(data.data.chapter);
-          }
-          if (data.data.manga) {
-            setMangaDetail(data.data.manga);
-          }
+    if (!chapter_id) return;
+
+    const chapterRequest = fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/chapter/${chapter_id}/detail`,
+    ).then((response) => response.json());
+
+    const mangaRequest = manga_slug
+      ? fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/${encodeURIComponent(
+            manga_slug,
+          )}`,
+        ).then((response) => response.json())
+      : Promise.resolve(null);
+
+    Promise.all([mangaRequest, chapterRequest])
+      .then(([mangaRes, chapterRes]) => {
+        if (mangaRes?.code === "success" && mangaRes?.data?.manga) {
+          setMangaDetail(mangaRes.data.manga);
         } else {
           setMangaDetail(null);
+        }
+
+        if (chapterRes?.code === "success" && chapterRes?.data?.chapter) {
+          setChapterDetail(chapterRes.data.chapter);
+        } else {
           setChapterDetail(null);
         }
+      })
+      .catch(() => {
+        setMangaDetail(null);
+        setChapterDetail(null);
       });
-  }, [manga_id, chapter_id]);
+  }, [manga_slug, chapter_id]);
 
   useEffect(() => {
     fetch(
@@ -90,7 +105,7 @@ function CommentContent() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [manga_id, chapter_id]);
+  }, [manga_slug, chapter_id]);
 
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -180,7 +195,7 @@ function CommentContent() {
     );
   };
 
-  if (!manga_id) {
+  if (!manga_slug) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
         <div className="text-white text-xl">Không tìm thấy thông tin manga</div>

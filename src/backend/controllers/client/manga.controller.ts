@@ -356,37 +356,79 @@ export const listMangas = async (
   }
 };
 
-export const getMangaDetailOfClient = async (
+export const getPublicMangaOverviewBySlug = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const slug = String(req.params.slug || "").trim();
+    if (!slug) {
+      res.status(400).json({ code: "error", message: "Invalid manga slug" });
+      return;
+    }
+
+    const detail = await MangaService.getPublicMangaOverviewBySlug(slug);
+    if (!detail) {
+      res.status(404).json({ code: "error", message: "Manga not found" });
+      return;
+    }
+
+    res.json({ code: "success", data: detail });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ code: "error", message: "Loi server" });
+  }
+};
+
+export const getPublicMangaChaptersBySlug = async (
   req: AuthRequest,
   res: Response,
 ): Promise<void> => {
   try {
-    const mangaId = req.params.id;
-    const manga = await Manga.getMangaById(Number(mangaId));
-    if (!manga) {
+    const slug = String(req.params.slug || "").trim();
+    if (!slug) {
+      res.status(400).json({ code: "error", message: "Invalid manga slug" });
+      return;
+    }
+
+    const data = await MangaService.getPublicMangaChaptersBySlug(
+      slug,
+      req.infoUser?.user_id,
+    );
+
+    if (!data) {
       res.status(404).json({ code: "error", message: "Manga not found" });
       return;
     }
-    const genres = await Manga.getGenresByMangaId(Number(mangaId));
-    (manga as any).genres = genres.map((g) => g.genre_name);
-    const author = await Manga.getAuthorDetailByAuthorId(manga.author_id!);
-    (manga as any).author_name = author ? author.author_name : "Unknown";
-    const chapters = await Manga.getChaptersByMangaIdOfClient(Number(mangaId));
-    (manga as any).totalChapters = chapters.length;
 
-    const averageRating = await Manga.calculateAverageRating(manga.manga_id);
-    (manga as any).average_rating = averageRating;
-
-    let usedChapterList: any[] = [];
-    if (req.body.user_id) {
-      usedChapterList = await Manga.getPurchasedChaptersList(req.body.user_id);
-    }
-
-    const finalDetail = { manga, chapters, usedChapterList };
-    res.json({ code: "success", data: finalDetail });
+    res.json({ code: "success", data });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ code: "error", message: "Lỗi server" });
+    res.status(500).json({ code: "error", message: "Loi server" });
+  }
+};
+
+export const getChapterDetailOfClient = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const chapterId = Number(req.params.id);
+    if (!Number.isFinite(chapterId)) {
+      res.status(400).json({ code: "error", message: "Invalid chapter id" });
+      return;
+    }
+
+    const chapter = await Manga.getChapterByChapterId(chapterId);
+    if (!chapter) {
+      res.status(404).json({ code: "error", message: "Chapter not found" });
+      return;
+    }
+
+    res.json({ code: "success", data: { chapter } });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ code: "error", message: "Loi server" });
   }
 };
 
@@ -708,29 +750,6 @@ export const uploadChapter = async (
   }
 };
 
-export const getMangaAndSpecificChapter = async (
-  req: Request,
-  res: Response,
-): Promise<void> => {
-  try {
-    const mangaId = req.query.manga_id;
-    const chapterId = req.query.chapter_id;
-    const manga = await Manga.getMangaById(Number(mangaId));
-    if (!manga) {
-      res.status(404).json({ code: "error", message: "Manga not found" });
-      return;
-    }
-
-    const author = await Manga.getAuthorDetailByAuthorId(manga.author_id!);
-    (manga as any).author_name = author ? author.author_name : "Unknown";
-
-    const chapter = await Manga.getChapterByChapterId(Number(chapterId));
-    res.json({ code: "success", data: { manga, chapter } });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ code: "error", message: "Lỗi server" });
-  }
-};
 
 export const getFilterPanelData = async (
   req: Request,
@@ -850,3 +869,5 @@ export const getMangaStatistics = async (
     res.status(500).json({ code: "error", message: "Lỗi server" });
   }
 };
+
+

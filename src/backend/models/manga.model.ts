@@ -54,6 +54,7 @@ export interface PublicMangaListFilters {
 
 export interface PublicMangaListRow {
   manga_id: number;
+  slug: string | null;
   title: string;
   author_id: number | null;
   author_name: string;
@@ -89,7 +90,13 @@ export const getMangaById = async (id: number): Promise<Manga | undefined> => {
   return db("mangas").where("manga_id", id).first();
 };
 
-export const getChaptersByMangaIdOfClient = async (
+export const getMangaBySlug = async (
+  slug: string,
+): Promise<Manga | undefined> => {
+  return db("mangas").where("slug", slug).first();
+};
+
+export const getPublishedChaptersByMangaId = async (
   mangaId: number,
 ): Promise<Chapter[]> => {
   return db("chapters")
@@ -144,6 +151,7 @@ export const listPublicMangas = async (
     .whereIn("m.status", PUBLIC_MANGA_STATUSES)
     .select(
       "m.manga_id",
+      "m.slug",
       "m.title",
       "m.author_id",
       "m.cover_image",
