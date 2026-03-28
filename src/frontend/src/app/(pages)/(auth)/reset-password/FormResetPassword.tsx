@@ -6,7 +6,7 @@ import JustValidate from "just-validate";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
-import { api } from "@/app/utils/api";
+import { api } from "@/utils/api";
 
 export default function FormResetPassword() {
   const router = useRouter();

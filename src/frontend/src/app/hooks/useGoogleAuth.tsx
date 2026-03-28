@@ -4,7 +4,7 @@ import type { CredentialResponse } from "@react-oauth/google";
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import { toast } from "sonner";
-import { api } from "@/app/utils/api";
+import { api } from "@/utils/api";
 
 const roleRedirectMap: Record<string, string> = {
   "0": "/admin/dashboard",

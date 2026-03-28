@@ -341,6 +341,13 @@ export async function login(input: {
     throw new AccountServiceError(400, "Email chưa tồn tại trong hệ thống");
   }
 
+  if (existedAccount.password === null) {
+    throw new AccountServiceError(
+      400,
+      "Tài khoản này không thể đăng nhập bằng mật khẩu, vui lòng thử đăng nhập bằng Google",
+    );
+  }
+
   const isPasswordValidate = await comparePassword(
     input.password,
     existedAccount.password,

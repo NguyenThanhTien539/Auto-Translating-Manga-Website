@@ -5,7 +5,7 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import OTPForm from "./OTPForm";
 import { toast } from "sonner";
-import { api } from "@/app/utils/api";
+import { api } from "@/utils/api";
 
 function AccountVerify() {
   const router = useRouter();

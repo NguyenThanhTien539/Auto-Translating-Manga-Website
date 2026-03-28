@@ -5,7 +5,7 @@ import JustValidate from "just-validate";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { api } from "@/app/utils/api";
+import { api } from "@/utils/api";
 
 export default function FormForgotPassword() {
   const router = useRouter();
@@ -77,4 +77,3 @@ export default function FormForgotPassword() {
     </form>
   );
 }
-

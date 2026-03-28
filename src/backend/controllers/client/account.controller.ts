@@ -168,7 +168,7 @@ export const login = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const email = req.body.email;
     const password = req.body.password;
-
+    
     const result = await accountService.login({ email, password });
 
     setAuthCookies(res, result.accessToken, result.refreshToken);

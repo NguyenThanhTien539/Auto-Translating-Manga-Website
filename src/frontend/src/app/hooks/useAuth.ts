@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { api } from "@/app/utils/api";
+import { api } from "@/utils/api";
 
 interface AuthUserPayload {
   user?: unknown;

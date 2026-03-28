@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import MyCustomGoogleButton from "@/app/components/auth/MyCustomGoogleButton";
 import { useGoogleAuth } from "@/app/hooks/useGoogleAuth";
 import { useTranslations, useLocale } from "next-intl";
-import { api } from "@/app/utils/api";
+import { api } from "@/utils/api";
 
 const roleRedirectMap: Record<string, string> = {
   "0": "/admin/dashboard",
@@ -184,4 +184,3 @@ export default function FormLogin() {
     </>
   );
 }
-

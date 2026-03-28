@@ -4,7 +4,7 @@
 import MangaCard from "@/app/components/client/MangaCard";
 import { useState, useEffect } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { apiFetch } from "@/app/utils/api";
+import { apiFetch } from "@/utils/api";
 
 type Manga = {
   manga_id: string;

@@ -9,7 +9,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import MyCustomGoogleButton from "@/app/components/auth/MyCustomGoogleButton";
 import { useGoogleAuth } from "@/app/hooks/useGoogleAuth";
 import { useTranslations } from "next-intl";
-import { api } from "@/app/utils/api";
+import { api } from "@/utils/api";
 
 export default function FormRegister() {
   const router = useRouter();
