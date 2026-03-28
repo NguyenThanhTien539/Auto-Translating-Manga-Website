@@ -9,7 +9,7 @@ export const insert = async (data: GenreData): Promise<number[]> => {
   return db("genres").insert(data);
 };
 
-export const findAllGenre = async (): Promise<Genre[]> => {
+export const findAllGenres = async (): Promise<Genre[]> => {
   return db("genres").select("*").orderBy("genre_id", "asc");
 };
 

@@ -55,8 +55,6 @@ route.get(
 
 route.get("/languages", mangaController.getLanguages);
 
-route.get("/genres", mangaController.getGenres);
-
 route.post(
   "/upload",
   authMiddleware.uploaderAuth,

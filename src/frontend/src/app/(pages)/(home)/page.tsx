@@ -98,10 +98,10 @@ export default function Home() {
   const [genres, setGenres] = useState([]);
   const [isLoadingGenres, setIsLoadingGenres] = useState(true);
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/genres`)
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/genres`)
       .then((res) => res.json())
       .then((data) => {
-        if (data.code === "success") {
+        if (data.success) {
           setGenres(data.data);
         }
       })

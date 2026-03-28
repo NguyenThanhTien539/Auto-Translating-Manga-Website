@@ -18,7 +18,7 @@ export const create = async (req: Request, res: Response): Promise<void> => {
 
 export const list = async (req: Request, res: Response): Promise<void> => {
   try {
-    const genreList = await GenreModel.findAllGenre();
+    const genreList = await GenreModel.findAllGenres();
     res.json({
       code: "success",
       list: genreList,

@@ -9,6 +9,7 @@ import commentRoute from "./comment.route";
 import authorRoute from "./author.route";
 import readingHistoryRoute from "./reading_history.route";
 import orderChapterRoute from "./order-chapter.route";
+import genreRoute from "./genre.route";
 import * as authMiddleware from "../../middlewares/auth.middleware";
 
 const route = Router();
@@ -32,5 +33,7 @@ route.use("/comments", commentRoute);
 route.use("/authors", authorRoute);
 
 route.use("/reading-history", readingHistoryRoute);
+
+route.use("/genres", genreRoute);
 
 export default route;
