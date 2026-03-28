@@ -33,7 +33,10 @@ type Manga = {
 export default function ReadPage() {
   const { infoUser } = useAuth();
   const router = useRouter();
-  const params = useParams();
+  const params = useParams<{
+    slug?: string | string[];
+    manga_id?: string | string[];
+  }>();
   const [mangaDetail, setMangaDetail] = useState<{
     manga: Manga;
   } | null>(null);
@@ -54,10 +57,10 @@ export default function ReadPage() {
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const mangaParam = useMemo(() => {
-    const raw = params.manga_id;
+    const raw = params.slug;
     if (Array.isArray(raw)) return raw[0] || "";
     return String(raw || "");
-  }, [params.manga_id]);
+  }, [params]);
 
   const handleShare = async () => {
     const currentUrl = window.location.href;

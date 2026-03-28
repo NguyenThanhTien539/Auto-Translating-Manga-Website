@@ -1,7 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -29,12 +35,12 @@ export default function ChapterReadPage() {
   const params = useParams();
   const { isLogin, infoUser } = useAuth();
   const mangaRouteParam = useMemo(() => {
-    const raw = (params as any).manga_id ?? (params as any).mangaSlug;
+    const raw = params.slug;
     if (Array.isArray(raw)) return raw[0] || "";
     return String(raw || "");
   }, [params]);
   const chapterRouteParam = useMemo(() => {
-    const raw = (params as any).chapter_id ?? (params as any).chapterId;
+    const raw = params.chapter_id;
     if (Array.isArray(raw)) return raw[0] || "";
     return String(raw || "");
   }, [params]);
