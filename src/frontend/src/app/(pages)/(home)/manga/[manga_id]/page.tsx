@@ -163,7 +163,7 @@ export default function ReadPage() {
     // Nếu chapter miễn phí HOẶC đã mua, chuyển thẳng đến trang đọc
     if (chapterPrice === 0 || isOwned) {
       router.push(
-        `/explore/manga/${mangaDetail?.manga.manga_id}/${chapter.chapter_id}`,
+        `/manga/${mangaDetail?.manga.manga_id}/${chapter.chapter_id}`,
       );
     } else {
       // Nếu chapter có giá VÀ chưa mua, hiển thị modal

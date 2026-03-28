@@ -70,7 +70,7 @@ export default function Explore() {
                 <div
                   key={manga.manga_id}
                   onClick={() =>
-                    router.push(`/explore/manga/${manga.manga_id}`)
+                    router.push(`/manga/${manga.manga_id}`)
                   }
                   className="cursor-pointer"
                 >
