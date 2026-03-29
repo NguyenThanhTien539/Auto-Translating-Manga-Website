@@ -37,7 +37,7 @@ export default function ManageUsersPage() {
 
   useEffect(() => {
     fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/user/list`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/user`,
       { credentials: "include" },
     )
       .then((res) => res.json())
@@ -288,7 +288,7 @@ export default function ManageUsersPage() {
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-center gap-2">
                             <EditButton
-                              href={`/admin/manage-users/edit/${user.user_id}`}
+                              href={`/admin/users/${user.user_id}`}
                               title="Chỉnh sửa"
                             />
                           </div>
@@ -389,9 +389,7 @@ export default function ManageUsersPage() {
                       <button
                         className="px-3 py-2.5 bg-purple-500 hover:bg-purple-600 text:white rounded-lg text-sm font-medium flex items-center justify-center cursor-pointer gap-1.5 transition-colors shadow-sm"
                         onClick={() =>
-                          router.push(
-                            `/admin/manage-users/edit/${user.user_id}`,
-                          )
+                          router.push(`/admin/users/${user.user_id}`)
                         }
                         title="Chỉnh sửa"
                       >

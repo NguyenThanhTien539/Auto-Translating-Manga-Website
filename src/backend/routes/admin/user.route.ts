@@ -4,10 +4,12 @@ import * as authMiddleware from "../../middlewares/auth.middleware";
 
 const route = Router();
 
-route.get("/list", authMiddleware.adminAuth, userController.list);
+route.use(authMiddleware.adminAuth);
 
-route.get("/detail/:id", authMiddleware.adminAuth, userController.detail);
+route.get("/", userController.list);
 
-route.patch("/update/:id", authMiddleware.adminAuth, userController.update);
+route.get("/:id", userController.detail);
+
+route.patch("/:id", userController.update);
 
 export default route;

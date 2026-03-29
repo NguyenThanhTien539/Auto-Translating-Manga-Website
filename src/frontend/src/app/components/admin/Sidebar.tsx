@@ -26,7 +26,7 @@ export default function Sidebar() {
   const isMangaActive = pathname.startsWith("/admin/manga");
   const isAuthorActive = pathname.startsWith("/admin/manage-authors");
   const isRegistrationActive = pathname.startsWith("/admin/registrations");
-  const isUserActive = pathname.startsWith("/admin/manage-users");
+  const isUserActive = pathname.startsWith("/admin/users");
 
   const handleLogout = async (url: string) => {
     try {
@@ -41,7 +41,7 @@ export default function Sidebar() {
         route.push(url);
         toast.success(data.message || "Đăng xuất thành công");
       }
-    } catch (error) {
+    } catch {
       toast.error("Có lỗi xảy ra khi đăng xuất");
     }
   };
@@ -94,7 +94,7 @@ export default function Sidebar() {
       </Link>
 
       <Link
-        href="/admin/manage-users"
+        href="/admin/users"
         className={`${baseClass} ${isUserActive ? activeClass : normalClass}`}
       >
         <User className="w-4 h-4" />

@@ -1,9 +1,9 @@
 import { Request, Response } from "express";
-import * as userModel from "../../models/account.model";
+import * as userService from "../../services/admin/user.service";
 
 export const list = async (req: Request, res: Response): Promise<void> => {
   try {
-    const users = await userModel.getAllUsers();
+    const users = await userService.listUsers();
     res.json({ code: "success", userList: users });
   } catch (error) {
     res.json({ code: "error", message: "Failed to retrieve user list" });
@@ -12,7 +12,7 @@ export const list = async (req: Request, res: Response): Promise<void> => {
 
 export const detail = async (req: Request, res: Response): Promise<void> => {
   const userId = req.params.id;
-  const infoDetail = await userModel.getUserById(Number(userId));
+  const infoDetail = await userService.getUserDetail(Number(userId));
   if (infoDetail) {
     res.json({ code: "success", user: infoDetail });
   } else {
@@ -24,7 +24,7 @@ export const update = async (req: Request, res: Response): Promise<void> => {
   const userId = req.params.id;
   try {
     const updateData = req.body;
-    await userModel.updateUserById(Number(userId), updateData);
+    await userService.updateUser(Number(userId), updateData);
     res.json({ code: "success", message: "Cập nhật thành công" });
   } catch (error) {
     res.json({ code: "error", message: "Cập nhật thất bại" });

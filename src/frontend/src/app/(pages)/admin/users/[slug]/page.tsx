@@ -42,7 +42,7 @@ export default function EditUserPage() {
 
   useEffect(() => {
     fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/user/detail/${userId}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/user/${userId}`,
       { credentials: "include" },
     )
       .then((res) => res.json())
@@ -66,7 +66,7 @@ export default function EditUserPage() {
       user_status: event.target.user_status.value,
     };
     fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/user/update/${userId}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/user/${userId}`,
       {
         method: "PATCH",
         credentials: "include",
@@ -289,7 +289,7 @@ export default function EditUserPage() {
 
                 <button
                   type="button"
-                  onClick={() => router.push("/admin/manage-users")}
+                  onClick={() => router.push("/admin/users")}
                   className="cursor-pointer flex items-center justify-center gap-2 h-12 px-6 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-base font-medium transition-colors"
                 >
                   <ArrowLeft size={20} />

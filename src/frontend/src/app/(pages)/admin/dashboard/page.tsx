@@ -51,7 +51,7 @@ export default function Page() {
       description:
         "Quản lý toàn bộ người dùng trên nền tảng, kiểm soát quyền truy cập và xử lý vi phạm.",
       icon: Users,
-      href: "/admin/manage-users",
+      href: "/admin/users",
       color: "green",
       features: [
         "Xem danh sách người dùng",
