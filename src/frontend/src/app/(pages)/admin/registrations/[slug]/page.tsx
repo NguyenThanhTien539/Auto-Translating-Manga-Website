@@ -38,7 +38,7 @@ export default function RegistrationDetailPage() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   useEffect(() => {
     fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/registration-uploader/detail/${slug}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/uploader-registrations/detail/${slug}`,
       { credentials: "include" },
     )
       .then((res) => res.json())
@@ -54,7 +54,7 @@ export default function RegistrationDetailPage() {
 
   const handleStatusUpdate = (newStatus: "accepted" | "rejected") => {
     fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/registration-uploader/update-status/${slug}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/uploader-registrations/update-status/${slug}`,
       {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -247,7 +247,7 @@ export default function RegistrationDetailPage() {
                 )}
 
                 <button
-                  onClick={() => router.push("/admin/registration/list")}
+                  onClick={() => router.push("/admin/registrations")}
                   className="cursor-pointer flex items-center justify-center gap-2 h-10 px-5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
                 >
                   <ArrowLeft size={18} />

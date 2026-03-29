@@ -81,7 +81,7 @@ export default function Page() {
       description:
         "Xử lý các đơn đăng ký từ người dùng muốn trở thành tác giả trên nền tảng.",
       icon: FileText,
-      href: "/admin/registration/list",
+      href: "/admin/registrations",
       color: "rose",
       features: [
         "Xem danh sách đơn đăng ký chờ duyệt",

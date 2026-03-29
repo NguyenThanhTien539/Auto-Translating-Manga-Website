@@ -25,7 +25,7 @@ export default function Sidebar() {
   const isCategoryActive = pathname.startsWith("/admin/genre");
   const isMangaActive = pathname.startsWith("/admin/manga");
   const isAuthorActive = pathname.startsWith("/admin/manage-authors");
-  const isRegistrationActive = pathname.startsWith("/admin/registration");
+  const isRegistrationActive = pathname.startsWith("/admin/registrations");
   const isUserActive = pathname.startsWith("/admin/manage-users");
 
   const handleLogout = async (url: string) => {
@@ -84,7 +84,7 @@ export default function Sidebar() {
       </Link>
 
       <Link
-        href="/admin/registration/list"
+        href="/admin/registrations"
         className={`${baseClass} ${
           isRegistrationActive ? activeClass : normalClass
         }`}

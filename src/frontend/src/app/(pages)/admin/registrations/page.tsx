@@ -94,7 +94,7 @@ export default function UserListPage() {
 
   useEffect(() => {
     fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/registration-uploader/list`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/uploader-registrations/list`,
       { credentials: "include" },
     )
       .then((res) => res.json())
@@ -228,7 +228,7 @@ export default function UserListPage() {
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-center gap-2">
                             <ViewDetailButton
-                              href={`/admin/registration/detail/${request.request_id}`}
+                              href={`/admin/registrations/${request.request_id}`}
                               title="Xem chi tiết"
                             />
                           </div>
@@ -321,7 +321,7 @@ export default function UserListPage() {
                         className="flex-1 px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors shadow-sm cursor-pointer"
                         onClick={() =>
                           router.push(
-                            `/admin/registration/detail/${request.request_id}`,
+                            `/admin/registrations/${request.request_id}`,
                           )
                         }
                       >

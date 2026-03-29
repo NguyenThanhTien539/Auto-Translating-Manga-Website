@@ -1,31 +1,22 @@
 import { Request, Response } from "express";
-import * as registerUploader from "../../models/registration-uploader";
-import * as accountModel from "../../models/account.model";
-import * as roleModel from "../../models/role.model";
+import * as registrationService from "../../services/admin/registration-uploader.service";
 
 export const list = async (req: Request, res: Response): Promise<void> => {
-  const requestList = await registerUploader.findAllRequestDetails();
-  const finalList = [];
-  for (let i = 0; i < requestList.length; i++) {
-    finalList.push({
-      request_id: requestList[i].request_id,
-      email: requestList[i].email,
-      full_name: requestList[i].full_name,
-      request_status: requestList[i].request_status,
-      request_created_at: requestList[i].request_created_at,
+  try {
+    const requestList = await registrationService.listRequests();
+    res.json({
+      code: "success",
+      list: requestList,
     });
+  } catch (error) {
+    res.json({ code: "error", message: "Lỗi server" });
   }
-
-  res.json({
-    code: "success",
-    list: finalList,
-  });
 };
 
 export const detail = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   try {
-    const requestDetail = await registerUploader.findRequestDetailById(
+    const requestDetail = await registrationService.getRequestDetail(
       Number(id),
     );
     res.json({ code: "success", registrationDetail: requestDetail });
@@ -41,25 +32,7 @@ export const updateStatus = async (
   const { id } = req.params;
   const { request_status } = req.body;
   try {
-    const updated_at = new Date();
-    await registerUploader.updateRequestStatus(
-      Number(id),
-      request_status,
-      updated_at,
-    );
-
-    if (request_status === "accepted") {
-      const requestDetail = await registerUploader.findRequestDetailById(
-        Number(id),
-      );
-      const uploaderRole = await roleModel.findByCode("UPL");
-      if (requestDetail && uploaderRole) {
-        await accountModel.updateRoleById(
-          requestDetail.user_id,
-          uploaderRole.role_id,
-        );
-      }
-    }
+    await registrationService.updateRequestStatus(Number(id), request_status);
 
     res.json({
       code: "success",

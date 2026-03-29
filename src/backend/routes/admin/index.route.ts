@@ -11,7 +11,7 @@ route.use("/user", userRoutes);
 
 route.use("/genre", genreRoutes);
 
-route.use("/registration-uploader", registerUploaderRoutes);
+route.use("/uploader-registrations", registerUploaderRoutes);
 
 route.use("/mangas", mangaRoutes);
 
