@@ -4,12 +4,14 @@ import * as authMiddleware from "../../middlewares/auth.middleware";
 
 const route = Router();
 
-route.post("/create", authMiddleware.adminAuth, genreController.create);
+route.use(authMiddleware.adminAuth);
 
-route.get("/list", authMiddleware.adminAuth, genreController.list);
+route.post("/", genreController.create);
 
-route.get("/detail/:id", authMiddleware.adminAuth, genreController.detail);
+route.get("/", genreController.list);
 
-route.patch("/edit/:id", authMiddleware.adminAuth, genreController.edit);
+route.get("/:id", genreController.detail);
+
+route.patch("/:id", genreController.edit);
 
 export default route;

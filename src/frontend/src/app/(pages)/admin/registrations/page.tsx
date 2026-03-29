@@ -94,7 +94,7 @@ export default function UserListPage() {
 
   useEffect(() => {
     fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/uploader-registrations/list`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/uploader-registrations`,
       { credentials: "include" },
     )
       .then((res) => res.json())

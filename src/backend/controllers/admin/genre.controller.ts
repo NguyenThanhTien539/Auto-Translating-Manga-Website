@@ -1,9 +1,9 @@
 import { Request, Response } from "express";
-import * as GenreModel from "../../models/genre.model";
+import * as genreService from "../../services/admin/genre.service";
 
 export const create = async (req: Request, res: Response): Promise<void> => {
   try {
-    await GenreModel.insert(req.body);
+    await genreService.createGenre(req.body);
     res.json({
       code: "success",
       message: "Tạo thể loại mới thành công",
@@ -18,7 +18,7 @@ export const create = async (req: Request, res: Response): Promise<void> => {
 
 export const list = async (req: Request, res: Response): Promise<void> => {
   try {
-    const genreList = await GenreModel.findAllGenres();
+    const genreList = await genreService.listGenres();
     res.json({
       code: "success",
       list: genreList,
@@ -34,7 +34,7 @@ export const list = async (req: Request, res: Response): Promise<void> => {
 export const detail = async (req: Request, res: Response): Promise<void> => {
   try {
     const genreId = req.params.id;
-    const genreDetail = await GenreModel.findGenreById(Number(genreId));
+    const genreDetail = await genreService.getGenreDetail(Number(genreId));
     res.json({
       code: "success",
       detail: genreDetail,
@@ -51,7 +51,7 @@ export const edit = async (req: Request, res: Response): Promise<void> => {
   try {
     const genreId = req.params.id;
     const dataUpdate = req.body;
-    await GenreModel.updateGenre(Number(genreId), dataUpdate);
+    await genreService.updateGenre(Number(genreId), dataUpdate);
     res.json({
       code: "success",
       message: "Cập nhật thể loại thành công",

@@ -28,7 +28,7 @@ export function GenreCreateForm() {
           slug: slug,
         };
         fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/genre/create`,
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/genre`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },

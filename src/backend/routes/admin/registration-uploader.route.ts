@@ -4,22 +4,12 @@ import * as authMiddleware from "../../middlewares/auth.middleware";
 
 const route = Router();
 
-route.get(
-  "/list",
-  authMiddleware.adminAuth,
-  registrationUploaderController.list,
-);
+route.use(authMiddleware.adminAuth);
 
-route.get(
-  "/detail/:id",
-  authMiddleware.adminAuth,
-  registrationUploaderController.detail,
-);
+route.get("/", registrationUploaderController.list);
 
-route.patch(
-  "/update-status/:id",
-  authMiddleware.adminAuth,
-  registrationUploaderController.updateStatus,
-);
+route.get("/:id", registrationUploaderController.detail);
+
+route.patch("/:id/status", registrationUploaderController.updateStatus);
 
 export default route;

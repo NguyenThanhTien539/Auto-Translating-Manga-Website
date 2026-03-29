@@ -38,7 +38,7 @@ export default function RegistrationDetailPage() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   useEffect(() => {
     fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/uploader-registrations/detail/${slug}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/uploader-registrations/${slug}`,
       { credentials: "include" },
     )
       .then((res) => res.json())
@@ -54,7 +54,7 @@ export default function RegistrationDetailPage() {
 
   const handleStatusUpdate = (newStatus: "accepted" | "rejected") => {
     fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/uploader-registrations/update-status/${slug}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/uploader-registrations/${slug}/status`,
       {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },

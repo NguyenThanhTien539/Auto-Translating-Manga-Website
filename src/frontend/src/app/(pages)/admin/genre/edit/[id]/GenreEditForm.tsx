@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import JustValidate from "just-validate";
 import { slugify } from "@/utils/make_slug";
@@ -14,7 +14,7 @@ export function GenreEditForm() {
 
   useEffect(() => {
     fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/genre/detail/${params.id}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/genre/${params.id}`,
       { credentials: "include" },
     )
       .then((res) => res.json())
@@ -43,7 +43,7 @@ export function GenreEditForm() {
           slug: slug,
         };
         fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/genre/edit/${params.id}`,
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/genre/${params.id}`,
           {
             method: "PATCH",
             credentials: "include",
@@ -65,9 +65,9 @@ export function GenreEditForm() {
     return () => {
       try {
         if ((validate as any).destroy) (validate as any).destroy();
-      } catch (e) {}
+      } catch {}
     };
-  }, [genreDetail]);
+  }, [genreDetail, params.id]);
 
   return (
     genreDetail && (
