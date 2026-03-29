@@ -13,7 +13,7 @@ route.use("/genre", genreRoutes);
 
 route.use("/registration-uploader", registerUploaderRoutes);
 
-route.use("/manage-manga", mangaRoutes);
+route.use("/mangas", mangaRoutes);
 
 route.use("/manage-authors", authorRoutes);
 

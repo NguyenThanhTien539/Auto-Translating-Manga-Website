@@ -45,7 +45,7 @@ export default function AdminChapterReadPage() {
     const controller = new AbortController();
     setLoading(true);
 
-    const url = `${API_URL}/${ADMIN_PATH}/manage-manga/chapter/${chapterId}/pages`;
+    const url = `${API_URL}/${ADMIN_PATH}/mangas/chapters/${chapterId}/pages`;
 
     fetch(url, {
       credentials: "include",
@@ -129,14 +129,14 @@ export default function AdminChapterReadPage() {
             </h3>
             <div className="flex items-center justify-center gap-4">
               <Link
-                href={`/admin/manage-manga/read/${mangaId}`}
+                href={`/admin/manga/${mangaId}`}
                 className="px-6 py-3 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-medium transition-colors"
               >
                 Danh sách chương (Admin)
               </Link>
 
               <Link
-                href="/admin/manage-manga"
+                href="/admin/manga"
                 className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition-colors"
               >
                 Về trang Admin

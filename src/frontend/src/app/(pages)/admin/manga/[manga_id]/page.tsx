@@ -208,7 +208,7 @@ export default function ReadPage() {
     setLoading(true);
 
     fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manage-manga/detail/${mangaId}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/mangas/${mangaId}`,
       {
         credentials: "include",
       },
@@ -360,7 +360,7 @@ export default function ReadPage() {
 
                             try {
                               const res = await fetch(
-                                `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manage-manga/set-highlight/${mangaDetail.manga.manga_id}`,
+                                `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/mangas/${mangaDetail.manga.manga_id}/highlight`,
                                 {
                                   method: "PATCH",
                                   credentials: "include",
@@ -445,7 +445,7 @@ export default function ReadPage() {
 
                                   try {
                                     const res = await fetch(
-                                      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manage-manga/set-highlight/${mangaDetail.manga.manga_id}`,
+                                      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/mangas/${mangaDetail.manga.manga_id}/highlight`,
                                       {
                                         method: "PATCH",
                                         credentials: "include",
@@ -594,7 +594,7 @@ export default function ReadPage() {
                     className="px-5 sm:px-6 py-4 hover:bg-blue-50/50 cursor-pointer transition-colors"
                     onClick={() =>
                       router.push(
-                        `/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manage-manga/read/${mangaDetail.manga.manga_id}/${chapter.chapter_id}`,
+                        `/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manga/${mangaDetail.manga.manga_id}/chapters/${chapter.chapter_id}`,
                       )
                     }
                   >
@@ -648,7 +648,7 @@ export default function ReadPage() {
                     onClick={async () => {
                       try {
                         const res = await fetch(
-                          `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manage-manga/update-manga-status/${mangaDetail.manga.manga_id}`,
+                          `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/mangas/${mangaDetail.manga.manga_id}/status`,
                           {
                             method: "PATCH",
                             credentials: "include",
@@ -824,7 +824,7 @@ export default function ReadPage() {
                                 };
 
                                 const res = await fetch(
-                                  `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manage-manga/update-chapter-status/${ch.chapter_id}`,
+                                  `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/mangas/chapters/${ch.chapter_id}/status`,
                                   {
                                     method: "PATCH",
                                     credentials: "include",

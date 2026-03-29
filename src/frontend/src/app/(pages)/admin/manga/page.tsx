@@ -37,7 +37,7 @@ export default function ManageMangaPage() {
   // Fetch Manga List
   const fetchMangas = () => {
     fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/manage-manga/list`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/mangas`,
       { credentials: "include" },
     )
       .then((res) => res.json())
@@ -227,7 +227,7 @@ export default function ManageMangaPage() {
                             {/* Nút xem chi tiết */}
 
                             <ViewDetailButton
-                              href={`/admin/manage-manga/read/${manga.manga_id}`}
+                              href={`/admin/manga/${manga.manga_id}`}
                               title="Xem chi tiết"
                             />
                           </div>

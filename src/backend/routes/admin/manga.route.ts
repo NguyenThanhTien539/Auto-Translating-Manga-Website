@@ -4,36 +4,36 @@ import * as authMiddleware from "../../middlewares/auth.middleware";
 
 const route = Router();
 
-route.get("/list", authMiddleware.adminAuth, mangaController.getListManga);
+route.get("/", authMiddleware.adminAuth, mangaController.getListManga);
 
 route.patch(
-  "/update-manga-status/:id",
+  "/:id/status",
   authMiddleware.adminAuth,
   mangaController.updateStatusManga,
 );
 
 route.patch(
-  "/update-chapter-status/:id",
+  "/chapters/:id/status",
   authMiddleware.adminAuth,
   mangaController.updateStatusChapter,
 );
 
 route.patch(
-  "/reject/:id",
+  "/:id/reject",
   authMiddleware.adminAuth,
   mangaController.rejectManga,
 );
 
 route.get(
-  "/detail/:id",
+  "/chapters/:id/pages",
   authMiddleware.adminAuth,
-  mangaController.getMangaDetail,
+  mangaController.getChapterPages,
 );
 
-route.get("/chapter/:id/pages", mangaController.getChapterPages);
+route.get("/:id", authMiddleware.adminAuth, mangaController.getMangaDetail);
 
 route.patch(
-  "/set-highlight/:id",
+  "/:id/highlight",
   authMiddleware.adminAuth,
   mangaController.setHighlightManga,
 );

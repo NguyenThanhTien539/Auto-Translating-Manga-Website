@@ -23,7 +23,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const route = useRouter();
   const isCategoryActive = pathname.startsWith("/admin/genre");
-  const isMangaActive = pathname.startsWith("/admin/manage-manga");
+  const isMangaActive = pathname.startsWith("/admin/manga");
   const isAuthorActive = pathname.startsWith("/admin/manage-authors");
   const isRegistrationActive = pathname.startsWith("/admin/registration");
   const isUserActive = pathname.startsWith("/admin/manage-users");
@@ -68,7 +68,7 @@ export default function Sidebar() {
       </Link>
 
       <Link
-        href="/admin/manage-manga"
+        href="/admin/manga"
         className={`${baseClass} ${isMangaActive ? activeClass : normalClass}`}
       >
         <Box className="w-4 h-4" />

@@ -21,7 +21,7 @@ export default function Page() {
       description:
         "Xem, duyệt và quản lý tất cả truyện tranh trên hệ thống. Cập nhật trạng thái, đặt highlight, và kiểm duyệt nội dung.",
       icon: BookOpen,
-      href: "/admin/manage-manga",
+      href: "/admin/manga",
       color: "blue",
       features: [
         "Duyệt truyện mới đăng tải",
