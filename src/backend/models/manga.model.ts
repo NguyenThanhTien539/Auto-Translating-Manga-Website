@@ -10,6 +10,8 @@ interface MangaData {
   status?: string;
   original_language?: string;
   slug?: string;
+  processing_error?: string | null;
+  review_note?: string | null;
 }
 
 interface ChapterData {
@@ -17,6 +19,9 @@ interface ChapterData {
   uploader_id?: number;
   chapter_number: number;
   title?: string;
+  status?: string;
+  processing_error?: string | null;
+  review_note?: string | null;
 }
 
 interface PageData {
@@ -24,6 +29,11 @@ interface PageData {
   image_url: string;
   page_number: number;
   language?: string;
+  cloudinary_public_id?: string | null;
+  width?: number | null;
+  height?: number | null;
+  format?: string | null;
+  bytes?: number | null;
 }
 
 interface MangaGenreData {
@@ -66,7 +76,13 @@ export interface PublicMangaListRow {
   updated_at: Date | string;
 }
 
-const PUBLIC_MANGA_STATUSES = ["OnGoing", "Completed", "Completed"];
+const PUBLIC_MANGA_STATUSES = [
+  "published",
+  "Published",
+  "OnGoing",
+  "Completed",
+];
+const PUBLIC_CHAPTER_STATUSES = ["published", "Published"];
 
 export const createManga = async (data: MangaData): Promise<{ id: number }> => {
   const [id] = await db("mangas").insert(data).returning("manga_id");
@@ -101,7 +117,7 @@ export const getPublishedChaptersByMangaId = async (
 ): Promise<Chapter[]> => {
   return db("chapters")
     .where("manga_id", mangaId)
-    .andWhere("status", "Published")
+    .whereIn("status", PUBLIC_CHAPTER_STATUSES)
     .orderBy("chapter_number", "asc");
 };
 
@@ -268,7 +284,26 @@ export const updateMangaStatus = async (
   mangaId: number,
   status: string,
 ): Promise<number> => {
-  return db("mangas").where("manga_id", mangaId).update({ status });
+  return db("mangas").where("manga_id", mangaId).update({
+    status,
+    updated_at: db.fn.now(),
+  });
+};
+
+export const updateMangaWorkflowState = async (
+  mangaId: number,
+  payload: {
+    status?: string;
+    processing_error?: string | null;
+    review_note?: string | null;
+  },
+): Promise<number> => {
+  return db("mangas")
+    .where("manga_id", mangaId)
+    .update({
+      ...payload,
+      updated_at: db.fn.now(),
+    });
 };
 
 export const updateChapterStatus = async (
@@ -281,10 +316,43 @@ export const updateChapterStatus = async (
     .update({ status, price: price });
 };
 
+export const updateChapterWorkflowState = async (
+  chapterId: number,
+  payload: {
+    status?: string;
+    processing_error?: string | null;
+    review_note?: string | null;
+    published_at?: Date | null;
+    price?: number;
+  },
+): Promise<number> => {
+  return db("chapters").where("chapter_id", chapterId).update(payload);
+};
+
 export const getChapterByChapterId = async (
   chapterId: number,
 ): Promise<Chapter | undefined> => {
   return db("chapters").where("chapter_id", chapterId).first();
+};
+
+export const getChapterByMangaAndNumber = async (
+  mangaId: number,
+  chapterNumber: number,
+): Promise<Chapter | undefined> => {
+  return db("chapters")
+    .where("manga_id", mangaId)
+    .andWhere("chapter_number", chapterNumber)
+    .first();
+};
+
+export const getHighestChapterNumberByMangaId = async (
+  mangaId: number,
+): Promise<number> => {
+  const row = await db("chapters")
+    .where("manga_id", mangaId)
+    .max("chapter_number as max_chapter")
+    .first();
+  return Number(row?.max_chapter || 0);
 };
 
 export const getFilterPanelData = async (): Promise<FilterPanelData> => {

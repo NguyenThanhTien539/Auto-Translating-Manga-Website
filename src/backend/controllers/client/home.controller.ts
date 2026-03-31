@@ -1,22 +1,9 @@
 import { Request, Response } from "express";
-import * as Manga from "../../models/manga.model";
+import * as homeControllerService from "../../services/client/home.service";
 
 export const home = async (req: Request, res: Response): Promise<void> => {
   res.send("Thanh Tien ne");
 };
-
-const slugify = (input: string = ""): string =>
-  input
-    .toString()
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/đ/g, "d")
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/[\s_-]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-+|-+$/g, "");
 
 export const getSearchResults = async (
   req: Request,
@@ -26,22 +13,8 @@ export const getSearchResults = async (
     const keyword = (req.query.keyword ?? "").toString().trim();
     if (!keyword) return res.json({ code: "success", data: [] });
 
-    const slug = slugify(keyword);
-
-    const mangas = await Manga.searchMangaBySlug({ slug });
-
-    const mangasWithRating = await Promise.all(
-      (mangas || []).map(async (m) => {
-        const mangaId = m?.manga_id;
-
-        if (!mangaId) {
-          return { ...m, average_rating: 0 };
-        }
-
-        const avg = await Manga.calculateAverageRating(mangaId);
-        return { ...m, average_rating: Number(avg) || 0 };
-      }),
-    );
+    const mangasWithRating =
+      await homeControllerService.getSearchResults(keyword);
 
     return res.json({ code: "success", data: mangasWithRating });
   } catch (error) {

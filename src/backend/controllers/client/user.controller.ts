@@ -1,7 +1,6 @@
 import { Response } from "express";
-import * as accountModel from "../../models/account.model";
-import * as uploaderRequestModel from "../../models/registration-uploader";
 import { AuthRequest } from "../../types";
+import * as userControllerService from "../../services/client/user.service";
 
 interface MulterRequest extends AuthRequest {
   file?: Express.Multer.File;
@@ -11,22 +10,24 @@ export const profile = async (
   req: MulterRequest,
   res: Response,
 ): Promise<void> => {
+  const payload = { ...req.body };
   if (req.file) {
-    req.body.avatar = req.file.path;
+    payload.avatar = req.file.path;
   } else {
-    delete req.body.avatar;
-  }
-
-  const existingUser = await accountModel.checkUsernameExists(
-    req.body.username,
-  );
-  if (existingUser && existingUser.user_id !== req.infoUser!.user_id) {
-    res.json({ code: "error", message: "Tên đăng nhập đã tồn tại" });
-    return;
+    delete payload.avatar;
   }
 
   try {
-    await accountModel.updateProfile(req.infoUser!.user_id, req.body);
+    const result = await userControllerService.profile(
+      req.infoUser!.user_id,
+      String(payload.username || ""),
+      payload,
+    );
+    if (result.duplicateUsername) {
+      res.json({ code: "error", message: "Tên đăng nhập đã tồn tại" });
+      return;
+    }
+
     res.json({ code: "success", message: "Cập nhật thông tin thành công" });
   } catch (error) {
     res.json({ code: "error", message: "Cập nhật thông tin thất bại" });
@@ -39,9 +40,11 @@ export const registerUploader = async (
 ): Promise<void> => {
   const { reason } = req.body;
   try {
-    if (
-      await uploaderRequestModel.checkExistingRequest(req.infoUser!.user_id)
-    ) {
+    const result = await userControllerService.registerUploader(
+      req.infoUser!.user_id,
+      reason,
+    );
+    if (result.alreadyRequested) {
       res.json({
         code: "error",
         message: "Bạn đã gửi yêu cầu trước đó. Vui lòng chờ admin duyệt.",
@@ -49,7 +52,6 @@ export const registerUploader = async (
       return;
     }
 
-    await uploaderRequestModel.insertReason(req.infoUser!.user_id, reason);
     res.json({
       code: "success",
       message: "Đăng ký thành công! Vui lòng chờ admin duyệt.",

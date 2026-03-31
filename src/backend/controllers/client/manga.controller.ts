@@ -7,6 +7,8 @@ import * as Manga from "../../models/manga.model";
 import * as Coin from "../../models/coin.model";
 import { AuthRequest, Page } from "../../types";
 import * as MangaService from "../../services/client/manga.service";
+import * as MangaUploadService from "../../services/client/manga-upload.service";
+import { console } from "inspector";
 
 const cloudinaryV2 = cloudinary.v2;
 
@@ -195,81 +197,103 @@ const processChaptersInBackground = async (
 interface MulterFiles {
   cover_image?: Express.Multer.File[];
   file_content?: Express.Multer.File[];
+  chapter_zip?: Express.Multer.File[];
 }
+
+const pickZipFile = (files: MulterFiles): Express.Multer.File | undefined => {
+  return files.chapter_zip?.[0] || files.file_content?.[0];
+};
+
+export const createWithFirstChapter = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const files = req.files as MulterFiles;
+    const zipFile = pickZipFile(files);
+    const coverFile = files.cover_image?.[0];
+
+    if (!zipFile) {
+      res.status(400).json({
+        code: "error",
+        success: false,
+        message: "chapter_zip là bắt buộc",
+      });
+      return;
+    }
+
+    const genreIds = req.body.genres
+      ? (() => {
+          try {
+            return JSON.parse(req.body.genres);
+          } catch {
+            return [];
+          }
+        })()
+      : [];
+
+    const uploaderId = req.infoUser!.user_id;
+    const chapterNumber = Number(req.body.chapter_number || 1);
+
+    const created = await MangaUploadService.createWithFirstChapter({
+      uploaderId,
+      title: String(req.body.title || "").trim(),
+      description: req.body.description,
+      authorId: req.body.author_id ? Number(req.body.author_id) : undefined,
+      authorName: req.body.author_name || req.body.author,
+      originalLanguage: String(
+        req.body.original_language || req.body.language || "en",
+      ),
+      slug: String(req.body.slug || "").trim(),
+      genreIds: Array.isArray(genreIds) ? genreIds.map(Number) : [],
+      chapterNumber:
+        Number.isFinite(chapterNumber) && chapterNumber > 0 ? chapterNumber : 1,
+      chapterTitle: req.body.chapter_title,
+      chapterZipPath: zipFile.path,
+      coverImagePath: coverFile?.path,
+    });
+
+    res.json({
+      code: "success",
+      success: true,
+      message:
+        "Đã nhận dữ liệu truyện và chapter đầu tiên, hệ thống đang xử lý",
+      data: {
+        mangaId: created.mangaId,
+        chapterId: created.chapterId,
+        mangaStatus: "processing",
+        chapterStatus: "processing",
+      },
+    });
+  } catch (error: any) {
+    if (error instanceof MangaUploadService.MangaUploadServiceError) {
+      res.status(error.status).json({
+        code: "error",
+        success: false,
+        message: error.message,
+      });
+      return;
+    }
+
+    console.error("Error in createWithFirstChapter:", error);
+    res.status(500).json({
+      code: "error",
+      success: false,
+      message: "Lỗi server",
+    });
+  }
+};
 
 export const uploadManga = async (
   req: AuthRequest,
   res: Response,
 ): Promise<void> => {
-  try {
-    const { title, author, description, genres, language, slug } = req.body;
-    const files = req.files as MulterFiles;
-
-    const uploader_id = req.infoUser!.user_id;
-
-    let genreIds: number[] = [];
-    if (genres) {
-      try {
-        genreIds = JSON.parse(genres);
-      } catch (e) {
-        console.error("Error parsing genres:", e);
-      }
-    }
-
-    const coverUpload = await uploadFromBuffer(files.cover_image![0].buffer);
-
-    let author_id: number | undefined;
-    if (author && author.trim()) {
-      const newAuthor = await Manga.createAuthor({
-        author_name: author.trim(),
-      });
-      author_id = newAuthor.id;
-    }
-
-    const mangaData = {
-      title,
-      author_id: author_id,
-      description,
-      cover_image: coverUpload.secure_url,
-      uploader_id: uploader_id,
-      status: "Pending",
-      original_language: language,
-      slug: slug,
-    };
-
-    const newManga = await Manga.createManga(mangaData);
-    const currentMangaId = newManga.id;
-
-    if (genreIds.length > 0) {
-      const mangaGenreData = genreIds.map((genreId) => ({
-        manga_id: currentMangaId,
-        genre_id: genreId,
-      }));
-      await Manga.createMangaGenres(mangaGenreData);
-    }
-
-    const fileContentBuffer = files.file_content![0].buffer;
-
-    res.json({
-      code: "success",
-      message: "Manga của bạn đang được xử lý.",
-    });
-
-    processChaptersInBackground(
-      currentMangaId,
-      uploader_id,
-      fileContentBuffer,
-      language,
-    ).catch((err) => {
-      console.error("Background processing error:", err);
-    });
-  } catch (error: any) {
-    console.error("Error in uploadManga:", error);
-    res.status(500).json({
-      code: "error",
-      message: "Lỗi server: " + error.message,
-    });
-  }
+  console.log("Received uploadManga request with body:", req.body);
+  req.body.chapter_number = req.body.chapter_number || 1;
+  req.body.chapter_title = req.body.chapter_title || "Chapter 1";
+  req.body.original_language = req.body.original_language || req.body.language;
+  req.body.author_name = req.body.author_name || req.body.author;
+  await createWithFirstChapter(req, res);
 };
 
 export const getMyMangas = async (
@@ -714,42 +738,77 @@ export const uploadChapter = async (
   req: AuthRequest,
   res: Response,
 ): Promise<void> => {
+  req.params.mangaId = String(req.body.manga_id || req.params.mangaId || "");
+  await createChapterWithZip(req, res);
+};
+
+export const createChapterWithZip = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   try {
-    const { manga_id } = req.body;
     const files = req.files as MulterFiles;
+    const zipFile = pickZipFile(files);
 
-    const uploader_id = req.infoUser!.user_id;
+    if (!zipFile) {
+      res.status(400).json({
+        code: "error",
+        success: false,
+        message: "chapter_zip là bắt buộc",
+      });
+      return;
+    }
 
-    const fileContentBuffer = files.file_content![0].buffer;
+    const mangaId = Number(req.params.mangaId || req.body.manga_id);
+    if (!Number.isFinite(mangaId) || mangaId <= 0) {
+      res.status(400).json({
+        code: "error",
+        success: false,
+        message: "mangaId không hợp lệ",
+      });
+      return;
+    }
+
+    const chapterNumber = req.body.chapter_number
+      ? Number(req.body.chapter_number)
+      : undefined;
+
+    const created = await MangaUploadService.createChapterWithZip({
+      uploaderId: req.infoUser!.user_id,
+      mangaId,
+      chapterNumber,
+      chapterTitle: req.body.chapter_title,
+      chapterZipPath: zipFile.path,
+    });
 
     res.json({
       code: "success",
-      message: "Chương của bạn đang được xử lý.",
+      success: true,
+      message: "Đã nhận chapter mới, hệ thống đang xử lý",
+      data: {
+        mangaId: created.mangaId,
+        chapterId: created.chapterId,
+        chapterStatus: "processing",
+      },
     });
-
-    const originalLanguage = await Manga.getOriginalLanguageByMangaId(
-      Number(manga_id),
-    );
-
-    processSingleChapterInBackground(
-      Number(manga_id),
-      uploader_id,
-      fileContentBuffer,
-      originalLanguage || "en",
-    ).catch((err) => {
-      console.error("Background chapter processing error:", err);
-    });
-
-    await updateChapterCoinReward(Number(manga_id), uploader_id);
   } catch (error: any) {
-    console.error("Error in uploadChapter:", error);
+    if (error instanceof MangaUploadService.MangaUploadServiceError) {
+      res.status(error.status).json({
+        code: "error",
+        success: false,
+        message: error.message,
+      });
+      return;
+    }
+
+    console.error("Error in createChapterWithZip:", error);
     res.status(500).json({
       code: "error",
-      message: "Lỗi server: " + error.message,
+      success: false,
+      message: "Lỗi server",
     });
   }
 };
-
 
 export const getFilterPanelData = async (
   req: Request,
@@ -869,5 +928,3 @@ export const getMangaStatistics = async (
     res.status(500).json({ code: "error", message: "Lỗi server" });
   }
 };
-
-

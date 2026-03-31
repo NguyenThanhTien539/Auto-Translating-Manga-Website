@@ -1,5 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import multer from "multer";
+import path from "path";
+import fs from "fs";
 import * as mangaController from "../../controllers/client/manga.controller";
 import * as translateController from "../../controllers/client/request_translate_manga.controller";
 import * as authMiddleware from "../../middlewares/auth.middleware";
@@ -45,7 +47,22 @@ const rateLimit = (limit: number = 100, windowMs: number = 60000) => {
   };
 };
 
-const upload = multer({ storage: multer.memoryStorage() });
+const TMP_ZIP_DIR = path.resolve(__dirname, "../../storage/tmp/zips");
+
+if (!fs.existsSync(TMP_ZIP_DIR)) {
+  fs.mkdirSync(TMP_ZIP_DIR, { recursive: true });
+}
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, TMP_ZIP_DIR),
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname || "").toLowerCase() || ".bin";
+      const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
+      cb(null, uniqueName);
+    },
+  }),
+});
 
 route.get(
   "/my-mangas",
@@ -60,16 +77,41 @@ route.post(
   authMiddleware.uploaderAuth,
   upload.fields([
     { name: "cover_image", maxCount: 1 },
-    { name: "file_content", maxCount: 1 },
+    // { name: "file_content", maxCount: 1 },
+    { name: "chapter_zip", maxCount: 1 },
   ]),
   mangaController.uploadManga,
 );
 
 route.post(
+  "/create-with-first-chapter",
+  authMiddleware.uploaderAuth,
+  upload.fields([
+    { name: "cover_image", maxCount: 1 },
+    { name: "chapter_zip", maxCount: 1 },
+    { name: "file_content", maxCount: 1 },
+  ]),
+  mangaController.createWithFirstChapter,
+);
+
+route.post(
   "/upload-chapter",
   authMiddleware.uploaderAuth,
-  upload.fields([{ name: "file_content", maxCount: 1 }]),
+  upload.fields([
+    { name: "chapter_zip", maxCount: 1 },
+    { name: "file_content", maxCount: 1 },
+  ]),
   mangaController.uploadChapter,
+);
+
+route.post(
+  "/:mangaId/chapters/create-with-zip",
+  authMiddleware.uploaderAuth,
+  upload.fields([
+    { name: "chapter_zip", maxCount: 1 },
+    { name: "file_content", maxCount: 1 },
+  ]),
+  mangaController.createChapterWithZip,
 );
 
 route.get("/", mangaController.listMangas);

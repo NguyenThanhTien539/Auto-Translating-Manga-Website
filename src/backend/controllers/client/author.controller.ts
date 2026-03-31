@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
-import * as AuthorModel from "../../models/author.model";
-import * as MangaModel from "../../models/manga.model";
+import * as authorControllerService from "../../services/client/author.service";
 
 export const getAllAuthors = async (
   req: Request,
@@ -8,13 +7,9 @@ export const getAllAuthors = async (
 ): Promise<Response> => {
   try {
     const { name } = req.query;
-    let authors;
-
-    if (name) {
-      authors = await AuthorModel.searchAuthorsByName(String(name));
-    } else {
-      authors = await AuthorModel.getAllAuthors();
-    }
+    const authors = await authorControllerService.getAllAuthors(
+      name ? String(name) : undefined,
+    );
 
     return res.status(200).json({ code: "success", data: authors });
   } catch (error) {
@@ -29,9 +24,9 @@ export const getAuthorById = async (
 ): Promise<Response> => {
   try {
     const { id } = req.params;
-    const author = await AuthorModel.getAuthorById(Number(id));
-
-    const mangas = await MangaModel.getMangasByAuthorId(Number(id));
+    const { author, mangas } = await authorControllerService.getAuthorById(
+      Number(id),
+    );
 
     return res
       .status(200)
@@ -48,7 +43,7 @@ export const getAuthorMangas = async (
 ): Promise<Response> => {
   try {
     const { id } = req.params;
-    const mangas = await AuthorModel.getMangasByAuthorId(Number(id));
+    const mangas = await authorControllerService.getAuthorMangas(Number(id));
     return res.status(200).json(mangas);
   } catch (error) {
     console.error("Error getting author mangas:", error);

@@ -6,9 +6,11 @@
     "run dev": "ts-node index.ts",
     "dev": "nodemon --exec ts-node index.ts",
     "dev:worker": "nodemon --exec ts-node workers/mail.worker.ts",
+    "dev:worker:manga": "nodemon --exec ts-node workers/manga-upload.worker.ts",
     "build": "tsc",
     "serve": "node dist/index.js",
     "serve:worker": "node dist/workers/mail.worker.js",
+    "serve:worker:manga": "node dist/workers/manga-upload.worker.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

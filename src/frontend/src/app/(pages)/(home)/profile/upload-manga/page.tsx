@@ -58,6 +58,27 @@ export default function UploadMangaPage() {
   const [isUploadingManga, setIsUploadingManga] = useState(false);
   const [isUploadingChapter, setIsUploadingChapter] = useState(false);
 
+  const readApiResponse = async (res: Response): Promise<any> => {
+    const contentType = res.headers.get("content-type") || "";
+
+    if (contentType.includes("application/json")) {
+      return res.json();
+    }
+
+    const rawText = await res.text();
+    const text = rawText
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    return {
+      code: "error",
+      message: text
+        ? `Server trả về phản hồi không hợp lệ: ${text.slice(0, 180)}`
+        : `Server trả về phản hồi không hợp lệ (HTTP ${res.status})`,
+    };
+  };
+
   // Clear errors when files are selected
   useEffect(() => {
     if (coverFile.length > 0 && errors.coverFile) {
@@ -107,11 +128,11 @@ export default function UploadMangaPage() {
     const fetchGenres = async () => {
       try {
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/genres`,
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/genres`,
         );
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
-        if (data.code === "success") setGenres(data.data);
+        if (data.success) setGenres(data.data);
       } catch (error) {
         console.error("Error fetching genres:", error);
       }
@@ -172,7 +193,7 @@ export default function UploadMangaPage() {
     formData.append("language", form.mangaLanguage.value);
     formData.append("description", mangaDescription);
     formData.append("cover_image", coverFile[0].file);
-    formData.append("file_content", contentFile[0].file);
+    formData.append("chapter_zip", contentFile[0].file);
     formData.append("slug", slugify(form.mangaTitle.value));
     formData.append("genres", JSON.stringify(selectedGenres));
 
@@ -181,7 +202,16 @@ export default function UploadMangaPage() {
       credentials: "include",
       body: formData,
     })
-      .then((res) => res.json())
+      .then(async (res) => {
+        const data = await readApiResponse(res);
+        if (!res.ok) {
+          return {
+            code: "error",
+            message: data?.message || `Upload thất bại (HTTP ${res.status})`,
+          };
+        }
+        return data;
+      })
       .then((data) => {
         if (data.code === "success") {
           toast.success(data.message || "Đăng truyện thành công!");
@@ -253,14 +283,23 @@ export default function UploadMangaPage() {
 
     const formData = new FormData();
     formData.append("manga_id", selectedMangaForChapter);
-    formData.append("file_content", contentFileChapter[0].file);
+    formData.append("chapter_zip", contentFileChapter[0].file);
 
     fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/upload-chapter`, {
       method: "POST",
       credentials: "include",
       body: formData,
     })
-      .then((res) => res.json())
+      .then(async (res) => {
+        const data = await readApiResponse(res);
+        if (!res.ok) {
+          return {
+            code: "error",
+            message: data?.message || `Upload thất bại (HTTP ${res.status})`,
+          };
+        }
+        return data;
+      })
       .then((data) => {
         if (data.code === "success") {
           toast.success(data.message);
@@ -602,7 +641,6 @@ export default function UploadMangaPage() {
                       acceptedFileTypes={[
                         "application/zip",
                         "application/x-zip-compressed",
-                        "application/x-rar-compressed",
                       ]}
                       onupdatefiles={setContentFile}
                       files={contentFile}
@@ -725,7 +763,6 @@ export default function UploadMangaPage() {
                       acceptedFileTypes={[
                         "application/zip",
                         "application/x-zip-compressed",
-                        "application/x-rar-compressed",
                       ]}
                       onupdatefiles={setContentFileChapter}
                       files={contentFileChapter}

@@ -301,7 +301,6 @@ export const uploaderAuth = async (
       });
       return;
     }
-
     req.infoUser = existedRecord;
 
     next();

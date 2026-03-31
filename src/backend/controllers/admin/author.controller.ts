@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import * as AuthorModel from "../../models/author.model";
+import * as authorControllerService from "../../services/admin/author.service";
 
 interface MulterRequest extends Request {
   file?: Express.Multer.File;
@@ -16,7 +16,7 @@ export const createAuthor = async (
       return res.status(400).json({ message: "Author name is required" });
     }
 
-    const result = await AuthorModel.createAuthor({
+    const authorId = await authorControllerService.createAuthor({
       author_name,
       biography,
       avatar_url,
@@ -24,7 +24,7 @@ export const createAuthor = async (
 
     return res.status(201).json({
       message: "Author created successfully",
-      authorId: result.id,
+      authorId,
     });
   } catch (error) {
     console.error("Error creating author:", error);
@@ -40,7 +40,7 @@ export const updateAuthor = async (
     const { id } = req.params;
     req.body.avatar_url = req.file ? req.file.path : req.body.avatar_url;
 
-    await AuthorModel.updateAuthor(Number(id), req.body);
+    await authorControllerService.updateAuthor(Number(id), req.body);
 
     return res
       .status(200)
@@ -58,7 +58,7 @@ export const deleteAuthor = async (
   try {
     const { id } = req.params;
 
-    const count = await AuthorModel.deleteAuthor(Number(id));
+    const count = await authorControllerService.deleteAuthor(Number(id));
 
     if (count === 0) {
       return res.status(404).json({ message: "Author not found to delete" });
@@ -77,13 +77,9 @@ export const getAllAuthors = async (
 ): Promise<Response> => {
   try {
     const { name } = req.query;
-    let authors;
-
-    if (name) {
-      authors = await AuthorModel.searchAuthorsByName(String(name));
-    } else {
-      authors = await AuthorModel.getAllAuthors();
-    }
+    const authors = await authorControllerService.getAllAuthors(
+      name ? String(name) : undefined,
+    );
 
     return res.status(200).json({ code: "success", authors: authors });
   } catch (error) {
@@ -98,7 +94,7 @@ export const getAuthorById = async (
 ): Promise<Response> => {
   try {
     const { id } = req.params;
-    const author = await AuthorModel.getAuthorById(Number(id));
+    const author = await authorControllerService.getAuthorById(Number(id));
 
     if (!author) {
       return res.status(404).json({ message: "Author not found" });
@@ -117,7 +113,7 @@ export const getAuthorMangas = async (
 ): Promise<Response> => {
   try {
     const { id } = req.params;
-    const mangas = await AuthorModel.getMangasByAuthorId(Number(id));
+    const mangas = await authorControllerService.getAuthorMangas(Number(id));
     return res.status(200).json(mangas);
   } catch (error) {
     console.error("Error getting author mangas:", error);

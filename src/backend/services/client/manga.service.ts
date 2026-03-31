@@ -40,6 +40,15 @@ interface PublicMangaChapters {
   usedChapterList: Array<{ chapter_id: number }>;
 }
 
+const isPublicMangaStatus = (status?: string): boolean => {
+  const normalized = String(status || "").toLowerCase();
+  return (
+    normalized === "published" ||
+    normalized === "ongoing" ||
+    normalized === "completed"
+  );
+};
+
 export const listMangas = async (
   params: ListMangasInput,
 ): Promise<ListMangasResult> => {
@@ -115,7 +124,7 @@ export const getPublicMangaOverviewBySlug = async (
   slug: string,
 ): Promise<PublicMangaOverview | null> => {
   const manga = await MangaModel.getMangaBySlug(slug);
-  if (!manga) return null;
+  if (!manga || !isPublicMangaStatus(manga.status)) return null;
 
   const finalManga = await buildMangaOverview(manga);
   return { manga: finalManga };
@@ -126,7 +135,7 @@ export const getPublicMangaChaptersBySlug = async (
   userId?: number,
 ): Promise<PublicMangaChapters | null> => {
   const manga = await MangaModel.getMangaBySlug(slug);
-  if (!manga) return null;
+  if (!manga || !isPublicMangaStatus(manga.status)) return null;
 
   const chapters = await MangaModel.getPublishedChaptersByMangaId(
     manga.manga_id,

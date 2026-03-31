@@ -2,6 +2,7 @@ import crypto from "crypto";
 import db from "../../config/database.config";
 import * as accountModel from "../../models/account.model";
 import * as mangaModel from "../../models/manga.model";
+import { mapLegacyAdminStatus } from "../client/manga-upload.service";
 
 const URL_SECRET = process.env.URL_SECRET || "your-secret-key-change-this";
 
@@ -45,22 +46,43 @@ export const getListManga = async (): Promise<any[]> => {
 export const updateMangaStatus = async (
   mangaId: number,
   status: string,
+  reviewNote?: string,
 ): Promise<void> => {
-  await mangaModel.updateMangaStatus(mangaId, status);
+  const normalizedStatus = mapLegacyAdminStatus(status);
+
+  await mangaModel.updateMangaWorkflowState(mangaId, {
+    status: normalizedStatus,
+    review_note: reviewNote ?? null,
+    processing_error: null,
+  });
 
   const chapters = await mangaModel.getChaptersByMangaId(mangaId);
-  if (status === "OnGoing") {
+  if (normalizedStatus === "published") {
     await Promise.all(
       chapters.map((chapter) =>
-        mangaModel.updateChapterStatus(chapter.chapter_id, "Published"),
+        chapter.status === "pending_review" ||
+        chapter.status === "Pending" ||
+        chapter.status === "processing"
+          ? mangaModel.updateChapterWorkflowState(chapter.chapter_id, {
+              status: "published",
+              published_at: new Date(),
+              review_note: null,
+              processing_error: null,
+            })
+          : Promise.resolve(),
       ),
     );
   }
 
-  if (status === "Rejected") {
+  if (normalizedStatus === "rejected") {
     await Promise.all(
       chapters.map((chapter) =>
-        mangaModel.updateChapterStatus(chapter.chapter_id, "Rejected"),
+        chapter.status === "pending_review" || chapter.status === "Pending"
+          ? mangaModel.updateChapterWorkflowState(chapter.chapter_id, {
+              status: "rejected",
+              review_note: reviewNote ?? null,
+            })
+          : Promise.resolve(),
       ),
     );
   }
@@ -70,12 +92,40 @@ export const updateChapterStatus = async (
   chapterId: number,
   status: string,
   coinPrice?: number,
+  reviewNote?: string,
 ): Promise<void> => {
-  await mangaModel.updateChapterStatus(chapterId, status, coinPrice);
+  const normalizedStatus = mapLegacyAdminStatus(status);
+  const payload: {
+    status: string;
+    price?: number;
+    review_note?: string | null;
+    processing_error?: string | null;
+    published_at?: Date | null;
+  } = {
+    status: normalizedStatus,
+    processing_error: null,
+  };
+
+  if (normalizedStatus === "published") {
+    payload.published_at = new Date();
+    payload.review_note = null;
+    if (coinPrice !== undefined) {
+      payload.price = coinPrice;
+    }
+  }
+
+  if (normalizedStatus === "rejected") {
+    payload.review_note = reviewNote ?? null;
+  }
+
+  await mangaModel.updateChapterWorkflowState(chapterId, payload);
 };
 
 export const rejectManga = async (mangaId: number): Promise<void> => {
-  await db("mangas").where("manga_id", mangaId).update({ status: "Dropped" });
+  await db("mangas").where("manga_id", mangaId).update({
+    status: "rejected",
+    updated_at: db.fn.now(),
+  });
 };
 
 export const getMangaDetail = async (mangaId: number): Promise<any | null> => {

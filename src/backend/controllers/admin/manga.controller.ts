@@ -26,8 +26,8 @@ export const updateStatusManga = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
-    await mangaService.updateMangaStatus(Number(id), status);
+    const { status, review_note } = req.body;
+    await mangaService.updateMangaStatus(Number(id), status, review_note);
 
     res.json({ code: "success", message: "Đã duyệt truyện" });
   } catch (error) {
@@ -42,8 +42,13 @@ export const updateStatusChapter = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
-    const { status, coin_price } = req.body;
-    await mangaService.updateChapterStatus(Number(id), status, coin_price);
+    const { status, coin_price, review_note } = req.body;
+    await mangaService.updateChapterStatus(
+      Number(id),
+      status,
+      coin_price,
+      review_note,
+    );
     res.json({ code: "success", message: "Đã cập nhật trạng thái chương" });
   } catch (error) {
     console.error(error);
