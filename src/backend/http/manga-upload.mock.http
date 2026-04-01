@@ -1,0 +1,39 @@
+POST http://localhost:5000/mangas/upload
+Cookie: accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Mywicm9sZSI6IjIiLCJlbWFpbCI6IjIwMTAyMDA1dGllbm5ndXllbkBnbWFpbC5jb20iLCJpYXQiOjE3NzUwMDc4MjEsImV4cCI6MTc3NTAwODcyMX0.Ew8ImQ7eaxtJDWbU8h6qCBwraN1uruMnbC9PcE7d9lU
+Content-Type: multipart/form-data; boundary=----MangaBoundary
+
+------MangaBoundary
+Content-Disposition: form-data; name="title"
+
+Best Teacher Baek
+------MangaBoundary
+Content-Disposition: form-data; name="author"
+
+Park Jin-Hwan
+------MangaBoundary
+Content-Disposition: form-data; name="language"
+
+ko
+------MangaBoundary
+Content-Disposition: form-data; name="description"
+
+A mock description for Best Teacher Baek.
+------MangaBoundary
+Content-Disposition: form-data; name="slug"
+
+best-teacher-baek
+------MangaBoundary
+Content-Disposition: form-data; name="genres"
+
+[1,2,3]
+------MangaBoundary
+Content-Disposition: form-data; name="cover_image"; filename="Screenshot 2026-03-21 174134.png"
+Content-Type: image/png
+
+< ./src/backend/http/mock-files/Screenshot 2026-03-21 174134.png
+------MangaBoundary
+Content-Disposition: form-data; name="chapter_zip"; filename="Best_Teacher_Baek.zip"
+Content-Type: application/zip
+
+< ./src/backend/http/mock-files/Best_Teacher_Baek.zip
+------MangaBoundary--

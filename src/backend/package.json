@@ -5,8 +5,8 @@
   "scripts": {
     "run dev": "ts-node index.ts",
     "dev": "nodemon --exec ts-node index.ts",
-    "dev:worker": "nodemon --exec ts-node workers/mail.worker.ts",
-    "dev:worker:manga": "nodemon --exec ts-node workers/manga-upload.worker.ts",
+    "worker:mail": "nodemon --exec ts-node workers/mail.worker.ts",
+    "worker:manga": "nodemon --exec ts-node workers/manga-upload.worker.ts",
     "build": "tsc",
     "serve": "node dist/index.js",
     "serve:worker": "node dist/workers/mail.worker.js",

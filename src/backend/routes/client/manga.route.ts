@@ -6,7 +6,8 @@ import * as mangaController from "../../controllers/client/manga.controller";
 import * as translateController from "../../controllers/client/request_translate_manga.controller";
 import * as authMiddleware from "../../middlewares/auth.middleware";
 import * as chapterMiddleware from "../../middlewares/chapter.middleware";
-
+import * as mangaValidate from "../../validate/client/manga.validate";
+import { randomUUID } from "crypto";
 const route = Router();
 
 interface RateLimitRecord {
@@ -58,7 +59,7 @@ const upload = multer({
     destination: (_req, _file, cb) => cb(null, TMP_ZIP_DIR),
     filename: (_req, file, cb) => {
       const ext = path.extname(file.originalname || "").toLowerCase() || ".bin";
-      const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
+      const uniqueName = ` ${randomUUID()}${ext}`;
       cb(null, uniqueName);
     },
   }),
@@ -77,9 +78,9 @@ route.post(
   authMiddleware.uploaderAuth,
   upload.fields([
     { name: "cover_image", maxCount: 1 },
-    // { name: "file_content", maxCount: 1 },
     { name: "chapter_zip", maxCount: 1 },
   ]),
+  mangaValidate.uploadManga,
   mangaController.uploadManga,
 );
 

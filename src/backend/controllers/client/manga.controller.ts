@@ -8,7 +8,6 @@ import * as Coin from "../../models/coin.model";
 import { AuthRequest, Page } from "../../types";
 import * as MangaService from "../../services/client/manga.service";
 import * as MangaUploadService from "../../services/client/manga-upload.service";
-import { console } from "inspector";
 
 const cloudinaryV2 = cloudinary.v2;
 
@@ -210,6 +209,7 @@ export const createWithFirstChapter = async (
 ): Promise<void> => {
   try {
     const files = req.files as MulterFiles;
+    console.log(files);
     const zipFile = pickZipFile(files);
     const coverFile = files.cover_image?.[0];
 
@@ -235,23 +235,23 @@ export const createWithFirstChapter = async (
     const uploaderId = req.infoUser!.user_id;
     const chapterNumber = Number(req.body.chapter_number || 1);
 
-    const created = await MangaUploadService.createWithFirstChapter({
-      uploaderId,
-      title: String(req.body.title || "").trim(),
-      description: req.body.description,
-      authorId: req.body.author_id ? Number(req.body.author_id) : undefined,
-      authorName: req.body.author_name || req.body.author,
-      originalLanguage: String(
-        req.body.original_language || req.body.language || "en",
-      ),
-      slug: String(req.body.slug || "").trim(),
-      genreIds: Array.isArray(genreIds) ? genreIds.map(Number) : [],
-      chapterNumber:
-        Number.isFinite(chapterNumber) && chapterNumber > 0 ? chapterNumber : 1,
-      chapterTitle: req.body.chapter_title,
-      chapterZipPath: zipFile.path,
-      coverImagePath: coverFile?.path,
-    });
+    // const created = await MangaUploadService.createWithFirstChapter({
+    //   uploaderId,
+    //   title: String(req.body.title || "").trim(),
+    //   description: req.body.description,
+    //   authorId: req.body.author_id ? Number(req.body.author_id) : undefined,
+    //   authorName: req.body.author_name || req.body.author,
+    //   originalLanguage: String(
+    //     req.body.original_language || req.body.language || "en",
+    //   ),
+    //   slug: String(req.body.slug || "").trim(),
+    //   genreIds: Array.isArray(genreIds) ? genreIds.map(Number) : [],
+    //   chapterNumber:
+    //     Number.isFinite(chapterNumber) && chapterNumber > 0 ? chapterNumber : 1,
+    //   chapterTitle: req.body.chapter_title,
+    //   chapterZipPath: zipFile.path,
+    //   coverImagePath: coverFile?.path,
+    // });
 
     res.json({
       code: "success",
@@ -259,8 +259,8 @@ export const createWithFirstChapter = async (
       message:
         "Đã nhận dữ liệu truyện và chapter đầu tiên, hệ thống đang xử lý",
       data: {
-        mangaId: created.mangaId,
-        chapterId: created.chapterId,
+        // mangaId: created.mangaId,
+        // chapterId: created.chapterId,
         mangaStatus: "processing",
         chapterStatus: "processing",
       },
@@ -288,11 +288,6 @@ export const uploadManga = async (
   req: AuthRequest,
   res: Response,
 ): Promise<void> => {
-  console.log("Received uploadManga request with body:", req.body);
-  req.body.chapter_number = req.body.chapter_number || 1;
-  req.body.chapter_title = req.body.chapter_title || "Chapter 1";
-  req.body.original_language = req.body.original_language || req.body.language;
-  req.body.author_name = req.body.author_name || req.body.author;
   await createWithFirstChapter(req, res);
 };
 
