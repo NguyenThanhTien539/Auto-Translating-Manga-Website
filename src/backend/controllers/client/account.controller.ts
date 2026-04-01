@@ -1,6 +1,7 @@
 import { Response } from "express";
 import { AuthRequest } from "../../types";
 import * as accountService from "../../services/client/account.service";
+import { accessTokenTtl } from "../../config/variable.config";
 
 function setOtpCookie(res: Response, challengeId: string): void {
   res.cookie("verified_otp_token", challengeId, {
@@ -17,7 +18,7 @@ function setAuthCookies(
   refreshToken: string,
 ): void {
   res.cookie("accessToken", accessToken, {
-    maxAge: 900 * 1000,
+    maxAge: accessTokenTtl * 1000,
     httpOnly: true,
     secure: false,
     sameSite: "lax",
@@ -33,7 +34,7 @@ function setAuthCookies(
 
 function setAccessTokenCookie(res: Response, accessToken: string): void {
   res.cookie("accessToken", accessToken, {
-    maxAge: 900 * 1000,
+    maxAge: accessTokenTtl * 1000,
     httpOnly: true,
     secure: false,
     sameSite: "lax",
@@ -168,7 +169,7 @@ export const login = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const email = req.body.email;
     const password = req.body.password;
-    
+
     const result = await accountService.login({ email, password });
 
     setAuthCookies(res, result.accessToken, result.refreshToken);

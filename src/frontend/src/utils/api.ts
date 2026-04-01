@@ -48,7 +48,7 @@ async function refreshAccessToken(): Promise<boolean> {
  * @param options - Fetch options with optional skipRefresh flag
  * @returns Promise with the response
  */
-export async function apiFetch<T = any>(
+export async function apiFetch(
   url: string,
   options: FetchOptions = {},
 ): Promise<Response> {
@@ -82,10 +82,6 @@ export async function apiFetch<T = any>(
         if (refreshSuccess) {
           // Retry the original request with the new token
           response = await fetch(url, defaultOptions);
-        } else {
-          if (typeof window !== "undefined") {
-            window.location.href = "/login";
-          }
         }
       }
     }
