@@ -55,33 +55,6 @@ const cleanupTempFile = async (filePath?: string): Promise<void> => {
   }
 };
 
-const validateZipPath = async (zipPath: string): Promise<void> => {
-  if (!zipPath.toLowerCase().endsWith(".zip")) {
-    throw new MangaUploadServiceError(400, "chapter_zip phải là file .zip");
-  }
-
-  try {
-    await fs.access(zipPath);
-  } catch {
-    throw new MangaUploadServiceError(400, "Không tìm thấy file ZIP tạm");
-  }
-};
-
-const validateZipArchive = async (zipPath: string): Promise<void> => {
-  try {
-    const zip = new AdmZip(zipPath);
-    const hasFileEntry = zip.getEntries().some((entry) => !entry.isDirectory);
-    if (!hasFileEntry) {
-      throw new MangaUploadServiceError(400, "File ZIP rỗng hoặc không hợp lệ");
-    }
-  } catch (error) {
-    if (error instanceof MangaUploadServiceError) {
-      throw error;
-    }
-    throw new MangaUploadServiceError(400, "chapter_zip không phải ZIP hợp lệ");
-  }
-};
-
 const uploadCoverIfNeeded = async (
   coverImagePath?: string,
 ): Promise<string | null> => {
@@ -123,20 +96,6 @@ export const createWithFirstChapter = async (
 ): Promise<{ mangaId: number; chapterId: number }> => {
   try {
     await ensureTmpZipDir();
-    await validateZipPath(input.chapterZipPath);
-    await validateZipArchive(input.chapterZipPath);
-
-    if (!input.title?.trim()) {
-      throw new MangaUploadServiceError(400, "title là bắt buộc");
-    }
-
-    if (!input.slug?.trim()) {
-      throw new MangaUploadServiceError(400, "slug là bắt buộc");
-    }
-
-    if (!input.originalLanguage?.trim()) {
-      throw new MangaUploadServiceError(400, "original_language là bắt buộc");
-    }
 
     let authorId = input.authorId;
 
@@ -199,8 +158,6 @@ export const createChapterWithZip = async (
 ): Promise<{ mangaId: number; chapterId: number }> => {
   try {
     await ensureTmpZipDir();
-    await validateZipPath(input.chapterZipPath);
-    await validateZipArchive(input.chapterZipPath);
 
     const manga = await MangaModel.getMangaById(input.mangaId);
     if (!manga) {
