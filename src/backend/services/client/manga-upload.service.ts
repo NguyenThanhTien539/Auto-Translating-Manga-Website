@@ -1,8 +1,8 @@
 import path from "path";
 import fs from "fs/promises";
 import cloudinary from "cloudinary";
-import AdmZip from "adm-zip";
 import * as MangaModel from "../../models/manga.model";
+import * as AuthorModel from "../../models/author.model";
 import { enqueueMangaUploadJob } from "../../queues/manga-upload.queue";
 
 const cloudinaryV2 = cloudinary.v2;
@@ -51,7 +51,7 @@ const cleanupTempFile = async (filePath?: string): Promise<void> => {
   try {
     await fs.rm(filePath, { force: true });
   } catch {
-    // best effort cleanup
+    // Ignore errors during cleanup
   }
 };
 
@@ -77,7 +77,7 @@ export interface CreateWithFirstChapterInput {
   originalLanguage: string;
   slug: string;
   genreIds?: number[];
-  chapterNumber: number;
+  chapterNumber?: number;
   chapterTitle?: string;
   chapterZipPath: string;
   coverImagePath?: string;
@@ -93,17 +93,25 @@ export interface CreateChapterWithZipInput {
 
 export const createWithFirstChapter = async (
   input: CreateWithFirstChapterInput,
-): Promise<{ mangaId: number; chapterId: number }> => {
+): Promise<{ mangaId: number }> => {
   try {
     await ensureTmpZipDir();
 
     let authorId = input.authorId;
 
     if (!authorId && input.authorName?.trim()) {
-      const createdAuthor = await MangaModel.createAuthor({
-        author_name: input.authorName.trim(),
-      });
-      authorId = createdAuthor.id;
+      const normalizedAuthorName = input.authorName.trim();
+      const existedAuthor =
+        await AuthorModel.getAuthorByExactName(normalizedAuthorName);
+
+      if (existedAuthor?.author_id) {
+        authorId = existedAuthor.author_id;
+      } else {
+        const createdAuthor = await AuthorModel.createAuthor({
+          author_name: normalizedAuthorName,
+        });
+        authorId = createdAuthor.id;
+      }
     }
 
     const coverImageUrl = await uploadCoverIfNeeded(input.coverImagePath);
@@ -119,14 +127,6 @@ export const createWithFirstChapter = async (
       status: "processing",
     });
 
-    const chapter = await MangaModel.createChapter({
-      manga_id: manga.id,
-      uploader_id: input.uploaderId,
-      chapter_number: input.chapterNumber,
-      title: input.chapterTitle || `Chapter ${input.chapterNumber}`,
-      status: "processing",
-    });
-
     if (input.genreIds && input.genreIds.length > 0) {
       await MangaModel.createMangaGenres(
         input.genreIds.map((genreId) => ({
@@ -138,16 +138,16 @@ export const createWithFirstChapter = async (
 
     await enqueueMangaUploadJob({
       mangaId: manga.id,
-      chapterId: chapter.id,
       uploaderId: input.uploaderId,
       zipPath: input.chapterZipPath,
       language: input.originalLanguage,
-      isFirstChapter: true,
+      mode: "initial_manga_upload",
     });
 
-    return { mangaId: manga.id, chapterId: chapter.id };
+    return { mangaId: manga.id };
   } catch (error: any) {
     await cleanupTempFile(input.chapterZipPath);
+    throw error;
   } finally {
     await cleanupTempFile(input.coverImagePath);
   }
@@ -198,12 +198,13 @@ export const createChapterWithZip = async (
       uploaderId: input.uploaderId,
       zipPath: input.chapterZipPath,
       language: manga.original_language || "en",
-      isFirstChapter: false,
+      mode: "single_chapter_upload",
     });
 
     return { mangaId: input.mangaId, chapterId: chapter.id };
   } catch (error: any) {
     await cleanupTempFile(input.chapterZipPath);
+    throw error;
   }
 };
 

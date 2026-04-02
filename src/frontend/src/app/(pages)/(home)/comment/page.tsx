@@ -6,6 +6,7 @@ import { Star, Send, ArrowLeft, MessageCircle } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
 import { useAuth } from "@/app/hooks/useAuth";
+import { toVietnameseMangaStatus } from "@/utils/manga-status";
 
 interface Comment {
   comment_id: string;
@@ -322,7 +323,7 @@ function CommentContent() {
                     </div>
                     <div className="flex items-center gap-2 bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30 rounded-lg px-4 py-2.5">
                       <span className="text-sm font-semibold text-blue-300">
-                        {mangaDetail.status}
+                        {toVietnameseMangaStatus(mangaDetail.status)}
                       </span>
                     </div>
                   </div>

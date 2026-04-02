@@ -61,7 +61,6 @@ export const updateMangaStatus = async (
     await Promise.all(
       chapters.map((chapter) =>
         chapter.status === "pending_review" ||
-        chapter.status === "Pending" ||
         chapter.status === "processing"
           ? mangaModel.updateChapterWorkflowState(chapter.chapter_id, {
               status: "published",
@@ -77,7 +76,7 @@ export const updateMangaStatus = async (
   if (normalizedStatus === "rejected") {
     await Promise.all(
       chapters.map((chapter) =>
-        chapter.status === "pending_review" || chapter.status === "Pending"
+        chapter.status === "pending_review"
           ? mangaModel.updateChapterWorkflowState(chapter.chapter_id, {
               status: "rejected",
               review_note: reviewNote ?? null,

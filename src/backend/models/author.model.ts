@@ -20,6 +20,17 @@ export const getAuthorById = async (
   return db("authors").where("author_id", authorId).first();
 };
 
+export const getAuthorByExactName = async (
+  authorName: string,
+): Promise<Author | undefined> => {
+  const normalized = authorName.trim();
+  if (!normalized) return undefined;
+
+  return db("authors")
+    .whereRaw("LOWER(TRIM(author_name)) = LOWER(TRIM(?))", [normalized])
+    .first();
+};
+
 export const getAllAuthors = async (): Promise<Author[]> => {
   return db("authors").select("*").orderBy("author_name", "asc");
 };

@@ -1,15 +1,15 @@
 POST http://localhost:5000/mangas/upload
-Cookie: accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Mywicm9sZSI6IjIiLCJlbWFpbCI6IjIwMTAyMDA1dGllbm5ndXllbkBnbWFpbC5jb20iLCJpYXQiOjE3NzUwMDc4MjEsImV4cCI6MTc3NTAwODcyMX0.Ew8ImQ7eaxtJDWbU8h6qCBwraN1uruMnbC9PcE7d9lU
+Cookie: accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Mywicm9sZSI6IjIiLCJlbWFpbCI6IjIwMTAyMDA1dGllbm5ndXllbkBnbWFpbC5jb20iLCJpYXQiOjE3NzUwOTE2MzUsImV4cCI6MTc3NTA5NTIzNX0.rEL25xzgKAv92tr0JPCWapJjS6Pmk6L5zpDtBd2KfM4
 Content-Type: multipart/form-data; boundary=----MangaBoundary
 
 ------MangaBoundary
 Content-Disposition: form-data; name="title"
 
-Best Teacher Baek
+Solo Max-Level Newbie
 ------MangaBoundary
-Content-Disposition: form-data; name="author"
+Content-Disposition: form-data; name="author_name"
 
-Park Jin-Hwan
+WAN.Z
 ------MangaBoundary
 Content-Disposition: form-data; name="language"
 
@@ -17,17 +17,17 @@ ko
 ------MangaBoundary
 Content-Disposition: form-data; name="description"
 
-A mock description for Best Teacher Baek.
+A mock description for Solo Max-Level Newbie.
 ------MangaBoundary
 Content-Disposition: form-data; name="slug"
 
-best-teacher-baek
+solo-max-level-newbie
 ------MangaBoundary
 Content-Disposition: form-data; name="genres"
 
-[1,2,3]
+[1, 2, 3]
 ------MangaBoundary
-Content-Disposition: form-data; name="cover_image"; filename="Screenshot 2026-03-21 174134.png"
+Content-Disposition: form-data; name="cover_image"; filename="cover.png"
 Content-Type: image/png
 
 < ./src/backend/http/mock-files/Screenshot 2026-03-21 174134.png

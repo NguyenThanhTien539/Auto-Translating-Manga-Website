@@ -7,6 +7,10 @@ import { Star, Sparkles } from "lucide-react";
 import Image from "next/image";
 import { useParams, useRouter, usePathname } from "next/navigation";
 import { toast } from "sonner";
+import {
+  normalizeMangaStatus,
+  toVietnameseMangaStatus,
+} from "@/utils/manga-status";
 
 interface Chapter {
   chapter_id: string;
@@ -32,37 +36,37 @@ type Manga = {
 };
 
 const getChapterStatusBadge = (status?: string) => {
-  const s = (status || "Pending").toLowerCase();
+  const s = normalizeMangaStatus(status);
 
   const map: Record<string, { label: string; cls: string }> = {
-    pending: {
+    draft: {
+      label: "Bản nháp",
+      cls: "bg-gray-50 text-gray-700 border-gray-200",
+    },
+    processing: {
+      label: "Đang xử lý",
+      cls: "bg-blue-50 text-blue-700 border-blue-200",
+    },
+    pending_review: {
       label: "Chờ duyệt",
       cls: "bg-yellow-50 text-yellow-700 border-yellow-200",
     },
-    approved: {
-      label: "Đã duyệt",
-      cls: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    },
     published: {
-      label: "Đã duyệt",
+      label: "Đã xuất bản",
       cls: "bg-emerald-50 text-emerald-700 border-emerald-200",
     },
     rejected: {
-      label: "Từ chối",
+      label: "Bị từ chối",
       cls: "bg-red-50 text-red-700 border-red-200",
     },
-    active: {
-      label: "Hiển thị",
-      cls: "bg-blue-50 text-blue-700 border-blue-200",
-    },
-    inactive: {
-      label: "Ẩn",
-      cls: "bg-gray-50 text-gray-700 border-gray-200",
+    processing_failed: {
+      label: "Xử lý thất bại",
+      cls: "bg-rose-50 text-rose-700 border-rose-200",
     },
   };
 
   const picked = map[s] || {
-    label: status || "Không rõ",
+    label: toVietnameseMangaStatus(status),
     cls: "bg-gray-50 text-gray-700 border-gray-200",
   };
 
@@ -76,27 +80,35 @@ const getChapterStatusBadge = (status?: string) => {
 };
 
 const getMangaStatusBadge = (status?: string) => {
-  const s = (status || "").toLowerCase();
+  const s = normalizeMangaStatus(status);
   const map: Record<string, { label: string; cls: string }> = {
-    ongoing: {
-      label: "Đang tiến hành",
+    draft: {
+      label: "Bản nháp",
+      cls: "bg-gray-50 text-gray-700 border-gray-200",
+    },
+    processing: {
+      label: "Đang xử lý",
       cls: "bg-blue-50 text-blue-700 border-blue-200",
     },
-    completed: {
-      label: "Hoàn thành",
-      cls: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    },
-    dropped: {
-      label: "Tạm ngưng",
-      cls: "bg-red-50 text-red-700 border-red-200",
-    },
-    pending: {
+    pending_review: {
       label: "Chờ duyệt",
       cls: "bg-yellow-50 text-yellow-700 border-yellow-200",
     },
+    published: {
+      label: "Đã xuất bản",
+      cls: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    },
+    rejected: {
+      label: "Bị từ chối",
+      cls: "bg-red-50 text-red-700 border-red-200",
+    },
+    processing_failed: {
+      label: "Xử lý thất bại",
+      cls: "bg-rose-50 text-rose-700 border-rose-200",
+    },
   };
   const picked = map[s] || {
-    label: status || "Không rõ",
+    label: toVietnameseMangaStatus(status),
     cls: "bg-gray-50 text-gray-700 border-gray-200",
   };
   return (
@@ -110,12 +122,11 @@ const getMangaStatusBadge = (status?: string) => {
 
 const mapChapterStatusToOption = (
   status?: string,
-): "Pending" | "Published" | "Rejected" => {
-  const s = (status || "pending").toLowerCase();
-  if (s === "pending") return "Pending";
-  if (s === "approved" || s === "published") return "Published";
-  if (s === "rejected") return "Rejected";
-  return "Pending";
+): "pending_review" | "published" | "rejected" => {
+  const s = normalizeMangaStatus(status);
+  if (s === "published") return "published";
+  if (s === "rejected") return "rejected";
+  return "pending_review";
 };
 
 const decodeHtml = (html: string) => {
@@ -167,12 +178,12 @@ export default function ReadPage() {
     if (activeTab !== "edit-status") return;
     if (!mangaDetail) return;
 
-    setStatusDraft(mangaDetail.manga.status ?? "Pending");
+    setStatusDraft(normalizeMangaStatus(mangaDetail.manga.status));
 
     setChapterDrafts(
       (mangaDetail.chapters || []).reduce(
         (acc, c) => {
-          acc[c.chapter_id] = c.status ?? "Pending";
+          acc[c.chapter_id] = mapChapterStatusToOption(c.status);
           return acc;
         },
         {} as Record<string, string>,
@@ -285,11 +296,11 @@ export default function ReadPage() {
             <button
               onClick={() => {
                 setActiveTab("edit-status");
-                setStatusDraft(mangaDetail.manga.status);
+                setStatusDraft(normalizeMangaStatus(mangaDetail.manga.status));
                 setChapterDrafts(
                   (mangaDetail?.chapters || []).reduce(
                     (acc, c) => {
-                      acc[c.chapter_id] = c.status || "pending";
+                      acc[c.chapter_id] = mapChapterStatusToOption(c.status);
                       return acc;
                     },
                     {} as Record<string, string>,
@@ -343,7 +354,8 @@ export default function ReadPage() {
                   {getMangaStatusBadge(mangaDetail.manga.status)}
 
                   {/* Highlight Button with Duration */}
-                  {mangaDetail.manga.status !== "Pending" && (
+                  {normalizeMangaStatus(mangaDetail.manga.status) !==
+                    "pending_review" && (
                     <div className="relative">
                       <button
                         onClick={async () => {
@@ -636,11 +648,12 @@ export default function ReadPage() {
                       onChange={(e) => setStatusDraft(e.target.value)}
                       className="w-full border rounded-lg p-2.5 bg-white text-sm"
                     >
-                      <option value="Pending">Chờ duyệt</option>
-                      <option value="OnGoing">Đang diễn ra</option>
-                      <option value="Completed">Hoàn thành</option>
-                      <option value="Dropped">Tạm ngưng</option>
-                      <option value="Rejected">Từ chối</option>
+                      <option value="draft">Bản nháp</option>
+                      <option value="processing">Đang xử lý</option>
+                      <option value="pending_review">Chờ duyệt</option>
+                      <option value="published">Đã xuất bản</option>
+                      <option value="rejected">Bị từ chối</option>
+                      <option value="processing_failed">Xử lý thất bại</option>
                     </select>
                   </div>
 
@@ -667,16 +680,21 @@ export default function ReadPage() {
                           setMangaDetail((prev) => {
                             if (!prev) return prev;
 
+                            const normalizedDraft =
+                              normalizeMangaStatus(statusDraft);
                             const nextChapterStatus =
-                              statusDraft === "OnGoing"
-                                ? "Published"
-                                : statusDraft === "Rejected"
-                                  ? "Rejected"
+                              normalizedDraft === "published"
+                                ? "published"
+                                : normalizedDraft === "rejected"
+                                  ? "rejected"
                                   : null;
 
                             return {
                               ...prev,
-                              manga: { ...prev.manga, status: statusDraft },
+                              manga: {
+                                ...prev.manga,
+                                status: normalizeMangaStatus(statusDraft),
+                              },
                               chapters: nextChapterStatus
                                 ? prev.chapters.map((c) => ({
                                     ...c,
@@ -686,14 +704,16 @@ export default function ReadPage() {
                             };
                           });
 
+                          const normalizedDraft =
+                            normalizeMangaStatus(statusDraft);
                           if (
-                            statusDraft === "OnGoing" ||
-                            statusDraft === "Rejected"
+                            normalizedDraft === "published" ||
+                            normalizedDraft === "rejected"
                           ) {
                             const next =
-                              statusDraft === "OnGoing"
-                                ? "Published"
-                                : "Rejected";
+                              normalizedDraft === "published"
+                                ? "published"
+                                : "rejected";
                             setChapterDrafts((prev) => {
                               const copy = { ...prev };
                               (mangaDetail?.chapters || []).forEach(
@@ -732,7 +752,7 @@ export default function ReadPage() {
                     const coinDraft = coinDrafts[ch.chapter_id] ?? originalCoin;
                     const coinChanged = coinDraft !== originalCoin;
 
-                    const isApproved = draft === "Published";
+                    const isApproved = draft === "published";
 
                     return (
                       <div
@@ -777,9 +797,9 @@ export default function ReadPage() {
                               }
                               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             >
-                              <option value="Pending">Chờ duyệt</option>
-                              <option value="Published">Đã duyệt</option>
-                              <option value="Rejected">Từ chối</option>
+                              <option value="pending_review">Chờ duyệt</option>
+                              <option value="published">Đã xuất bản</option>
+                              <option value="rejected">Bị từ chối</option>
                             </select>
                           </div>
 

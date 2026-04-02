@@ -5,6 +5,7 @@ import MangaCard from "@/app/components/client/MangaCard";
 import { useState, useEffect } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { apiFetch } from "@/utils/api";
+import { isPublishedMangaStatus } from "@/utils/manga-status";
 
 type Manga = {
   manga_id: string;
@@ -34,7 +35,7 @@ export default function Explore() {
       : 1;
 
   const mangasToShow = (allMangas || []).filter(
-    (manga) => manga.status !== "Pending",
+    (manga) => isPublishedMangaStatus(manga.status),
   );
 
   const goToPage = (nextPage: number) => {

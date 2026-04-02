@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import MangaCard from "@/app/components/client/MangaCard";
+import { isPublishedMangaStatus } from "@/utils/manga-status";
 
 type Manga = {
   manga_id: string;
@@ -37,9 +38,8 @@ function FilterContent() {
     const chaptersMin = sp.get("chaptersMin");
     const chaptersMax = sp.get("chaptersMax");
 
-    // state: bạn đang có lúc dùng "complete" / lúc "completed"
     const stateRaw = sp.get("state");
-    const state = stateRaw === "complete" ? "completed" : stateRaw; // normalize nhẹ
+    const state = stateRaw === "complete" ? "published" : stateRaw;
 
     const type = sp.get("type");
 
@@ -103,7 +103,7 @@ function FilterContent() {
     return () => controller.abort();
   }, [requestUrl, API_URL]);
 
-  const displayMangas = mangas.filter((m) => m.status !== "Pending");
+  const displayMangas = mangas.filter((m) => isPublishedMangaStatus(m.status));
   // UI
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">

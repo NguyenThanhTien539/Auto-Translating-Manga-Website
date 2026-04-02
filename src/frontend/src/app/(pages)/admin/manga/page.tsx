@@ -8,13 +8,17 @@ import FilterBar from "@/app/components/admin/Filter";
 import { toast } from "sonner";
 import { formatDate } from "@/utils/format";
 import Image from "next/image";
+import {
+  normalizeMangaStatus,
+  toVietnameseMangaStatus,
+} from "@/utils/manga-status";
 
 type MangaItem = {
   manga_id: number;
   title: string;
   author: string;
   cover_image: string;
-  status: string; // "OnGoing" | "Completed" | "Dropped"
+  status: string;
   uploader_name: string;
   created_at: string;
   is_approved?: boolean; // Giả sử có trường này hoặc dùng logic khác để check duyệt
@@ -70,7 +74,12 @@ export default function ManageMangaPage() {
   // ========= FILTERED LIST =========
   const filteredMangas = useMemo(() => {
     return mangaList.filter((manga) => {
-      if (statusFilter !== "all" && manga.status !== statusFilter) return false;
+      if (
+        statusFilter !== "all" &&
+        normalizeMangaStatus(manga.status) !== statusFilter
+      ) {
+        return false;
+      }
 
       if (search.trim()) {
         const key = search.toLowerCase();
@@ -88,27 +97,24 @@ export default function ManageMangaPage() {
 
   // ========= STATUS BADGE =========
   const getStatusBadge = (status: string) => {
-    const styles: Record<string, string> = {
-      OnGoing: "bg-blue-100 text-blue-700 border-blue-200",
-      Completed: "bg-green-100 text-green-700 border-green-200",
-      Dropped: "bg-red-100 text-red-700 border-red-200",
-      Pending: "bg-yellow-100 text-yellow-700 border-yellow-200",
-    };
+    const normalized = normalizeMangaStatus(status);
 
-    const labels: Record<string, string> = {
-      OnGoing: "Đang tiến hành",
-      Completed: "Hoàn thành",
-      Dropped: "Tạm ngưng",
-      Pending: "Chờ duyệt",
+    const styles: Record<string, string> = {
+      draft: "bg-gray-100 text-gray-700 border-gray-200",
+      processing: "bg-blue-100 text-blue-700 border-blue-200",
+      pending_review: "bg-yellow-100 text-yellow-700 border-yellow-200",
+      published: "bg-green-100 text-green-700 border-green-200",
+      rejected: "bg-red-100 text-red-700 border-red-200",
+      processing_failed: "bg-rose-100 text-rose-700 border-rose-200",
     };
 
     return (
       <span
         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-          styles[status] || "bg-gray-100 text-gray-800"
+          styles[normalized] || "bg-gray-100 text-gray-800"
         }`}
       >
-        {labels[status] || status}
+        {toVietnameseMangaStatus(normalized)}
       </span>
     );
   };
@@ -132,10 +138,12 @@ export default function ManageMangaPage() {
             setStatusFilter={setStatusFilter}
             statusOptions={[
               { value: "all", label: "Tất cả trạng thái" },
-              { value: "Pending", label: "Chờ duyệt" },
-              { value: "OnGoing", label: "Đang tiến hành" },
-              { value: "Completed", label: "Hoàn thành" },
-              { value: "Dropped", label: "Tạm ngưng" },
+              { value: "draft", label: "Bản nháp" },
+              { value: "processing", label: "Đang xử lý" },
+              { value: "pending_review", label: "Chờ duyệt" },
+              { value: "published", label: "Đã xuất bản" },
+              { value: "rejected", label: "Bị từ chối" },
+              { value: "processing_failed", label: "Xử lý thất bại" },
             ]}
             onResetFilters={resetFilters}
           />

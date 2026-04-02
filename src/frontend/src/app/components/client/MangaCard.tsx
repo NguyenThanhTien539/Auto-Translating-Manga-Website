@@ -1,5 +1,6 @@
 import React from "react";
 import Image from "next/image";
+import { toVietnameseMangaStatus } from "@/utils/manga-status";
 
 interface MangaCardProps {
   manga_id: string;
@@ -62,8 +63,8 @@ export default function MangaCard({
 
         {/* Footer */}
         <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-          <span className="text-gray-500 dark:text-gray-400 text-xs font-medium capitalize">
-            {status}
+          <span className="text-gray-500 dark:text-gray-400 text-xs font-medium">
+            {toVietnameseMangaStatus(status)}
           </span>
 
           <div className="flex items-center gap-1">

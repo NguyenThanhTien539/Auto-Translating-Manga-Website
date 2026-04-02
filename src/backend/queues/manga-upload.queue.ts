@@ -25,6 +25,9 @@ export const enqueueMangaUploadJob = async (
   data: MangaUploadJobData,
   options?: JobsOptions,
 ) => {
-  const jobName = `manga:${data.mangaId}:chapter:${data.chapterId}`;
+  const jobName =
+    data.mode === "single_chapter_upload"
+      ? `manga:${data.mangaId}:chapter:${data.chapterId}`
+      : `manga:${data.mangaId}:initial-upload`;
   return mangaUploadQueue.add(jobName, data, options);
 };

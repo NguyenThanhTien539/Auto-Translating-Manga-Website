@@ -42,11 +42,7 @@ interface PublicMangaChapters {
 
 const isPublicMangaStatus = (status?: string): boolean => {
   const normalized = String(status || "").toLowerCase();
-  return (
-    normalized === "published" ||
-    normalized === "ongoing" ||
-    normalized === "completed"
-  );
+  return normalized === "published";
 };
 
 export const listMangas = async (

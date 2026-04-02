@@ -97,8 +97,6 @@ const processChaptersInBackground = async (
   language: string,
 ): Promise<void> => {
   try {
-    console.log(`Starting background processing for manga ${currentMangaId}`);
-
     const zip = new AdmZip(fileContentBuffer);
     const zipEntries = zip.getEntries();
 
@@ -209,18 +207,8 @@ export const createWithFirstChapter = async (
 ): Promise<void> => {
   try {
     const files = req.files as MulterFiles;
-    console.log(files);
-    const zipFile = pickZipFile(files);
+    const zipFile = files.chapter_zip?.[0];
     const coverFile = files.cover_image?.[0];
-
-    if (!zipFile) {
-      res.status(400).json({
-        code: "error",
-        success: false,
-        message: "chapter_zip là bắt buộc",
-      });
-      return;
-    }
 
     const genreIds = req.body.genres
       ? (() => {
@@ -232,38 +220,30 @@ export const createWithFirstChapter = async (
         })()
       : [];
 
-    const uploaderId = req.infoUser!.user_id;
+    const uploaderId = req.infoUser.user_id;
     const chapterNumber = Number(req.body.chapter_number || 1);
 
-    // const created = await MangaUploadService.createWithFirstChapter({
-    //   uploaderId,
-    //   title: String(req.body.title || "").trim(),
-    //   description: req.body.description,
-    //   authorId: req.body.author_id ? Number(req.body.author_id) : undefined,
-    //   authorName: req.body.author_name || req.body.author,
-    //   originalLanguage: String(
-    //     req.body.original_language || req.body.language || "en",
-    //   ),
-    //   slug: String(req.body.slug || "").trim(),
-    //   genreIds: Array.isArray(genreIds) ? genreIds.map(Number) : [],
-    //   chapterNumber:
-    //     Number.isFinite(chapterNumber) && chapterNumber > 0 ? chapterNumber : 1,
-    //   chapterTitle: req.body.chapter_title,
-    //   chapterZipPath: zipFile.path,
-    //   coverImagePath: coverFile?.path,
-    // });
+    await MangaUploadService.createWithFirstChapter({
+      uploaderId,
+      title: String(req.body.title).trim(),
+      description: req.body.description,
+      authorName: req.body.author_name,
+      originalLanguage: String(req.body.language),
+      slug: String(req.body.slug || "").trim(),
+      genreIds: Array.isArray(genreIds) ? genreIds.map(Number) : [],
+      chapterNumber:
+        Number.isFinite(chapterNumber) && chapterNumber > 0 ? chapterNumber : 1,
+      chapterTitle: req.body.chapter_title,
+      chapterZipPath: zipFile.path,
+      coverImagePath: coverFile?.path,
+    });
 
     res.json({
       code: "success",
       success: true,
       message:
-        "Đã nhận dữ liệu truyện và chapter đầu tiên, hệ thống đang xử lý",
-      data: {
-        // mangaId: created.mangaId,
-        // chapterId: created.chapterId,
-        mangaStatus: "processing",
-        chapterStatus: "processing",
-      },
+        "Đã nhận dữ liệu truyện, hệ thống đang xử lý các chapter trong ZIP",
+      data: null,
     });
   } catch (error: any) {
     if (error instanceof MangaUploadService.MangaUploadServiceError) {
@@ -275,7 +255,6 @@ export const createWithFirstChapter = async (
       return;
     }
 
-    console.error("Error in createWithFirstChapter:", error);
     res.status(500).json({
       code: "error",
       success: false,

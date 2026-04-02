@@ -1,6 +1,10 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import {
+  normalizeMangaStatus,
+  toVietnameseMangaStatus,
+} from "@/utils/manga-status";
 
 export type MangaFilterValues = {
   chaptersMin: number;
@@ -8,8 +12,6 @@ export type MangaFilterValues = {
   state: string; // m.status hoặc "all"
   categories: string[]; // genre_name[]
 };
-
-let notShownStatus = ["Pending"];
 
 interface MangaFilterPanelProps {
   initialValues?: Partial<MangaFilterValues>;
@@ -152,7 +154,7 @@ export default function Filter({
 
   // get list of status excluding notShownStatus
   const filteredStatusOptions = statusOptions.filter(
-    (s) => !notShownStatus.includes(s),
+    (s) => normalizeMangaStatus(s) === "published",
   );
 
   return (
@@ -243,7 +245,7 @@ export default function Filter({
                       : "bg-white text-gray-800 border-gray-300 hover:bg-gray-50")
                   }
                 >
-                  {s}
+                  {toVietnameseMangaStatus(s)}
                 </button>
               );
             })}

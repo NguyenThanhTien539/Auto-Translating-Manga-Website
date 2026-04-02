@@ -11,30 +11,6 @@ interface MulterFiles {
 
 const IMAGE_EXTENSIONS = /\.(jpg|jpeg|png|gif|webp)$/i;
 
-const parseGenres = (genres: unknown): number[] => {
-  if (genres == null || genres === "") return [];
-
-  if (Array.isArray(genres)) {
-    return genres
-      .map((item) => Number(item))
-      .filter((value) => Number.isFinite(value) && value > 0);
-  }
-
-  if (typeof genres === "string") {
-    try {
-      const parsed = JSON.parse(genres);
-      if (!Array.isArray(parsed)) return [];
-      return parsed
-        .map((item) => Number(item))
-        .filter((value) => Number.isFinite(value) && value > 0);
-    } catch {
-      return [];
-    }
-  }
-
-  return [];
-};
-
 const hasImageInsideZip = (zipPath: string): boolean => {
   const zip = new AdmZip(zipPath);
   return zip
@@ -42,6 +18,20 @@ const hasImageInsideZip = (zipPath: string): boolean => {
     .some(
       (entry) => !entry.isDirectory && IMAGE_EXTENSIONS.test(entry.entryName),
     );
+};
+
+const hasChapterFolderWithImageInsideZip = (zipPath: string): boolean => {
+  const zip = new AdmZip(zipPath);
+
+  return zip.getEntries().some((entry) => {
+    if (entry.isDirectory) return false;
+    if (!IMAGE_EXTENSIONS.test(entry.entryName)) return false;
+
+    const normalized = entry.entryName.replace(/\\/g, "/").replace(/^\/+/, "");
+    const segments = normalized.split("/").filter(Boolean);
+
+    return segments.length >= 2;
+  });
 };
 
 const pathExt = (filename: string): string => {
@@ -57,16 +47,35 @@ export const uploadManga = (
 ): void => {
   const schema = Joi.object({
     title: Joi.string().trim().required().messages({
-      "string.empty": "Thiếu tên truyện (title)",
+      "string.empty": "Vui lòng nhập tên truyện",
     }),
-    author: Joi.string().trim().min(1).required().messages({
-      "any.required": "Thiếu tác giả (author)",
-      "string.empty": "Thiếu tác giả (author)",
+    author_name: Joi.string().trim().min(1).required().messages({
+      "any.required": "Thiếu tác giả (author_name)",
+      "string.empty": "Thiếu tác giả (author_name)",
       "string.min": "Tác giả không được để trống",
     }),
-    genres: Joi.any().required().messages({
-      "any.required": "Thiếu thể loại (genres)",
-    }),
+    genres: Joi.string()
+      .required()
+      .custom((value, helpers) => {
+        try {
+          const parsed = JSON.parse(value);
+          if (
+            !Array.isArray(parsed) ||
+            parsed.length === 0 ||
+            !parsed.every((x) => Number.isInteger(x) && x > 0)
+          ) {
+            return helpers.error("any.invalid");
+          }
+          return value;
+        } catch {
+          return helpers.error("any.invalid");
+        }
+      })
+      .messages({
+        "any.required": "Thiếu thể loại (genres)",
+        "string.empty": "Thiếu thể loại (genres)",
+        "any.invalid": "Thể loại (genres) không hợp lệ",
+      }),
   });
 
   const { error } = schema.validate(req.body, { allowUnknown: true });
@@ -82,8 +91,7 @@ export const uploadManga = (
   const files = (req.files || {}) as MulterFiles;
   const coverImage = files.cover_image?.[0];
   const chapterZip = files.chapter_zip?.[0];
-
-  const genres = parseGenres(req.body.genres);
+  console.log(chapterZip);
 
   if (!coverImage) {
     res.status(400).json({
@@ -98,7 +106,7 @@ export const uploadManga = (
     res.status(400).json({
       code: "error",
       success: false,
-      message: "Thiếu folder zip chapter (chapter_zip)",
+      message: "Thiếu file zip chapter (chapter_zip)",
     });
     return;
   }
@@ -107,16 +115,7 @@ export const uploadManga = (
     res.status(400).json({
       code: "error",
       success: false,
-      message: "File chapter phải là định dạng .zip",
-    });
-    return;
-  }
-
-  if (genres.length === 0) {
-    res.status(400).json({
-      code: "error",
-      success: false,
-      message: "Thể loại (genres) không hợp lệ",
+      message: "File chapter phải là file zip",
     });
     return;
   }
@@ -136,6 +135,16 @@ export const uploadManga = (
         code: "error",
         success: false,
         message: "File zip không chứa ảnh chapter hợp lệ",
+      });
+      return;
+    }
+
+    if (!hasChapterFolderWithImageInsideZip(chapterZip.path)) {
+      res.status(400).json({
+        code: "error",
+        success: false,
+        message:
+          "File zip phải có cấu trúc folder chapter (vd: Chapter_001/001.jpg)",
       });
       return;
     }

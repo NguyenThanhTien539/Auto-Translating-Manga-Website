@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useAuth } from "@/app/hooks/useAuth";
+import { toVietnameseMangaStatus } from "@/utils/manga-status";
 
 import { decodeHtml } from "@/utils/utils";
 
@@ -469,7 +470,7 @@ export default function ReadPage() {
                   {/* Status & Rank */}
                   <div className="flex items-center gap-4">
                     <span className="bg-blue-500/30 hover:bg-blue-500/40 text-blue-300 px-4 py-2 rounded-lg text-sm font-semibold border border-blue-500/50 transition-colors">
-                      {mangaDetail?.manga.status}
+                      {toVietnameseMangaStatus(mangaDetail?.manga.status)}
                     </span>
                   </div>
                 </div>

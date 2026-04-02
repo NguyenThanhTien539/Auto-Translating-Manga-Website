@@ -1,8 +1,9 @@
 import path from "path";
 import fs from "fs/promises";
 import { Worker } from "bullmq";
-import AdmZip from "adm-zip";
+import AdmZip, { IZipEntry } from "adm-zip";
 import cloudinary from "cloudinary";
+import streamifier from "streamifier";
 import { MANGA_UPLOAD_QUEUE_NAME } from "../config/queue.variable.config";
 import { bullMqConnection } from "../config/bullmq.config";
 import type { MangaUploadJobData } from "../types/manga.queue";
@@ -24,7 +25,11 @@ const TMP_EXTRACTED_DIR = path.join(
   "extracted",
 );
 
-const IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp"]);
+const IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif"]);
+const NATURAL_COLLATOR = new Intl.Collator("en", {
+  numeric: true,
+  sensitivity: "base",
+});
 
 const ensureDir = async (dirPath: string): Promise<void> => {
   await fs.mkdir(dirPath, { recursive: true });
@@ -33,7 +38,97 @@ const ensureDir = async (dirPath: string): Promise<void> => {
 const safeFilename = (name: string): string =>
   name.replace(/[^a-zA-Z0-9._-]/g, "_");
 
-const parseZipEntries = async (
+const normalizeEntryName = (entryName: string): string => {
+  return entryName.replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
+};
+
+const isValidImageEntry = (entry: IZipEntry): boolean => {
+  if (entry.isDirectory) return false;
+
+  const normalized = normalizeEntryName(entry.entryName);
+  if (!normalized) return false;
+  if (normalized.startsWith("__MACOSX/") || normalized.endsWith(".DS_Store")) {
+    return false;
+  }
+  if (normalized.includes("..")) return false;
+
+  const ext = path.extname(normalized).toLowerCase();
+  return IMAGE_EXTENSIONS.has(ext);
+};
+
+const loadImageEntriesFromZip = (zipPath: string): IZipEntry[] => {
+  let zip: AdmZip;
+  try {
+    zip = new AdmZip(zipPath);
+  } catch {
+    throw new Error("ZIP is corrupted or cannot be read");
+  }
+
+  const imageEntries = zip.getEntries().filter(isValidImageEntry);
+
+  if (imageEntries.length === 0) {
+    throw new Error("ZIP does not contain any valid image");
+  }
+
+  imageEntries.sort((a, b) =>
+    NATURAL_COLLATOR.compare(a.entryName, b.entryName),
+  );
+  return imageEntries;
+};
+
+const groupEntriesByChapterFolder = (
+  imageEntries: IZipEntry[],
+): Map<string, IZipEntry[]> => {
+  const chapters = new Map<string, IZipEntry[]>();
+
+  for (const entry of imageEntries) {
+    const normalized = normalizeEntryName(entry.entryName);
+    const parts = normalized.split("/").filter(Boolean);
+
+    // Expected shape: <root?>/Chapter_xxx/<image>
+    if (parts.length < 2) continue;
+
+    const chapterFolder = parts[parts.length - 2];
+    if (!chapterFolder) continue;
+
+    if (!chapters.has(chapterFolder)) {
+      chapters.set(chapterFolder, []);
+    }
+
+    chapters.get(chapterFolder)!.push(entry);
+  }
+
+  return chapters;
+};
+
+const uploadImageBuffer = async (
+  buffer: Buffer,
+  folder: string,
+): Promise<{ secure_url: string; public_id: string }> => {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinaryV2.uploader.upload_stream(
+      {
+        folder,
+        resource_type: "image",
+      },
+      (error, result) => {
+        if (error || !result) {
+          reject(error || new Error("Upload failed"));
+          return;
+        }
+
+        resolve({
+          secure_url: result.secure_url,
+          public_id: result.public_id,
+        });
+      },
+    );
+
+    streamifier.createReadStream(buffer).pipe(uploadStream);
+  });
+};
+
+const parseZipEntriesForSingleChapter = async (
   zipPath: string,
   jobFolder: string,
 ): Promise<
@@ -42,40 +137,7 @@ const parseZipEntries = async (
     extractedPath: string;
   }>
 > => {
-  let zip: AdmZip;
-  try {
-    zip = new AdmZip(zipPath);
-  } catch {
-    throw new Error("ZIP bị lỗi hoặc không thể đọc");
-  }
-
-  const entries = zip.getEntries();
-  const imageEntries = entries.filter((entry) => {
-    if (entry.isDirectory) return false;
-
-    const normalized = entry.entryName.replace(/\\/g, "/");
-    if (
-      normalized.startsWith("__MACOSX/") ||
-      normalized.endsWith(".DS_Store")
-    ) {
-      return false;
-    }
-
-    if (normalized.includes("..")) return false;
-
-    const ext = path.extname(normalized).toLowerCase();
-    return IMAGE_EXTENSIONS.has(ext);
-  });
-
-  if (imageEntries.length === 0) {
-    throw new Error("ZIP không có ảnh hợp lệ");
-  }
-
-  const collator = new Intl.Collator("en", {
-    numeric: true,
-    sensitivity: "base",
-  });
-  imageEntries.sort((a, b) => collator.compare(a.entryName, b.entryName));
+  const imageEntries = loadImageEntriesFromZip(zipPath);
 
   await ensureDir(jobFolder);
 
@@ -108,24 +170,35 @@ const cleanupPath = async (targetPath: string): Promise<void> => {
 };
 
 const setFailedState = async (data: MangaUploadJobData): Promise<void> => {
-  await MangaModel.updateChapterWorkflowState(data.chapterId, {
-    status: "processing_failed",
-  });
+  if (data.mode === "single_chapter_upload" && data.chapterId) {
+    await MangaModel.updateChapterWorkflowState(data.chapterId, {
+      status: "processing_failed",
+    });
+  }
 
-  if (data.isFirstChapter) {
+  if (data.mode === "initial_manga_upload") {
     await MangaModel.updateMangaWorkflowState(data.mangaId, {
       status: "processing_failed",
     });
   }
 };
 
-const processJob = async (data: MangaUploadJobData): Promise<void> => {
+const processSingleChapterJob = async (
+  data: MangaUploadJobData,
+): Promise<void> => {
+  if (!data.chapterId) {
+    throw new Error("Missing chapterId for single chapter upload");
+  }
+
   const jobId = `manga_${data.mangaId}_chapter_${data.chapterId}_${Date.now()}`;
-  const extractDir = path.join(TMP_EXTRACTED_DIR, jobId);
+  const extractDir = path.join(TMP_EXTRACTED_DIR, safeFilename(jobId));
   const uploadedPublicIds: string[] = [];
 
   try {
-    const extractedFiles = await parseZipEntries(data.zipPath, extractDir);
+    const extractedFiles = await parseZipEntriesForSingleChapter(
+      data.zipPath,
+      extractDir,
+    );
 
     const pageRows: Array<{
       chapter_id: number;
@@ -158,15 +231,10 @@ const processJob = async (data: MangaUploadJobData): Promise<void> => {
 
     await MangaModel.updateChapterWorkflowState(data.chapterId, {
       status: "pending_review",
+      processing_error: null,
+      review_note: null,
     });
-
-    if (data.isFirstChapter) {
-      await MangaModel.updateMangaWorkflowState(data.mangaId, {
-        status: "pending_review",
-      });
-    }
-  } catch (error: any) {
-    const message = error?.message || "Xử lý ZIP thất bại";
+  } catch (error) {
     await setFailedState(data);
 
     for (const publicId of uploadedPublicIds) {
@@ -180,6 +248,123 @@ const processJob = async (data: MangaUploadJobData): Promise<void> => {
     throw error;
   } finally {
     await cleanupPath(extractDir);
+  }
+};
+
+const processInitialMangaUploadJob = async (
+  data: MangaUploadJobData,
+): Promise<void> => {
+  const uploadedPublicIds: string[] = [];
+  const createdChapterIds: number[] = [];
+
+  try {
+    const imageEntries = loadImageEntriesFromZip(data.zipPath);
+    const chaptersMap = groupEntriesByChapterFolder(imageEntries);
+
+    if (chaptersMap.size === 0) {
+      throw new Error(
+        "ZIP must include chapter folders, e.g. Chapter_001/001.jpg",
+      );
+    }
+
+    const chapterFolders = Array.from(chaptersMap.keys()).sort((a, b) =>
+      NATURAL_COLLATOR.compare(a, b),
+    );
+
+    for (let index = 0; index < chapterFolders.length; index++) {
+      const folderName = chapterFolders[index];
+      const entries = chaptersMap.get(folderName) || [];
+      if (entries.length === 0) continue;
+
+      const numberMatch = folderName.match(/(\d+(\.\d+)?)/);
+      const chapterNumber = numberMatch ? Number(numberMatch[1]) : index + 1;
+
+      const chapter = await MangaModel.createChapter({
+        manga_id: data.mangaId,
+        uploader_id: data.uploaderId,
+        chapter_number: chapterNumber,
+        title: folderName,
+        status: "processing",
+      });
+
+      createdChapterIds.push(chapter.id);
+
+      const sortedEntries = [...entries].sort((a, b) =>
+        NATURAL_COLLATOR.compare(a.entryName, b.entryName),
+      );
+
+      const pageRows: Array<{
+        chapter_id: number;
+        page_number: number;
+        image_url: string;
+        language: string;
+      }> = [];
+
+      for (let i = 0; i < sortedEntries.length; i++) {
+        const entry = sortedEntries[i];
+        const uploadResult = await uploadImageBuffer(
+          entry.getData(),
+          `manga/${data.mangaId}/chapter_${chapter.id}`,
+        );
+
+        uploadedPublicIds.push(uploadResult.public_id);
+
+        pageRows.push({
+          chapter_id: chapter.id,
+          page_number: i + 1,
+          image_url: uploadResult.secure_url,
+          language: data.language,
+        });
+      }
+
+      await MangaModel.createPages(pageRows);
+      await MangaModel.updateChapterWorkflowState(chapter.id, {
+        status: "pending_review",
+        processing_error: null,
+        review_note: null,
+      });
+    }
+
+    await MangaModel.updateMangaWorkflowState(data.mangaId, {
+      status: "pending_review",
+      processing_error: null,
+      review_note: null,
+    });
+  } catch (error: any) {
+    await setFailedState(data);
+
+    for (const chapterId of createdChapterIds) {
+      try {
+        await MangaModel.updateChapterWorkflowState(chapterId, {
+          status: "processing_failed",
+          processing_error: error?.message || "ZIP processing failed",
+        });
+      } catch {
+        // best effort cleanup
+      }
+    }
+
+    for (const publicId of uploadedPublicIds) {
+      try {
+        await cloudinaryV2.uploader.destroy(publicId);
+      } catch {
+        // best effort cleanup
+      }
+    }
+
+    throw error;
+  }
+};
+
+const processJob = async (data: MangaUploadJobData): Promise<void> => {
+  try {
+    if (data.mode === "single_chapter_upload") {
+      await processSingleChapterJob(data);
+      return;
+    }
+
+    await processInitialMangaUploadJob(data);
+  } finally {
     await cleanupPath(data.zipPath);
   }
 };
@@ -191,7 +376,7 @@ const mangaUploadWorker = new Worker<MangaUploadJobData>(
   },
   {
     connection: bullMqConnection,
-    concurrency: 2,
+    concurrency: 5,
   },
 );
 

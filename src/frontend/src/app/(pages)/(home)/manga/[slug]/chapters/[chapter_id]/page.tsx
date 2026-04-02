@@ -143,7 +143,13 @@ export default function ChapterReadPage() {
               window.location.href = fallbackMangaPath;
             }, 3000);
           } else {
-            toast.error(error.message || "Không thể tải chapter");
+            const chapterStatusText =
+              error.chapter_status != null
+                ? ` (status: ${error.chapter_status})`
+                : "";
+            toast.error(
+              `${error.message || "Khong the tai chapter"}${chapterStatusText}`,
+            );
             setTimeout(() => {
               window.location.href = fallbackMangaPath;
             }, 2000);
@@ -590,3 +596,4 @@ export default function ChapterReadPage() {
     </>
   );
 }
+

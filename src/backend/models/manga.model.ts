@@ -76,13 +76,8 @@ export interface PublicMangaListRow {
   updated_at: Date | string;
 }
 
-const PUBLIC_MANGA_STATUSES = [
-  "published",
-  "Published",
-  "OnGoing",
-  "Completed",
-];
-const PUBLIC_CHAPTER_STATUSES = ["published", "Published"];
+const PUBLIC_MANGA_STATUSES = ["published"];
+const PUBLIC_CHAPTER_STATUSES = ["published"];
 
 export const createManga = async (data: MangaData): Promise<{ id: number }> => {
   const [id] = await db("mangas").insert(data).returning("manga_id");

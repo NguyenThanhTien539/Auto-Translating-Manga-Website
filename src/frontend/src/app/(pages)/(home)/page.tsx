@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import MangaCard from "@/app/components/client/MangaCard";
 import { useRouter } from "next/navigation";
 import { decodeHtml } from "@/utils/utils";
+import { isPublishedMangaStatus } from "@/utils/manga-status";
 type Manga = {
   manga_id: string;
   title: string;
@@ -65,7 +66,7 @@ export default function Home() {
 
   // get manga with status not pending
   const slider_mangas = mangas
-    .filter((manga) => manga.status !== "Pending")
+    .filter((manga) => isPublishedMangaStatus(manga.status))
     .slice(0, 5);
 
   // Auto slide 3s

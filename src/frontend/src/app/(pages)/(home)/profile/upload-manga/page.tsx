@@ -189,7 +189,7 @@ export default function UploadMangaPage() {
     const form = event.target as HTMLFormElement;
     const formData = new FormData();
     formData.append("title", form.mangaTitle.value);
-    formData.append("author", form.mangaAuthor.value);
+    formData.append("author_name", form.mangaAuthor.value);
     formData.append("language", form.mangaLanguage.value);
     formData.append("description", mangaDescription);
     formData.append("cover_image", coverFile[0].file);
@@ -214,17 +214,14 @@ export default function UploadMangaPage() {
       })
       .then((data) => {
         if (data.code === "success") {
-          toast.success(data.message || "Đăng truyện thành công!");
+          toast.success(data.message);
           form.reset();
           setCoverFile([]);
           setContentFile([]);
           setSelectedGenres([]);
           editorRef.current?.setContent("");
         } else {
-          toast.error(
-            data.message ||
-              "Đã có lỗi xảy ra khi đăng truyện. Vui lòng thử lại.",
-          );
+          toast.error(data.message);
         }
       })
       .catch((error) => {
@@ -659,7 +656,8 @@ export default function UploadMangaPage() {
                       <p className="font-medium">Lưu ý:</p>
                       <ul className="list-disc list-inside text-xs mt-1 space-y-1">
                         <li>
-                          File nên chứa ảnh đánh số thứ tự (01.jpg, 02.jpg...)
+                          ZIP phải theo folder chapter (ví dụ:
+                          Chapter_001/001.jpg, Chapter_002/001.jpg)
                         </li>
                         <li>Định dạng: JPG, PNG, WEBP</li>
                       </ul>
@@ -781,7 +779,8 @@ export default function UploadMangaPage() {
                       <p className="font-medium">Lưu ý:</p>
                       <ul className="list-disc list-inside text-xs mt-1 space-y-1">
                         <li>
-                          File nên chứa ảnh đánh số thứ tự (01.jpg, 02.jpg...)
+                          Mỗi file ZIP chỉ nên chứa ảnh của 1 chapter
+                          (01.jpg, 02.jpg...)
                         </li>
                         <li>Định dạng: JPG, PNG, WEBP</li>
                       </ul>
