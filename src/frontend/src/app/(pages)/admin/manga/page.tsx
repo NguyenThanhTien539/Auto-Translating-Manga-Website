@@ -12,6 +12,8 @@ import {
   normalizeMangaStatus,
   toVietnameseMangaStatus,
 } from "@/utils/manga-status";
+import { getSocketClient } from "@/socket/socket.client";
+import { AdminSocketPayload } from "@/socket/socket.types";
 
 type MangaItem = {
   manga_id: number;
@@ -63,6 +65,56 @@ export default function ManageMangaPage() {
 
   useEffect(() => {
     fetchMangas();
+  }, []);
+
+  useEffect(() => {
+    const socket = getSocketClient();
+    const chapterIdText = (payload: AdminSocketPayload): string =>
+      "chapterId" in payload ? String(payload.chapterId) : "-";
+
+    const mangaIdText = (payload: AdminSocketPayload): string =>
+      "mangaId" in payload ? String(payload.mangaId) : "-";
+
+    const errorText = (payload: AdminSocketPayload): string =>
+      "error" in payload && payload.error ? String(payload.error) : "Unknown error";
+
+    const onNewPendingChapter = (payload: AdminSocketPayload) => {
+      toast.info(`Có chapter mới chờ duyệt (#${chapterIdText(payload)})`);
+      fetchMangas();
+    };
+
+    const onNewPendingManga = (payload: AdminSocketPayload) => {
+      toast.info(`Có manga mới chờ duyệt (#${mangaIdText(payload)})`);
+      fetchMangas();
+    };
+
+    const onChapterFailed = (payload: AdminSocketPayload) => {
+      toast.error(
+        `Chapter xử lý thất bại (#${chapterIdText(payload)}): ${errorText(
+          payload,
+        )}`,
+      );
+      fetchMangas();
+    };
+
+    const onMangaFailed = (payload: AdminSocketPayload) => {
+      toast.error(
+        `Manga xử lý thất bại (#${mangaIdText(payload)}): ${errorText(payload)}`,
+      );
+      fetchMangas();
+    };
+
+    socket.on("admin:new-pending-chapter", onNewPendingChapter);
+    socket.on("admin:new-pending-manga", onNewPendingManga);
+    socket.on("admin:chapter-processing-failed", onChapterFailed);
+    socket.on("admin:manga-processing-failed", onMangaFailed);
+
+    return () => {
+      socket.off("admin:new-pending-chapter", onNewPendingChapter);
+      socket.off("admin:new-pending-manga", onNewPendingManga);
+      socket.off("admin:chapter-processing-failed", onChapterFailed);
+      socket.off("admin:manga-processing-failed", onMangaFailed);
+    };
   }, []);
 
   // ========= HELPERS =========

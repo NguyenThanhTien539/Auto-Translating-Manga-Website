@@ -7,6 +7,12 @@ import { BookOpen, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import MangaCard from "@/app/components/client/MangaCard";
 import Image from "next/image";
+import { toast } from "sonner";
+import { getSocketClient } from "@/socket/socket.client";
+import {
+  ChapterSocketPayload,
+  MangaSocketPayload,
+} from "@/socket/socket.types";
 
 export default function ManagePage() {
   const [myMangas, setMyMangas] = useState<any[]>([]);
@@ -15,28 +21,118 @@ export default function ManagePage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 3;
 
-  useEffect(() => {
-    const fetchMangas = async () => {
-      try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/my-mangas`,
-          {
-            credentials: "include",
-          },
-        );
-        const data = await res.json();
-        if (data.code === "success") {
-          setMyMangas(data.data);
-        }
-      } catch (err) {
-        console.error("Lỗi fetch manga:", err);
-      } finally {
-        setIsLoading(false);
+  const fetchMangas = async () => {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/my-mangas`,
+        {
+          credentials: "include",
+        },
+      );
+      const data = await res.json();
+      if (data.code === "success") {
+        setMyMangas(data.data);
       }
-    };
+    } catch (err) {
+      console.error("Lỗi fetch manga:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     if (infoUser) fetchMangas();
   }, [infoUser]);
+
+  useEffect(() => {
+    const socket = getSocketClient();
+
+    const refreshByManga = async (_payload: MangaSocketPayload) => {
+      await fetchMangas();
+    };
+
+    const refreshByChapter = async (_payload: ChapterSocketPayload) => {
+      await fetchMangas();
+    };
+
+    const onMangaPublished = (payload: MangaSocketPayload) => {
+      toast.success(`Truyện #${payload.mangaId} đã được xuất bản`);
+      refreshByManga(payload);
+    };
+
+    const onMangaRejected = (payload: MangaSocketPayload) => {
+      toast.error(
+        payload.review_note
+          ? `Truyện #${payload.mangaId} bị từ chối: ${payload.review_note}`
+          : `Truyện #${payload.mangaId} bị từ chối`,
+      );
+      refreshByManga(payload);
+    };
+
+    const onMangaPending = (payload: MangaSocketPayload) => {
+      toast.info(`Truyện #${payload.mangaId} đang chờ admin duyệt`);
+      refreshByManga(payload);
+    };
+
+    const onMangaFailed = (payload: MangaSocketPayload) => {
+      toast.error(
+        payload.error
+          ? `Truyện #${payload.mangaId} xử lý lỗi: ${payload.error}`
+          : `Truyện #${payload.mangaId} xử lý thất bại`,
+      );
+      refreshByManga(payload);
+    };
+
+    const onChapterPublished = (payload: ChapterSocketPayload) => {
+      toast.success(`Chương #${payload.chapterId} đã được xuất bản`);
+      refreshByChapter(payload);
+    };
+
+    const onChapterRejected = (payload: ChapterSocketPayload) => {
+      toast.error(
+        payload.review_note
+          ? `Chương #${payload.chapterId} bị từ chối: ${payload.review_note}`
+          : `Chương #${payload.chapterId} bị từ chối`,
+      );
+      refreshByChapter(payload);
+    };
+
+    const onChapterPending = (payload: ChapterSocketPayload) => {
+      toast.info(`Chương #${payload.chapterId} đang chờ admin duyệt`);
+      refreshByChapter(payload);
+    };
+
+    const onChapterFailed = (payload: ChapterSocketPayload) => {
+      toast.error(
+        payload.error
+          ? `Chương #${payload.chapterId} xử lý lỗi: ${payload.error}`
+          : `Chương #${payload.chapterId} xử lý thất bại`,
+      );
+      refreshByChapter(payload);
+    };
+
+    socket.on("manga:published", onMangaPublished);
+    socket.on("manga:rejected", onMangaRejected);
+    socket.on("manga:pending_review", onMangaPending);
+    socket.on("manga:failed", onMangaFailed);
+
+    socket.on("chapter:published", onChapterPublished);
+    socket.on("chapter:rejected", onChapterRejected);
+    socket.on("chapter:pending_review", onChapterPending);
+    socket.on("chapter:failed", onChapterFailed);
+
+    return () => {
+      socket.off("manga:published", onMangaPublished);
+      socket.off("manga:rejected", onMangaRejected);
+      socket.off("manga:pending_review", onMangaPending);
+      socket.off("manga:failed", onMangaFailed);
+
+      socket.off("chapter:published", onChapterPublished);
+      socket.off("chapter:rejected", onChapterRejected);
+      socket.off("chapter:pending_review", onChapterPending);
+      socket.off("chapter:failed", onChapterFailed);
+    };
+  }, []);
 
   // Bảo vệ app khỏi lỗi null property
   if (!infoUser || isLoading) {

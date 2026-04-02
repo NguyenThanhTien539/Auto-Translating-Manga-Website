@@ -1,4 +1,5 @@
 import express from "express";
+import http from "http";
 import dotenv from "dotenv";
 dotenv.config();
 import cookieParser from "cookie-parser";
@@ -7,6 +8,10 @@ import clientRoutes from "./routes/client/index.route";
 import adminRoutes from "./routes/admin/index.route";
 import * as variableConfig from "./config/variable.config";
 import { connectRedis } from "./config/redis.config";
+import {
+  initSocketServer,
+  startSocketRedisSubscriber,
+} from "./socket/socket.server";
 
 declare global {
   var pathAdmin: string;
@@ -14,10 +19,9 @@ declare global {
 
 const app = express();
 const port = 5000;
+const httpServer = http.createServer(app);
 
 global.pathAdmin = variableConfig.pathAdmin;
-
-// connectRedis();
 
 app.use(
   cors({
@@ -34,8 +38,10 @@ app.use(`/${pathAdmin}`, adminRoutes);
 
 (async () => {
   await connectRedis();
+  initSocketServer(httpServer);
+  await startSocketRedisSubscriber();
 
-  app.listen(port, () => {
+  httpServer.listen(port, () => {
     console.log(`Server running on port ${port}`);
   });
 })();

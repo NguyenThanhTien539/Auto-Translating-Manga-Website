@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { slugify } from "@/utils/make_slug";
 import { toast } from "sonner";
@@ -14,6 +14,11 @@ import "filepond/dist/filepond.min.css";
 import FilePondPluginFileValidateType from "filepond-plugin-file-validate-type";
 import FilePondPluginImagePreview from "filepond-plugin-image-preview";
 import "filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css";
+import { getSocketClient } from "@/socket/socket.client";
+import {
+  ChapterSocketPayload,
+  MangaSocketPayload,
+} from "@/socket/socket.types";
 registerPlugin(FilePondPluginFileValidateType, FilePondPluginImagePreview);
 
 const TinyMCEEditor = dynamic(() => import("@/app/components/TinyMCEEditor"), {
@@ -57,6 +62,29 @@ export default function UploadMangaPage() {
 
   const [isUploadingManga, setIsUploadingManga] = useState(false);
   const [isUploadingChapter, setIsUploadingChapter] = useState(false);
+  const [liveChapterProgress, setLiveChapterProgress] = useState<
+    Record<
+      number,
+      {
+        mangaId: number;
+        progress: number;
+        status: string;
+        message: string;
+        error?: string;
+      }
+    >
+  >({});
+
+  const [liveMangaStatus, setLiveMangaStatus] = useState<
+    Record<
+      number,
+      {
+        status: string;
+        message: string;
+        error?: string;
+      }
+    >
+  >({});
 
   const readApiResponse = async (res: Response): Promise<any> => {
     const contentType = res.headers.get("content-type") || "";
@@ -215,6 +243,16 @@ export default function UploadMangaPage() {
       .then((data) => {
         if (data.code === "success") {
           toast.success(data.message);
+          if (data?.data?.mangaId) {
+            const mangaId = Number(data.data.mangaId);
+            setLiveMangaStatus((prev) => ({
+              ...prev,
+              [mangaId]: {
+                status: "processing",
+                message: "Đã gửi lên server, đang chờ worker xử lý",
+              },
+            }));
+          }
           form.reset();
           setCoverFile([]);
           setContentFile([]);
@@ -300,6 +338,19 @@ export default function UploadMangaPage() {
       .then((data) => {
         if (data.code === "success") {
           toast.success(data.message);
+          if (data?.data?.chapterId && data?.data?.mangaId) {
+            const chapterId = Number(data.data.chapterId);
+            const mangaId = Number(data.data.mangaId);
+            setLiveChapterProgress((prev) => ({
+              ...prev,
+              [chapterId]: {
+                mangaId,
+                progress: 0,
+                status: "processing",
+                message: "Đã gửi lên server, đang chờ worker xử lý",
+              },
+            }));
+          }
           setContentFileChapter([]);
         } else {
           toast.error(
@@ -317,24 +368,155 @@ export default function UploadMangaPage() {
       });
   };
 
-  useEffect(() => {
-    const fetchMyMangas = async () => {
-      try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/my-mangas`,
-          { method: "GET", credentials: "include" },
-        );
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        const data = await res.json();
-        if (data.code === "success") setMyMangas(data.data);
-      } catch (error) {
-        console.error("Error fetching my mangas:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchMyMangas();
+  const fetchMyMangas = useCallback(async () => {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/my-mangas`,
+        { method: "GET", credentials: "include" },
+      );
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      const data = await res.json();
+      if (data.code === "success") setMyMangas(data.data);
+    } catch (error) {
+      console.error("Error fetching my mangas:", error);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchMyMangas();
+  }, [fetchMyMangas]);
+
+  useEffect(() => {
+    const socket = getSocketClient();
+
+    const upsertChapterPayload = (payload: ChapterSocketPayload) => {
+      setLiveChapterProgress((prev) => ({
+        ...prev,
+        [payload.chapterId]: {
+          mangaId: payload.mangaId,
+          progress: payload.progress ?? prev[payload.chapterId]?.progress ?? 0,
+          status: payload.status,
+          message: payload.message,
+          error: payload.error,
+        },
+      }));
+    };
+
+    const upsertMangaPayload = (payload: MangaSocketPayload) => {
+      setLiveMangaStatus((prev) => ({
+        ...prev,
+        [payload.mangaId]: {
+          status: payload.status,
+          message: payload.message,
+          error: payload.error,
+        },
+      }));
+    };
+
+    const handleChapterProcessing = (payload: ChapterSocketPayload) => {
+      upsertChapterPayload({ ...payload, progress: 0 });
+      toast.info(`Chương #${payload.chapterId} đang được xử lý`);
+    };
+
+    const handleChapterProgress = (payload: ChapterSocketPayload) => {
+      upsertChapterPayload(payload);
+    };
+
+    const handleChapterPending = (payload: ChapterSocketPayload) => {
+      upsertChapterPayload({ ...payload, progress: 100 });
+      toast.success(`Chương #${payload.chapterId} đã xử lý xong, chờ duyệt`);
+      fetchMyMangas();
+    };
+
+    const handleChapterFailed = (payload: ChapterSocketPayload) => {
+      upsertChapterPayload(payload);
+      toast.error(
+        payload.error
+          ? `Chương #${payload.chapterId} lỗi: ${payload.error}`
+          : `Chương #${payload.chapterId} xử lý thất bại`,
+      );
+      fetchMyMangas();
+    };
+
+    const handleChapterPublished = (payload: ChapterSocketPayload) => {
+      toast.success(`Chương #${payload.chapterId} đã được xuất bản`);
+      fetchMyMangas();
+    };
+
+    const handleChapterRejected = (payload: ChapterSocketPayload) => {
+      toast.error(
+        payload.review_note
+          ? `Chương #${payload.chapterId} bị từ chối: ${payload.review_note}`
+          : `Chương #${payload.chapterId} bị từ chối`,
+      );
+      fetchMyMangas();
+    };
+
+    const handleMangaProcessing = (payload: MangaSocketPayload) => {
+      upsertMangaPayload(payload);
+      toast.info(`Truyện #${payload.mangaId} đang được xử lý`);
+    };
+
+    const handleMangaPending = (payload: MangaSocketPayload) => {
+      upsertMangaPayload(payload);
+      toast.success(`Truyện #${payload.mangaId} đã xử lý xong, chờ duyệt`);
+      fetchMyMangas();
+    };
+
+    const handleMangaFailed = (payload: MangaSocketPayload) => {
+      upsertMangaPayload(payload);
+      toast.error(
+        payload.error
+          ? `Truyện #${payload.mangaId} lỗi: ${payload.error}`
+          : `Truyện #${payload.mangaId} xử lý thất bại`,
+      );
+      fetchMyMangas();
+    };
+
+    const handleMangaPublished = (payload: MangaSocketPayload) => {
+      toast.success(`Truyện #${payload.mangaId} đã được xuất bản`);
+      fetchMyMangas();
+    };
+
+    const handleMangaRejected = (payload: MangaSocketPayload) => {
+      toast.error(
+        payload.review_note
+          ? `Truyện #${payload.mangaId} bị từ chối: ${payload.review_note}`
+          : `Truyện #${payload.mangaId} bị từ chối`,
+      );
+      fetchMyMangas();
+    };
+
+    socket.on("chapter:processing", handleChapterProcessing);
+    socket.on("chapter:progress", handleChapterProgress);
+    socket.on("chapter:pending_review", handleChapterPending);
+    socket.on("chapter:failed", handleChapterFailed);
+    socket.on("chapter:published", handleChapterPublished);
+    socket.on("chapter:rejected", handleChapterRejected);
+
+    socket.on("manga:processing", handleMangaProcessing);
+    socket.on("manga:pending_review", handleMangaPending);
+    socket.on("manga:failed", handleMangaFailed);
+    socket.on("manga:published", handleMangaPublished);
+    socket.on("manga:rejected", handleMangaRejected);
+
+    return () => {
+      socket.off("chapter:processing", handleChapterProcessing);
+      socket.off("chapter:progress", handleChapterProgress);
+      socket.off("chapter:pending_review", handleChapterPending);
+      socket.off("chapter:failed", handleChapterFailed);
+      socket.off("chapter:published", handleChapterPublished);
+      socket.off("chapter:rejected", handleChapterRejected);
+
+      socket.off("manga:processing", handleMangaProcessing);
+      socket.off("manga:pending_review", handleMangaPending);
+      socket.off("manga:failed", handleMangaFailed);
+      socket.off("manga:published", handleMangaPublished);
+      socket.off("manga:rejected", handleMangaRejected);
+    };
+  }, [fetchMyMangas]);
 
   useEffect(() => {
     if (activeTab !== "new-manga" || isLoading) return;
@@ -396,6 +578,37 @@ export default function UploadMangaPage() {
       ) : (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 py-8 px-4">
           <div className="max-w-6xl mx-auto">
+            {(Object.keys(liveMangaStatus).length > 0 ||
+              Object.keys(liveChapterProgress).length > 0) && (
+              <div className="mb-4 bg-white rounded-xl border border-blue-100 p-4 shadow-sm">
+                <h2 className="text-sm font-semibold text-gray-800 mb-2">
+                  Cập nhật realtime
+                </h2>
+
+                {Object.entries(liveMangaStatus).map(([mangaId, data]) => (
+                  <div
+                    key={`manga-${mangaId}`}
+                    className="text-sm text-gray-700 mb-1"
+                  >
+                    Truyện #{mangaId}: {data.message}
+                    {data.error ? ` (${data.error})` : ""}
+                  </div>
+                ))}
+
+                {Object.entries(liveChapterProgress).map(
+                  ([chapterId, data]) => (
+                    <div
+                      key={`chapter-${chapterId}`}
+                      className="text-sm text-gray-700 mb-1"
+                    >
+                      Chương #{chapterId}: {data.message} - {data.progress}%
+                      {data.error ? ` (${data.error})` : ""}
+                    </div>
+                  ),
+                )}
+              </div>
+            )}
+
             <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
               <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 p-6 text-white">
                 <div className="flex items-center justify-center gap-3">

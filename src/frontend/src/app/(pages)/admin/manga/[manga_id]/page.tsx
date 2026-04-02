@@ -11,6 +11,8 @@ import {
   normalizeMangaStatus,
   toVietnameseMangaStatus,
 } from "@/utils/manga-status";
+import { getSocketClient } from "@/socket/socket.client";
+import { AdminSocketPayload } from "@/socket/socket.types";
 
 interface Chapter {
   chapter_id: string;
@@ -241,6 +243,75 @@ export default function ReadPage() {
         }
       })
       .finally(() => setLoading(false));
+  }, [mangaId]);
+
+  useEffect(() => {
+    if (!mangaId) return;
+
+    const socket = getSocketClient();
+
+    const refreshDetail = async () => {
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_PATH_ADMIN}/mangas/${mangaId}`,
+          { credentials: "include" },
+        );
+        const data = await res.json();
+        if (data?.code === "success") {
+          setMangaDetail(data.data);
+        }
+      } catch (error) {
+        console.error("Refresh manga detail failed:", error);
+      }
+    };
+
+    const onNewPendingChapter = (payload: AdminSocketPayload) => {
+      if ("mangaId" in payload && String(payload.mangaId) === String(mangaId)) {
+        toast.info("Manga này có chapter mới chờ duyệt");
+        refreshDetail();
+      }
+    };
+
+    const onNewPendingManga = (payload: AdminSocketPayload) => {
+      if ("mangaId" in payload && String(payload.mangaId) === String(mangaId)) {
+        toast.info("Manga này vừa chuyển sang trạng thái chờ duyệt");
+        refreshDetail();
+      }
+    };
+
+    const onChapterFailed = (payload: AdminSocketPayload) => {
+      if ("mangaId" in payload && String(payload.mangaId) === String(mangaId)) {
+        toast.error(
+          `Một chapter xử lý thất bại: ${
+            "error" in payload && payload.error ? payload.error : "Unknown error"
+          }`,
+        );
+        refreshDetail();
+      }
+    };
+
+    const onMangaFailed = (payload: AdminSocketPayload) => {
+      if ("mangaId" in payload && String(payload.mangaId) === String(mangaId)) {
+        toast.error(
+          `Manga xử lý thất bại: ${
+            "error" in payload && payload.error ? payload.error : "Unknown error"
+          }`,
+        );
+        refreshDetail();
+      }
+    };
+
+    socket.on("admin:new-pending-chapter", onNewPendingChapter);
+    socket.on("admin:new-pending-manga", onNewPendingManga);
+    socket.on("admin:chapter-processing-failed", onChapterFailed);
+    socket.on("admin:manga-processing-failed", onMangaFailed);
+
+    return () => {
+      socket.off("admin:new-pending-chapter", onNewPendingChapter);
+      socket.off("admin:new-pending-manga", onNewPendingManga);
+      socket.off("admin:chapter-processing-failed", onChapterFailed);
+      socket.off("admin:manga-processing-failed", onMangaFailed);
+    };
   }, [mangaId]);
 
   if (loading) {

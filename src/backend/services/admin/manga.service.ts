@@ -3,6 +3,12 @@ import db from "../../config/database.config";
 import * as accountModel from "../../models/account.model";
 import * as mangaModel from "../../models/manga.model";
 import { mapLegacyAdminStatus } from "../client/manga-upload.service";
+import {
+  chapterStatusToUploaderEvent,
+  mangaStatusToUploaderEvent,
+} from "../../socket/socket.events";
+import { emitToUser } from "../../socket/socket.emitter";
+import { WorkflowStatus } from "../../socket/socket.types";
 
 const URL_SECRET = process.env.URL_SECRET || "your-secret-key-change-this";
 
@@ -48,7 +54,8 @@ export const updateMangaStatus = async (
   status: string,
   reviewNote?: string,
 ): Promise<void> => {
-  const normalizedStatus = mapLegacyAdminStatus(status);
+  const manga = await mangaModel.getMangaById(mangaId);
+  const normalizedStatus = mapLegacyAdminStatus(status) as WorkflowStatus;
 
   await mangaModel.updateMangaWorkflowState(mangaId, {
     status: normalizedStatus,
@@ -85,6 +92,23 @@ export const updateMangaStatus = async (
       ),
     );
   }
+
+  if (manga?.uploader_id) {
+    const uploaderEvent = mangaStatusToUploaderEvent(normalizedStatus);
+    if (uploaderEvent) {
+      emitToUser(manga.uploader_id, uploaderEvent, {
+        mangaId,
+        status: normalizedStatus,
+        message:
+          normalizedStatus === "published"
+            ? "Manga đã được xuất bản"
+            : normalizedStatus === "rejected"
+              ? "Manga đã bị từ chối"
+              : "Manga đã được cập nhật trạng thái",
+        review_note: normalizedStatus === "rejected" ? reviewNote ?? null : null,
+      });
+    }
+  }
 };
 
 export const updateChapterStatus = async (
@@ -93,7 +117,8 @@ export const updateChapterStatus = async (
   coinPrice?: number,
   reviewNote?: string,
 ): Promise<void> => {
-  const normalizedStatus = mapLegacyAdminStatus(status);
+  const chapter = await mangaModel.getChapterByChapterId(chapterId);
+  const normalizedStatus = mapLegacyAdminStatus(status) as WorkflowStatus;
   const payload: {
     status: string;
     price?: number;
@@ -118,6 +143,24 @@ export const updateChapterStatus = async (
   }
 
   await mangaModel.updateChapterWorkflowState(chapterId, payload);
+
+  if (chapter?.uploader_id) {
+    const uploaderEvent = chapterStatusToUploaderEvent(normalizedStatus);
+    if (uploaderEvent) {
+      emitToUser(chapter.uploader_id, uploaderEvent, {
+        chapterId,
+        mangaId: chapter.manga_id,
+        status: normalizedStatus,
+        message:
+          normalizedStatus === "published"
+            ? "Chapter đã được xuất bản"
+            : normalizedStatus === "rejected"
+              ? "Chapter đã bị từ chối"
+              : "Chapter đã được cập nhật trạng thái",
+        review_note: normalizedStatus === "rejected" ? reviewNote ?? null : null,
+      });
+    }
+  }
 };
 
 export const rejectManga = async (mangaId: number): Promise<void> => {

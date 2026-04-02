@@ -8,6 +8,15 @@ import { MANGA_UPLOAD_QUEUE_NAME } from "../config/queue.variable.config";
 import { bullMqConnection } from "../config/bullmq.config";
 import type { MangaUploadJobData } from "../types/manga.queue";
 import * as MangaModel from "../models/manga.model";
+import {
+  SOCKET_EVENTS,
+  chapterStatusToAdminEvent,
+  chapterStatusToUploaderEvent,
+  mangaStatusToAdminEvent,
+  mangaStatusToUploaderEvent,
+} from "../socket/socket.events";
+import { publishToAdmins, publishToUser } from "../socket/socket.emitter";
+import { SocketEventName, WorkflowStatus } from "../socket/socket.types";
 
 const cloudinaryV2 = cloudinary.v2;
 
@@ -169,16 +178,116 @@ const cleanupPath = async (targetPath: string): Promise<void> => {
   }
 };
 
-const setFailedState = async (data: MangaUploadJobData): Promise<void> => {
+const safePublishToUser = async (
+  userId: number,
+  event: SocketEventName,
+  payload: Record<string, unknown>,
+): Promise<void> => {
+  try {
+    await publishToUser(userId, event, payload);
+  } catch (error) {
+    console.error("Failed to publish user socket event:", error);
+  }
+};
+
+const safePublishToAdmins = async (
+  event: SocketEventName,
+  payload: Record<string, unknown>,
+): Promise<void> => {
+  try {
+    await publishToAdmins(event, payload);
+  } catch (error) {
+    console.error("Failed to publish admin socket event:", error);
+  }
+};
+
+const emitChapterStatus = async (params: {
+  uploaderId: number;
+  chapterId: number;
+  mangaId: number;
+  status: WorkflowStatus;
+  message: string;
+  error?: string;
+  review_note?: string | null;
+}): Promise<void> => {
+  const uploaderEvent = chapterStatusToUploaderEvent(params.status);
+  const payload = {
+    chapterId: params.chapterId,
+    mangaId: params.mangaId,
+    status: params.status,
+    message: params.message,
+    error: params.error,
+    review_note: params.review_note ?? null,
+  };
+
+  if (uploaderEvent) {
+    await safePublishToUser(params.uploaderId, uploaderEvent, payload);
+  }
+
+  const adminEvent = chapterStatusToAdminEvent(params.status);
+  if (adminEvent) {
+    await safePublishToAdmins(adminEvent, payload);
+  }
+};
+
+const emitChapterProgress = async (params: {
+  uploaderId: number;
+  chapterId: number;
+  mangaId: number;
+  progress: number;
+  message: string;
+}): Promise<void> => {
+  await safePublishToUser(params.uploaderId, SOCKET_EVENTS.CHAPTER_PROGRESS, {
+    chapterId: params.chapterId,
+    mangaId: params.mangaId,
+    status: "processing",
+    progress: params.progress,
+    message: params.message,
+  });
+};
+
+const emitMangaStatus = async (params: {
+  uploaderId: number;
+  mangaId: number;
+  status: WorkflowStatus;
+  message: string;
+  error?: string;
+  review_note?: string | null;
+}): Promise<void> => {
+  const uploaderEvent = mangaStatusToUploaderEvent(params.status);
+  const payload = {
+    mangaId: params.mangaId,
+    status: params.status,
+    message: params.message,
+    error: params.error,
+    review_note: params.review_note ?? null,
+  };
+
+  if (uploaderEvent) {
+    await safePublishToUser(params.uploaderId, uploaderEvent, payload);
+  }
+
+  const adminEvent = mangaStatusToAdminEvent(params.status);
+  if (adminEvent) {
+    await safePublishToAdmins(adminEvent, payload);
+  }
+};
+
+const setFailedState = async (
+  data: MangaUploadJobData,
+  errorMessage?: string,
+): Promise<void> => {
   if (data.mode === "single_chapter_upload" && data.chapterId) {
     await MangaModel.updateChapterWorkflowState(data.chapterId, {
       status: "processing_failed",
+      processing_error: errorMessage || "Chapter processing failed",
     });
   }
 
   if (data.mode === "initial_manga_upload") {
     await MangaModel.updateMangaWorkflowState(data.mangaId, {
       status: "processing_failed",
+      processing_error: errorMessage || "Manga processing failed",
     });
   }
 };
@@ -195,6 +304,14 @@ const processSingleChapterJob = async (
   const uploadedPublicIds: string[] = [];
 
   try {
+    await emitChapterStatus({
+      uploaderId: data.uploaderId,
+      chapterId: data.chapterId,
+      mangaId: data.mangaId,
+      status: "processing",
+      message: "Bắt đầu xử lý chapter ZIP",
+    });
+
     const extractedFiles = await parseZipEntriesForSingleChapter(
       data.zipPath,
       extractDir,
@@ -225,6 +342,15 @@ const processSingleChapterJob = async (
         image_url: uploadResult.secure_url,
         language: data.language || "en",
       });
+
+      const progress = Math.round(((i + 1) / extractedFiles.length) * 100);
+      await emitChapterProgress({
+        uploaderId: data.uploaderId,
+        chapterId: data.chapterId,
+        mangaId: data.mangaId,
+        progress,
+        message: "Uploading images to Cloudinary",
+      });
     }
 
     await MangaModel.createPages(pageRows);
@@ -234,8 +360,29 @@ const processSingleChapterJob = async (
       processing_error: null,
       review_note: null,
     });
+
+    await emitChapterStatus({
+      uploaderId: data.uploaderId,
+      chapterId: data.chapterId,
+      mangaId: data.mangaId,
+      status: "pending_review",
+      message:
+        "The chapter has been processed successfully and is waiting for admin review",
+    });
   } catch (error) {
-    await setFailedState(data);
+    const errorMessage =
+      error instanceof Error ? error.message : "Chapter processing failed";
+
+    await setFailedState(data, errorMessage);
+
+    await emitChapterStatus({
+      uploaderId: data.uploaderId,
+      chapterId: data.chapterId,
+      mangaId: data.mangaId,
+      status: "processing_failed",
+      message: "Chapter processing failed",
+      error: errorMessage,
+    });
 
     for (const publicId of uploadedPublicIds) {
       try {
@@ -258,6 +405,13 @@ const processInitialMangaUploadJob = async (
   const createdChapterIds: number[] = [];
 
   try {
+    await emitMangaStatus({
+      uploaderId: data.uploaderId,
+      mangaId: data.mangaId,
+      status: "processing",
+      message: "Bắt đầu xử lý manga và các chapter trong ZIP",
+    });
+
     const imageEntries = loadImageEntriesFromZip(data.zipPath);
     const chaptersMap = groupEntriesByChapterFolder(imageEntries);
 
@@ -288,6 +442,13 @@ const processInitialMangaUploadJob = async (
       });
 
       createdChapterIds.push(chapter.id);
+      await emitChapterStatus({
+        uploaderId: data.uploaderId,
+        chapterId: chapter.id,
+        mangaId: data.mangaId,
+        status: "processing",
+        message: "Bắt đầu xử lý chapter ZIP",
+      });
 
       const sortedEntries = [...entries].sort((a, b) =>
         NATURAL_COLLATOR.compare(a.entryName, b.entryName),
@@ -315,6 +476,15 @@ const processInitialMangaUploadJob = async (
           image_url: uploadResult.secure_url,
           language: data.language,
         });
+
+        const progress = Math.round(((i + 1) / sortedEntries.length) * 100);
+        await emitChapterProgress({
+          uploaderId: data.uploaderId,
+          chapterId: chapter.id,
+          mangaId: data.mangaId,
+          progress,
+          message: "Uploading images to Cloudinary",
+        });
       }
 
       await MangaModel.createPages(pageRows);
@@ -323,6 +493,15 @@ const processInitialMangaUploadJob = async (
         processing_error: null,
         review_note: null,
       });
+
+      await emitChapterStatus({
+        uploaderId: data.uploaderId,
+        chapterId: chapter.id,
+        mangaId: data.mangaId,
+        status: "pending_review",
+        message:
+          "The chapter has been processed successfully and is waiting for admin review",
+      });
     }
 
     await MangaModel.updateMangaWorkflowState(data.mangaId, {
@@ -330,14 +509,32 @@ const processInitialMangaUploadJob = async (
       processing_error: null,
       review_note: null,
     });
+
+    await emitMangaStatus({
+      uploaderId: data.uploaderId,
+      mangaId: data.mangaId,
+      status: "pending_review",
+      message:
+        "The manga has been processed successfully and is waiting for admin review",
+    });
   } catch (error: any) {
-    await setFailedState(data);
+    const errorMessage = error?.message || "ZIP processing failed";
+    await setFailedState(data, errorMessage);
 
     for (const chapterId of createdChapterIds) {
       try {
         await MangaModel.updateChapterWorkflowState(chapterId, {
           status: "processing_failed",
-          processing_error: error?.message || "ZIP processing failed",
+          processing_error: errorMessage,
+        });
+
+        await emitChapterStatus({
+          uploaderId: data.uploaderId,
+          chapterId,
+          mangaId: data.mangaId,
+          status: "processing_failed",
+          message: "Chapter processing failed",
+          error: errorMessage,
         });
       } catch {
         // best effort cleanup
@@ -351,6 +548,14 @@ const processInitialMangaUploadJob = async (
         // best effort cleanup
       }
     }
+
+    await emitMangaStatus({
+      uploaderId: data.uploaderId,
+      mangaId: data.mangaId,
+      status: "processing_failed",
+      message: "Manga processing failed",
+      error: errorMessage,
+    });
 
     throw error;
   }

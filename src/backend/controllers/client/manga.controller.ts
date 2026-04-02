@@ -77,7 +77,7 @@ export const createWithFirstChapter = async (
     const uploaderId = req.infoUser.user_id;
     const chapterNumber = Number(req.body.chapter_number || 1);
 
-    await MangaUploadService.createWithFirstChapter({
+    const created = await MangaUploadService.createWithFirstChapter({
       uploaderId,
       title: String(req.body.title).trim(),
       description: req.body.description,
@@ -97,7 +97,10 @@ export const createWithFirstChapter = async (
       success: true,
       message:
         "Đã nhận dữ liệu truyện, hệ thống đang xử lý các chapter trong ZIP",
-      data: null,
+      data: {
+        mangaId: created.mangaId,
+        mangaStatus: "processing",
+      },
     });
   } catch (error: any) {
     if (error instanceof MangaUploadService.MangaUploadServiceError) {
