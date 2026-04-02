@@ -5,7 +5,7 @@ import streamifier from "streamifier";
 import crypto from "crypto";
 import * as Manga from "../../models/manga.model";
 import * as Coin from "../../models/coin.model";
-import { AuthRequest, Page } from "../../types";
+import { AuthRequest } from "../../types";
 import * as MangaService from "../../services/client/manga.service";
 import * as MangaUploadService from "../../services/client/manga-upload.service";
 
@@ -16,21 +16,6 @@ cloudinaryV2.config({
   api_key: process.env.CLOUD_KEY,
   api_secret: process.env.CLOUD_SECRET,
 });
-
-const URL_SECRET = process.env.URL_SECRET || "your-secret-key-change-this";
-
-const generateSignedToken = (
-  pageId: number,
-  expiresIn: number = 3600,
-): string => {
-  const expirationTime = Math.floor(Date.now() / 1000) + expiresIn;
-  const data = `${pageId}:${expirationTime}`;
-  const signature = crypto
-    .createHmac("sha256", URL_SECRET)
-    .update(data)
-    .digest("hex");
-  return `${signature}:${expirationTime}`;
-};
 
 const verifySignedToken = (
   pageId: number,
@@ -46,7 +31,7 @@ const verifySignedToken = (
 
     const data = `${pageId}:${expirationTime}`;
     const expectedSignature = crypto
-      .createHmac("sha256", URL_SECRET)
+      .createHmac("sha256", process.env.URL_SECRET)
       .update(data)
       .digest("hex");
 
@@ -57,137 +42,6 @@ const verifySignedToken = (
     return { valid: true };
   } catch (error) {
     return { valid: false, reason: "Invalid token format" };
-  }
-};
-
-const uploadFromBuffer = (buffer: Buffer): Promise<any> => {
-  return new Promise((resolve, reject) => {
-    let cld_upload_stream = cloudinaryV2.uploader.upload_stream(
-      {
-        folder: "manga_content",
-      },
-      (error, result) => {
-        if (result) {
-          resolve(result);
-        } else {
-          reject(error);
-        }
-      },
-    );
-    streamifier.createReadStream(buffer).pipe(cld_upload_stream);
-  });
-};
-
-const updateChapterCoinReward = async (
-  manga_id: number,
-  uploader_id: number,
-): Promise<void> => {
-  const UPLOAD_COIN_INTERVAL = 1;
-  const UPLOAD_COIN_REWARD = 1;
-  const chapterNum = await Coin.getChapterCountByMangaId(manga_id);
-  if ((chapterNum + 1) % UPLOAD_COIN_INTERVAL === 0) {
-    await Coin.updateCoinBalance(uploader_id, UPLOAD_COIN_REWARD);
-  }
-};
-
-const processChaptersInBackground = async (
-  currentMangaId: number,
-  uploader_id: number,
-  fileContentBuffer: Buffer,
-  language: string,
-): Promise<void> => {
-  try {
-    const zip = new AdmZip(fileContentBuffer);
-    const zipEntries = zip.getEntries();
-
-    const chaptersMap = new Map<string, any[]>();
-
-    zipEntries.forEach((entry) => {
-      if (entry.isDirectory) return;
-      if (!entry.entryName.match(/\.(jpg|jpeg|png|gif|webp)$/i)) return;
-
-      const parts = entry.entryName.split("/").filter((p) => p);
-
-      if (parts.length === 0) return;
-
-      let chapterFolder = "Chapter 1";
-
-      if (parts.length > 1) {
-        chapterFolder = parts[parts.length - 2];
-      }
-
-      if (!chaptersMap.has(chapterFolder)) {
-        chaptersMap.set(chapterFolder, []);
-      }
-      chaptersMap.get(chapterFolder)!.push(entry);
-    });
-
-    if (chaptersMap.size === 0) {
-      const images = zipEntries.filter((e) =>
-        e.entryName.match(/\.(jpg|jpeg|png|gif|webp)$/i),
-      );
-      if (images.length > 0) {
-        chaptersMap.set("Chapter 1", images);
-      }
-    }
-
-    let chapterIndex = 0;
-    for (const [folderName, entries] of chaptersMap) {
-      chapterIndex++;
-
-      const numberMatch = folderName.match(/(\d+)/);
-      const chapterNumber = numberMatch
-        ? parseFloat(numberMatch[1])
-        : chapterIndex;
-
-      const chapterData = {
-        manga_id: currentMangaId,
-        uploader_id: uploader_id,
-        chapter_number: chapterNumber,
-        title: folderName,
-      };
-
-      const newChapter = await Manga.createChapter(chapterData);
-      const chapterId = newChapter.id;
-
-      console.log(`Chapter ${chapterNumber} created with ID:`, chapterId);
-
-      updateChapterCoinReward(currentMangaId, uploader_id).catch((err) => {
-        console.error("Error updating coin reward:", err);
-      });
-
-      const sortedEntries = entries.sort((a: any, b: any) =>
-        a.entryName.localeCompare(b.entryName, undefined, { numeric: true }),
-      );
-
-      const pagesData = [];
-
-      for (let i = 0; i < sortedEntries.length; i++) {
-        const entry = sortedEntries[i];
-        console.log(
-          `  Uploading page ${i + 1}/${sortedEntries.length}: ${entry.entryName}`,
-        );
-
-        const buffer = entry.getData();
-        const uploadResult = await uploadFromBuffer(buffer);
-
-        pagesData.push({
-          chapter_id: chapterId,
-          image_url: uploadResult.secure_url,
-          page_number: i + 1,
-          language: language || "en",
-        });
-      }
-
-      if (pagesData.length > 0) {
-        await Manga.createPages(pagesData);
-      }
-    }
-  } catch (error) {
-    console.error(
-      `Error in background processing for manga ${currentMangaId}:`,
-      error,
-    );
   }
 };
 
@@ -311,16 +165,6 @@ export const getLanguages = async (
   }
 };
 
-export const getGenres = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const genres = await Manga.getAllGenres();
-    res.json({ code: "success", data: genres });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ code: "error", message: "Lỗi server" });
-  }
-};
-
 export const listMangas = async (
   req: Request,
   res: Response,
@@ -435,82 +279,16 @@ export const getChapterPages = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const chapterId = req.params.id;
-    const { language } = req.query;
+    const chapterId = Number(req.params.id);
+    const language = req.query.language
+      ? String(req.query.language)
+      : undefined;
 
-    let pages: Page[];
-
-    if (language) {
-      pages = await Manga.getChapterPagesByLanguage(
-        Number(chapterId),
-        String(language),
-      );
-
-      if (pages.length === 0) {
-        pages = await Manga.getChapterPages(Number(chapterId));
-      } else {
-        const allOriginalPages = await Manga.getChapterPages(Number(chapterId));
-        const originalPageNumbers = allOriginalPages.map((p) => p.page_number);
-        const translatedPageNumbers = pages.map((p) => p.page_number);
-
-        const missingPageNumbers = originalPageNumbers.filter(
-          (num) => !translatedPageNumbers.includes(num),
-        );
-
-        const missingPages = allOriginalPages.filter((p) =>
-          missingPageNumbers.includes(p.page_number),
-        );
-
-        pages = [...pages, ...missingPages].sort(
-          (a, b) => a.page_number - b.page_number,
-        );
-      }
-    } else {
-      pages = await Manga.getChapterPages(Number(chapterId));
-    }
-
-    const protocol = req.protocol;
-    const host = req.get("host");
-
-    const isLocal = host?.includes("localhost") || host?.includes("127.0.0.1");
-    const apiPrefix = isLocal ? "" : "/api";
-
-    const baseUrl = `${protocol}://${host}${apiPrefix}`;
-
-    const securePages = pages.map((page) => {
-      const token = generateSignedToken(page.page_id, 3600);
-
-      let translationStatus = "original";
-
-      if (language) {
-        if (page.language === language) {
-          if (page.image_url === "processing") {
-            translationStatus = "processing";
-          } else if (page.image_url === "" || !page.image_url) {
-            translationStatus = "not_translated";
-          } else {
-            translationStatus = "translated";
-          }
-        } else {
-          translationStatus = "original";
-        }
-      } else {
-        translationStatus = "original";
-      }
-
-      return {
-        page_id: page.page_id,
-        page_number: page.page_number,
-        language: page.language,
-        chapter_id: page.chapter_id,
-        translation_status: translationStatus,
-        image_url:
-          page.image_url &&
-          page.image_url !== "processing" &&
-          page.image_url !== ""
-            ? `${baseUrl}/mangas/page-image/${page.page_id}?token=${token}`
-            : null,
-      };
+    const securePages = await MangaService.getChapterPagesForClient({
+      chapterId,
+      language,
+      protocol: req.protocol,
+      host: req.get("host") || undefined,
     });
 
     res.json({ code: "success", data: securePages });
@@ -604,107 +382,6 @@ export const getPageImage = async (
   } catch (error) {
     console.error("Error in getPageImage:", error);
     res.status(500).json({ code: "error", message: "Error loading image" });
-  }
-};
-
-const processSingleChapterInBackground = async (
-  mangaId: number,
-  uploader_id: number,
-  fileContentBuffer: Buffer,
-  language: string,
-): Promise<void> => {
-  try {
-    console.log(
-      `Starting background processing for chapter in manga ${mangaId}`,
-    );
-
-    const zip = new AdmZip(fileContentBuffer);
-    const zipEntries = zip.getEntries();
-
-    const chaptersMap = new Map<string, any[]>();
-
-    zipEntries.forEach((entry) => {
-      if (entry.isDirectory) return;
-      if (!entry.entryName.match(/\.(jpg|jpeg|png|gif|webp)$/i)) return;
-
-      const parts = entry.entryName.split("/").filter((p) => p);
-
-      if (parts.length === 0) return;
-
-      let chapterFolder = "Chapter 1";
-
-      if (parts.length > 1) {
-        chapterFolder = parts[parts.length - 2];
-      }
-
-      if (!chaptersMap.has(chapterFolder)) {
-        chaptersMap.set(chapterFolder, []);
-      }
-      chaptersMap.get(chapterFolder)!.push(entry);
-    });
-
-    if (chaptersMap.size === 0) {
-      const images = zipEntries.filter((e) =>
-        e.entryName.match(/\.(jpg|jpeg|png|gif|webp)$/i),
-      );
-      if (images.length > 0) {
-        chaptersMap.set("Chapter 1", images);
-      }
-    }
-
-    let chapterIndex = 0;
-    for (const [folderName, entries] of chaptersMap) {
-      chapterIndex++;
-
-      const numberMatch = folderName.match(/(\d+)/);
-      const chapterNumber = numberMatch
-        ? parseFloat(numberMatch[1])
-        : chapterIndex;
-
-      const chapterData = {
-        manga_id: mangaId,
-        uploader_id: uploader_id,
-        chapter_number: chapterNumber,
-        title: folderName,
-      };
-
-      const newChapter = await Manga.createChapter(chapterData);
-      const chapterId = newChapter.id;
-
-      console.log(`Chapter ${chapterNumber} created with ID:`, chapterId);
-
-      const sortedEntries = entries.sort((a: any, b: any) =>
-        a.entryName.localeCompare(b.entryName, undefined, { numeric: true }),
-      );
-
-      const pagesData = [];
-
-      for (let i = 0; i < sortedEntries.length; i++) {
-        const entry = sortedEntries[i];
-        console.log(
-          `  Uploading page ${i + 1}/${sortedEntries.length}: ${entry.entryName}`,
-        );
-
-        const buffer = entry.getData();
-        const uploadResult = await uploadFromBuffer(buffer);
-
-        pagesData.push({
-          chapter_id: chapterId,
-          image_url: uploadResult.secure_url,
-          page_number: i + 1,
-          language: language || "en",
-        });
-      }
-
-      if (pagesData.length > 0) {
-        await Manga.createPages(pagesData);
-      }
-    }
-  } catch (error) {
-    console.error(
-      `Error in background chapter processing for manga ${mangaId}:`,
-      error,
-    );
   }
 };
 

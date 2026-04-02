@@ -1,4 +1,6 @@
 import * as MangaModel from "../../models/manga.model";
+import crypto from "crypto";
+import { Page } from "../../types";
 
 export interface ListMangasInput {
   page: number;
@@ -30,6 +32,22 @@ export interface ListMangasResult {
   };
 }
 
+export interface GetChapterPagesForClientInput {
+  chapterId: number;
+  language?: string;
+  protocol: string;
+  host?: string;
+}
+
+export interface SecureChapterPage {
+  page_id: number;
+  page_number: number;
+  language?: string;
+  chapter_id: number;
+  translation_status: "original" | "processing" | "not_translated" | "translated";
+  image_url: string | null;
+}
+
 interface PublicMangaOverview {
   manga: any;
 }
@@ -43,6 +61,21 @@ interface PublicMangaChapters {
 const isPublicMangaStatus = (status?: string): boolean => {
   const normalized = String(status || "").toLowerCase();
   return normalized === "published";
+};
+
+const URL_SECRET = process.env.URL_SECRET || "your-secret-key-change-this";
+
+const generateSignedToken = (
+  pageId: number,
+  expiresIn: number = 3600,
+): string => {
+  const expirationTime = Math.floor(Date.now() / 1000) + expiresIn;
+  const data = `${pageId}:${expirationTime}`;
+  const signature = crypto
+    .createHmac("sha256", URL_SECRET)
+    .update(data)
+    .digest("hex");
+  return `${signature}:${expirationTime}`;
 };
 
 export const listMangas = async (
@@ -145,4 +178,74 @@ export const getPublicMangaChaptersBySlug = async (
     chapters,
     usedChapterList,
   };
+};
+
+export const getChapterPagesForClient = async (
+  params: GetChapterPagesForClientInput,
+): Promise<SecureChapterPage[]> => {
+  const { chapterId, language, protocol, host } = params;
+
+  let pages: Page[];
+
+  if (language) {
+    pages = await MangaModel.getChapterPagesByLanguage(chapterId, language);
+
+    if (pages.length === 0) {
+      pages = await MangaModel.getChapterPages(chapterId);
+    } else {
+      const allOriginalPages = await MangaModel.getChapterPages(chapterId);
+      const originalPageNumbers = allOriginalPages.map((p) => p.page_number);
+      const translatedPageNumbers = pages.map((p) => p.page_number);
+
+      const missingPageNumbers = originalPageNumbers.filter(
+        (num) => !translatedPageNumbers.includes(num),
+      );
+
+      const missingPages = allOriginalPages.filter((p) =>
+        missingPageNumbers.includes(p.page_number),
+      );
+
+      pages = [...pages, ...missingPages].sort(
+        (a, b) => a.page_number - b.page_number,
+      );
+    }
+  } else {
+    pages = await MangaModel.getChapterPages(chapterId);
+  }
+
+  const isLocal = host?.includes("localhost") || host?.includes("127.0.0.1");
+  const apiPrefix = isLocal ? "" : "/api";
+  const baseUrl = `${protocol}://${host}${apiPrefix}`;
+
+  return pages.map((page) => {
+    const token = generateSignedToken(page.page_id, 3600);
+
+    let translationStatus: SecureChapterPage["translation_status"] = "original";
+
+    if (language) {
+      if (page.language === language) {
+        if (page.image_url === "processing") {
+          translationStatus = "processing";
+        } else if (page.image_url === "" || !page.image_url) {
+          translationStatus = "not_translated";
+        } else {
+          translationStatus = "translated";
+        }
+      } else {
+        translationStatus = "original";
+      }
+    }
+
+    return {
+      page_id: page.page_id,
+      page_number: page.page_number,
+      language: page.language,
+      chapter_id: page.chapter_id,
+      translation_status: translationStatus,
+      image_url:
+        page.image_url && page.image_url !== "processing" && page.image_url !== ""
+          ? `${baseUrl}/mangas/page-image/${page.page_id}?token=${token}`
+          : null,
+    };
+  });
 };

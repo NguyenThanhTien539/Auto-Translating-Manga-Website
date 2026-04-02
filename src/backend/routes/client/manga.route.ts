@@ -85,17 +85,6 @@ route.post(
 );
 
 route.post(
-  "/create-with-first-chapter",
-  authMiddleware.uploaderAuth,
-  upload.fields([
-    { name: "cover_image", maxCount: 1 },
-    { name: "chapter_zip", maxCount: 1 },
-    { name: "file_content", maxCount: 1 },
-  ]),
-  mangaController.createWithFirstChapter,
-);
-
-route.post(
   "/upload-chapter",
   authMiddleware.uploaderAuth,
   upload.fields([
@@ -103,16 +92,6 @@ route.post(
     { name: "file_content", maxCount: 1 },
   ]),
   mangaController.uploadChapter,
-);
-
-route.post(
-  "/:mangaId/chapters/create-with-zip",
-  authMiddleware.uploaderAuth,
-  upload.fields([
-    { name: "chapter_zip", maxCount: 1 },
-    { name: "file_content", maxCount: 1 },
-  ]),
-  mangaController.createChapterWithZip,
 );
 
 route.get("/", mangaController.listMangas);

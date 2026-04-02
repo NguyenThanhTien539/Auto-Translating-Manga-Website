@@ -68,7 +68,7 @@ export default function Filter({
     const controller = new AbortController();
     setLoading(true);
 
-    fetch(`${API_URL}/manga/filterPanelData`, {
+    fetch(`${API_URL}/mangas/filterPanelData`, {
       signal: controller.signal,
       credentials: "include",
     })

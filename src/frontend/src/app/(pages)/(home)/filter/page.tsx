@@ -66,7 +66,7 @@ function FilterContent() {
 
     ids.forEach((id) => q.append("categories", id));
 
-    return `${API_URL}/manga/filter?${q.toString()}`;
+    return `${API_URL}/mangas/filter?${q.toString()}`;
   }, [sp, API_URL]);
 
   useEffect(() => {
