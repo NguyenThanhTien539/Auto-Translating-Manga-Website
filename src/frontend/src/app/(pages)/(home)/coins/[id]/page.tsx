@@ -3,14 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { formatPrice } from "@/utils/format";
-import {
-  ArrowLeft,
-  CreditCard,
-  Smartphone,
-  Wallet,
-  QrCode,
-  CheckCircle2,
-} from "lucide-react";
+import { CreditCard, Wallet, CheckCircle2 } from "lucide-react";
 
 interface PaymentMethod {
   id: string;
@@ -95,20 +88,6 @@ export default function OrderDetailPage() {
   ) : orderDetail ? (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors mb-4"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="font-medium">Quay lại</span>
-          </button>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Chi tiết đơn hàng
-          </h1>
-        </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left side - Order Summary */}
           <div className="lg:col-span-2 space-y-6">

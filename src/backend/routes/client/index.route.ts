@@ -1,42 +1,42 @@
 import { Router } from "express";
-import homeRoute from "./home.route";
-import accountRoute from "./account.route";
-import authRoute from "./auth.route";
-import userRoute from "./user.route";
-import mangaRoute from "./manga.route";
-import orderRoute from "./order.route";
-import commentRoute from "./comment.route";
-import authorRoute from "./author.route";
-import readingHistoryRoute from "./reading_history.route";
-import orderChapterRoute from "./order-chapter.route";
-import genreRoute from "./genre.route";
-import coinRoute from "./coin-package.route";
+import homeRouter from "./home.route";
+import accountRouter from "./account.route";
+import authRouter from "./auth.route";
+import userRouter from "./user.route";
+import mangaRouter from "./manga.route";
+import orderRouter from "./order.route";
+import commentRouter from "./comment.route";
+import authorRouter from "./author.route";
+import readingHistoryRouter from "./reading_history.route";
+import orderChapterRouter from "./order-chapter.route";
+import genreRouter from "./genre.route";
+import coinRouter from "./coin-package.route";
 import * as authMiddleware from "../../middlewares/auth.middleware";
 
-const route = Router();
+const clientRouter = Router();
 
-route.use("/", homeRoute);
+clientRouter.use("/", homeRouter);
 
-route.use("/coins", coinRoute);
+clientRouter.use("/coins", coinRouter);
 
-route.use("/account", accountRoute);
+clientRouter.use("/account", accountRouter);
 
-route.use("/auth", authRoute);
+clientRouter.use("/auth", authRouter);
 
-route.use("/user", authMiddleware.clientAuth, userRoute);
+clientRouter.use("/user", authMiddleware.clientAuth, userRouter);
 
-route.use("/order-coin", orderRoute);
+clientRouter.use("/order-coin", orderRouter);
 
-route.use("/order-chapter", orderChapterRoute);
+clientRouter.use("/order-chapter", orderChapterRouter);
 
-route.use("/mangas", mangaRoute);
+clientRouter.use("/mangas", mangaRouter);
 
-route.use("/comments", commentRoute);
+clientRouter.use("/comments", commentRouter);
 
-route.use("/authors", authorRoute);
+clientRouter.use("/authors", authorRouter);
 
-route.use("/reading-history", readingHistoryRoute);
+clientRouter.use("/reading-history", readingHistoryRouter);
 
-route.use("/genres", genreRoute);
+clientRouter.use("/genres", genreRouter);
 
-export default route;
+export default clientRouter;
