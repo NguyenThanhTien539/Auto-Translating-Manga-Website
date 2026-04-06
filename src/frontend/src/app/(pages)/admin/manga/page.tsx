@@ -69,38 +69,48 @@ export default function ManageMangaPage() {
 
   useEffect(() => {
     const socket = getSocketClient();
-    const chapterIdText = (payload: AdminSocketPayload): string =>
-      "chapterId" in payload ? String(payload.chapterId) : "-";
+    const getMangaTitle = (payload: AdminSocketPayload): string | null => {
+      if ("mangaTitle" in payload && payload.mangaTitle) {
+        return String(payload.mangaTitle);
+      }
+      if (!("mangaId" in payload)) return null;
 
-    const mangaIdText = (payload: AdminSocketPayload): string =>
-      "mangaId" in payload ? String(payload.mangaId) : "-";
+      const matched = mangaList.find(
+        (m) => m.manga_id === Number(payload.mangaId),
+      );
+      return matched?.title || null;
+    };
 
     const errorText = (payload: AdminSocketPayload): string =>
       "error" in payload && payload.error ? String(payload.error) : "Unknown error";
 
     const onNewPendingChapter = (payload: AdminSocketPayload) => {
-      toast.info(`Có chapter mới chờ duyệt (#${chapterIdText(payload)})`);
+      const mangaTitle = getMangaTitle(payload);
+      toast.info(
+        mangaTitle
+          ? `Có chương mới cần duyệt của truyện: ${mangaTitle}`
+          : "Có chương mới cần duyệt",
+      );
       fetchMangas();
     };
 
     const onNewPendingManga = (payload: AdminSocketPayload) => {
-      toast.info(`Có manga mới chờ duyệt (#${mangaIdText(payload)})`);
+      const mangaTitle = getMangaTitle(payload);
+      toast.info(
+        mangaTitle
+          ? `Có truyện mới cần duyệt: ${mangaTitle}`
+          : "Có truyện mới cần duyệt",
+      );
       fetchMangas();
     };
 
     const onChapterFailed = (payload: AdminSocketPayload) => {
-      toast.error(
-        `Chapter xử lý thất bại (#${chapterIdText(payload)}): ${errorText(
-          payload,
-        )}`,
-      );
+      toast.error(`Chapter xử lý thất bại: ${errorText(payload)}`);
       fetchMangas();
     };
 
     const onMangaFailed = (payload: AdminSocketPayload) => {
-      toast.error(
-        `Manga xử lý thất bại (#${mangaIdText(payload)}): ${errorText(payload)}`,
-      );
+      toast.error(`Manga xử lý thất bại: ${errorText(payload)}`);
       fetchMangas();
     };
 
@@ -115,7 +125,7 @@ export default function ManageMangaPage() {
       socket.off("admin:chapter-processing-failed", onChapterFailed);
       socket.off("admin:manga-processing-failed", onMangaFailed);
     };
-  }, []);
+  }, [mangaList]);
 
   // ========= HELPERS =========
   const resetFilters = () => {

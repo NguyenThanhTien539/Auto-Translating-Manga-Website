@@ -18,7 +18,9 @@ interface SocketUserData {
   roleCode: string;
 }
 
-const parseCookie = (cookieHeader: string | undefined): Record<string, string> => {
+const parseCookie = (
+  cookieHeader: string | undefined,
+): Record<string, string> => {
   if (!cookieHeader) return {};
 
   return cookieHeader
@@ -67,7 +69,10 @@ const authenticateSocketUser = async (
   return { user, roleCode };
 };
 
-const attachSocketHandlers = (socket: Socket, userData: SocketUserData): void => {
+const attachSocketHandlers = (
+  socket: Socket,
+  userData: SocketUserData,
+): void => {
   socket.join(toUserRoom(userData.userId));
 
   if (userData.roleCode === "ADM") {
@@ -86,7 +91,7 @@ export const initSocketServer = (httpServer: HttpServer): SocketIOServer => {
 
   ioServer = new SocketIOServer(httpServer, {
     cors: {
-      origin: process.env.FRONTEND_ORIGIN || "http://localhost:3000",
+      origin: process.env.FRONTEND_ORIGIN,
       credentials: true,
     },
   });
@@ -144,4 +149,3 @@ export const startSocketRedisSubscriber = async (): Promise<void> => {
     }
   });
 };
-

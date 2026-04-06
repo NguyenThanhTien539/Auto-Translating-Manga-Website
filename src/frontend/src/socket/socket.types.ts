@@ -9,6 +9,7 @@ export type WorkflowStatus =
 export interface ChapterSocketPayload {
   chapterId: number;
   mangaId: number;
+  mangaTitle?: string;
   status: WorkflowStatus;
   message: string;
   progress?: number;
@@ -18,6 +19,7 @@ export interface ChapterSocketPayload {
 
 export interface MangaSocketPayload {
   mangaId: number;
+  mangaTitle?: string;
   status: WorkflowStatus;
   message: string;
   error?: string;
@@ -25,4 +27,3 @@ export interface MangaSocketPayload {
 }
 
 export type AdminSocketPayload = ChapterSocketPayload | MangaSocketPayload;
-

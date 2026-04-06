@@ -18,7 +18,7 @@ declare global {
 }
 
 const app = express();
-const port = 5000;
+const port = Number(process.env.PORT);
 const httpServer = http.createServer(app);
 
 global.pathAdmin = variableConfig.pathAdmin;
@@ -40,6 +40,14 @@ app.use(`/${pathAdmin}`, adminRoutes);
   await connectRedis();
   initSocketServer(httpServer);
   await startSocketRedisSubscriber();
+
+  httpServer.on("error", (error: NodeJS.ErrnoException) => {
+    if (error.code === "EADDRINUSE") {
+      console.error(`Port ${port} is already in use. Set another PORT in .env`);
+      process.exit(1);
+    }
+    throw error;
+  });
 
   httpServer.listen(port, () => {
     console.log(`Server running on port ${port}`);

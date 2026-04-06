@@ -46,6 +46,8 @@ export default function ManagePage() {
 
   useEffect(() => {
     const socket = getSocketClient();
+    const uploadSuccessMessage =
+      "Truyện của bạn đã upload thành công. Chờ admin duyệt.";
 
     const refreshByManga = async (_payload: MangaSocketPayload) => {
       await fetchMangas();
@@ -70,7 +72,7 @@ export default function ManagePage() {
     };
 
     const onMangaPending = (payload: MangaSocketPayload) => {
-      toast.info(`Truyện #${payload.mangaId} đang chờ admin duyệt`);
+      toast.info(uploadSuccessMessage);
       refreshByManga(payload);
     };
 
@@ -98,7 +100,7 @@ export default function ManagePage() {
     };
 
     const onChapterPending = (payload: ChapterSocketPayload) => {
-      toast.info(`Chương #${payload.chapterId} đang chờ admin duyệt`);
+      toast.info(uploadSuccessMessage);
       refreshByChapter(payload);
     };
 

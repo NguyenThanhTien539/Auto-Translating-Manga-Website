@@ -35,6 +35,8 @@ const TMP_EXTRACTED_DIR = path.join(
 );
 
 const IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif"]);
+const UPLOAD_SUCCESS_MESSAGE =
+  "Truyện của bạn đã upload thành công. Chờ admin duyệt.";
 const NATURAL_COLLATOR = new Intl.Collator("en", {
   numeric: true,
   sensitivity: "base",
@@ -230,22 +232,6 @@ const emitChapterStatus = async (params: {
   }
 };
 
-const emitChapterProgress = async (params: {
-  uploaderId: number;
-  chapterId: number;
-  mangaId: number;
-  progress: number;
-  message: string;
-}): Promise<void> => {
-  await safePublishToUser(params.uploaderId, SOCKET_EVENTS.CHAPTER_PROGRESS, {
-    chapterId: params.chapterId,
-    mangaId: params.mangaId,
-    status: "processing",
-    progress: params.progress,
-    message: params.message,
-  });
-};
-
 const emitMangaStatus = async (params: {
   uploaderId: number;
   mangaId: number;
@@ -271,6 +257,42 @@ const emitMangaStatus = async (params: {
   if (adminEvent) {
     await safePublishToAdmins(adminEvent, payload);
   }
+};
+
+const emitUploadCompleted = async (params: {
+  uploaderId: number;
+  mangaId: number;
+  chapterId?: number;
+  isNewMangaUpload: boolean;
+}): Promise<void> => {
+  const manga = await MangaModel.getMangaById(params.mangaId);
+  const mangaTitle = manga?.title;
+
+  await safePublishToUser(params.uploaderId, SOCKET_EVENTS.MANGA_PENDING_REVIEW, {
+    mangaId: params.mangaId,
+    mangaTitle,
+    status: "pending_review",
+    message: UPLOAD_SUCCESS_MESSAGE,
+    review_note: null,
+  });
+
+  if (params.isNewMangaUpload) {
+    await safePublishToAdmins(SOCKET_EVENTS.ADMIN_NEW_PENDING_MANGA, {
+      mangaId: params.mangaId,
+      mangaTitle,
+      status: "pending_review",
+      message: "Có nội dung mới cần duyệt",
+    });
+    return;
+  }
+
+  await safePublishToAdmins(SOCKET_EVENTS.ADMIN_NEW_PENDING_CHAPTER, {
+    chapterId: params.chapterId,
+    mangaId: params.mangaId,
+    mangaTitle,
+    status: "pending_review",
+    message: "Có nội dung mới cần duyệt",
+  });
 };
 
 const setFailedState = async (
@@ -304,14 +326,6 @@ const processSingleChapterJob = async (
   const uploadedPublicIds: string[] = [];
 
   try {
-    await emitChapterStatus({
-      uploaderId: data.uploaderId,
-      chapterId: data.chapterId,
-      mangaId: data.mangaId,
-      status: "processing",
-      message: "Bắt đầu xử lý chapter ZIP",
-    });
-
     const extractedFiles = await parseZipEntriesForSingleChapter(
       data.zipPath,
       extractDir,
@@ -342,15 +356,6 @@ const processSingleChapterJob = async (
         image_url: uploadResult.secure_url,
         language: data.language || "en",
       });
-
-      const progress = Math.round(((i + 1) / extractedFiles.length) * 100);
-      await emitChapterProgress({
-        uploaderId: data.uploaderId,
-        chapterId: data.chapterId,
-        mangaId: data.mangaId,
-        progress,
-        message: "Uploading images to Cloudinary",
-      });
     }
 
     await MangaModel.createPages(pageRows);
@@ -361,13 +366,11 @@ const processSingleChapterJob = async (
       review_note: null,
     });
 
-    await emitChapterStatus({
+    await emitUploadCompleted({
       uploaderId: data.uploaderId,
-      chapterId: data.chapterId,
       mangaId: data.mangaId,
-      status: "pending_review",
-      message:
-        "The chapter has been processed successfully and is waiting for admin review",
+      chapterId: data.chapterId,
+      isNewMangaUpload: false,
     });
   } catch (error) {
     const errorMessage =
@@ -405,13 +408,6 @@ const processInitialMangaUploadJob = async (
   const createdChapterIds: number[] = [];
 
   try {
-    await emitMangaStatus({
-      uploaderId: data.uploaderId,
-      mangaId: data.mangaId,
-      status: "processing",
-      message: "Bắt đầu xử lý manga và các chapter trong ZIP",
-    });
-
     const imageEntries = loadImageEntriesFromZip(data.zipPath);
     const chaptersMap = groupEntriesByChapterFolder(imageEntries);
 
@@ -442,13 +438,6 @@ const processInitialMangaUploadJob = async (
       });
 
       createdChapterIds.push(chapter.id);
-      await emitChapterStatus({
-        uploaderId: data.uploaderId,
-        chapterId: chapter.id,
-        mangaId: data.mangaId,
-        status: "processing",
-        message: "Bắt đầu xử lý chapter ZIP",
-      });
 
       const sortedEntries = [...entries].sort((a, b) =>
         NATURAL_COLLATOR.compare(a.entryName, b.entryName),
@@ -476,15 +465,6 @@ const processInitialMangaUploadJob = async (
           image_url: uploadResult.secure_url,
           language: data.language,
         });
-
-        const progress = Math.round(((i + 1) / sortedEntries.length) * 100);
-        await emitChapterProgress({
-          uploaderId: data.uploaderId,
-          chapterId: chapter.id,
-          mangaId: data.mangaId,
-          progress,
-          message: "Uploading images to Cloudinary",
-        });
       }
 
       await MangaModel.createPages(pageRows);
@@ -494,14 +474,6 @@ const processInitialMangaUploadJob = async (
         review_note: null,
       });
 
-      await emitChapterStatus({
-        uploaderId: data.uploaderId,
-        chapterId: chapter.id,
-        mangaId: data.mangaId,
-        status: "pending_review",
-        message:
-          "The chapter has been processed successfully and is waiting for admin review",
-      });
     }
 
     await MangaModel.updateMangaWorkflowState(data.mangaId, {
@@ -510,12 +482,10 @@ const processInitialMangaUploadJob = async (
       review_note: null,
     });
 
-    await emitMangaStatus({
+    await emitUploadCompleted({
       uploaderId: data.uploaderId,
       mangaId: data.mangaId,
-      status: "pending_review",
-      message:
-        "The manga has been processed successfully and is waiting for admin review",
+      isNewMangaUpload: true,
     });
   } catch (error: any) {
     const errorMessage = error?.message || "ZIP processing failed";

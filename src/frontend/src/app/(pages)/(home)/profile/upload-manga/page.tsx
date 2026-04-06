@@ -62,29 +62,6 @@ export default function UploadMangaPage() {
 
   const [isUploadingManga, setIsUploadingManga] = useState(false);
   const [isUploadingChapter, setIsUploadingChapter] = useState(false);
-  const [liveChapterProgress, setLiveChapterProgress] = useState<
-    Record<
-      number,
-      {
-        mangaId: number;
-        progress: number;
-        status: string;
-        message: string;
-        error?: string;
-      }
-    >
-  >({});
-
-  const [liveMangaStatus, setLiveMangaStatus] = useState<
-    Record<
-      number,
-      {
-        status: string;
-        message: string;
-        error?: string;
-      }
-    >
-  >({});
 
   const readApiResponse = async (res: Response): Promise<any> => {
     const contentType = res.headers.get("content-type") || "";
@@ -243,16 +220,6 @@ export default function UploadMangaPage() {
       .then((data) => {
         if (data.code === "success") {
           toast.success(data.message);
-          if (data?.data?.mangaId) {
-            const mangaId = Number(data.data.mangaId);
-            setLiveMangaStatus((prev) => ({
-              ...prev,
-              [mangaId]: {
-                status: "processing",
-                message: "Đã gửi lên server, đang chờ worker xử lý",
-              },
-            }));
-          }
           form.reset();
           setCoverFile([]);
           setContentFile([]);
@@ -338,19 +305,6 @@ export default function UploadMangaPage() {
       .then((data) => {
         if (data.code === "success") {
           toast.success(data.message);
-          if (data?.data?.chapterId && data?.data?.mangaId) {
-            const chapterId = Number(data.data.chapterId);
-            const mangaId = Number(data.data.mangaId);
-            setLiveChapterProgress((prev) => ({
-              ...prev,
-              [chapterId]: {
-                mangaId,
-                progress: 0,
-                status: "processing",
-                message: "Đã gửi lên server, đang chờ worker xử lý",
-              },
-            }));
-          }
           setContentFileChapter([]);
         } else {
           toast.error(
@@ -390,48 +344,15 @@ export default function UploadMangaPage() {
 
   useEffect(() => {
     const socket = getSocketClient();
+    const uploadSuccessMessage =
+      "Truyện của bạn đã upload thành công. Chờ admin duyệt.";
 
-    const upsertChapterPayload = (payload: ChapterSocketPayload) => {
-      setLiveChapterProgress((prev) => ({
-        ...prev,
-        [payload.chapterId]: {
-          mangaId: payload.mangaId,
-          progress: payload.progress ?? prev[payload.chapterId]?.progress ?? 0,
-          status: payload.status,
-          message: payload.message,
-          error: payload.error,
-        },
-      }));
-    };
-
-    const upsertMangaPayload = (payload: MangaSocketPayload) => {
-      setLiveMangaStatus((prev) => ({
-        ...prev,
-        [payload.mangaId]: {
-          status: payload.status,
-          message: payload.message,
-          error: payload.error,
-        },
-      }));
-    };
-
-    const handleChapterProcessing = (payload: ChapterSocketPayload) => {
-      upsertChapterPayload({ ...payload, progress: 0 });
-      toast.info(`Chương #${payload.chapterId} đang được xử lý`);
-    };
-
-    const handleChapterProgress = (payload: ChapterSocketPayload) => {
-      upsertChapterPayload(payload);
-    };
-
-    const handleChapterPending = (payload: ChapterSocketPayload) => {
-      upsertChapterPayload({ ...payload, progress: 100 });
-      toast.success(`Chương #${payload.chapterId} đã xử lý xong, chờ duyệt`);
+    const handleChapterPending = () => {
+      toast.success(uploadSuccessMessage);
       fetchMyMangas();
     };
 
     const handleChapterFailed = (payload: ChapterSocketPayload) => {
-      upsertChapterPayload(payload);
       toast.error(
         payload.error
           ? `Chương #${payload.chapterId} lỗi: ${payload.error}`
@@ -454,19 +375,12 @@ export default function UploadMangaPage() {
       fetchMyMangas();
     };
 
-    const handleMangaProcessing = (payload: MangaSocketPayload) => {
-      upsertMangaPayload(payload);
-      toast.info(`Truyện #${payload.mangaId} đang được xử lý`);
-    };
-
-    const handleMangaPending = (payload: MangaSocketPayload) => {
-      upsertMangaPayload(payload);
-      toast.success(`Truyện #${payload.mangaId} đã xử lý xong, chờ duyệt`);
+    const handleMangaPending = () => {
+      toast.success(uploadSuccessMessage);
       fetchMyMangas();
     };
 
     const handleMangaFailed = (payload: MangaSocketPayload) => {
-      upsertMangaPayload(payload);
       toast.error(
         payload.error
           ? `Truyện #${payload.mangaId} lỗi: ${payload.error}`
@@ -489,28 +403,22 @@ export default function UploadMangaPage() {
       fetchMyMangas();
     };
 
-    socket.on("chapter:processing", handleChapterProcessing);
-    socket.on("chapter:progress", handleChapterProgress);
     socket.on("chapter:pending_review", handleChapterPending);
     socket.on("chapter:failed", handleChapterFailed);
     socket.on("chapter:published", handleChapterPublished);
     socket.on("chapter:rejected", handleChapterRejected);
 
-    socket.on("manga:processing", handleMangaProcessing);
     socket.on("manga:pending_review", handleMangaPending);
     socket.on("manga:failed", handleMangaFailed);
     socket.on("manga:published", handleMangaPublished);
     socket.on("manga:rejected", handleMangaRejected);
 
     return () => {
-      socket.off("chapter:processing", handleChapterProcessing);
-      socket.off("chapter:progress", handleChapterProgress);
       socket.off("chapter:pending_review", handleChapterPending);
       socket.off("chapter:failed", handleChapterFailed);
       socket.off("chapter:published", handleChapterPublished);
       socket.off("chapter:rejected", handleChapterRejected);
 
-      socket.off("manga:processing", handleMangaProcessing);
       socket.off("manga:pending_review", handleMangaPending);
       socket.off("manga:failed", handleMangaFailed);
       socket.off("manga:published", handleMangaPublished);
@@ -578,37 +486,6 @@ export default function UploadMangaPage() {
       ) : (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 py-8 px-4">
           <div className="max-w-6xl mx-auto">
-            {(Object.keys(liveMangaStatus).length > 0 ||
-              Object.keys(liveChapterProgress).length > 0) && (
-              <div className="mb-4 bg-white rounded-xl border border-blue-100 p-4 shadow-sm">
-                <h2 className="text-sm font-semibold text-gray-800 mb-2">
-                  Cập nhật realtime
-                </h2>
-
-                {Object.entries(liveMangaStatus).map(([mangaId, data]) => (
-                  <div
-                    key={`manga-${mangaId}`}
-                    className="text-sm text-gray-700 mb-1"
-                  >
-                    Truyện #{mangaId}: {data.message}
-                    {data.error ? ` (${data.error})` : ""}
-                  </div>
-                ))}
-
-                {Object.entries(liveChapterProgress).map(
-                  ([chapterId, data]) => (
-                    <div
-                      key={`chapter-${chapterId}`}
-                      className="text-sm text-gray-700 mb-1"
-                    >
-                      Chương #{chapterId}: {data.message} - {data.progress}%
-                      {data.error ? ` (${data.error})` : ""}
-                    </div>
-                  ),
-                )}
-              </div>
-            )}
-
             <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
               <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 p-6 text-white">
                 <div className="flex items-center justify-center gap-3">

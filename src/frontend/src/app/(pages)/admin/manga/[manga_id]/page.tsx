@@ -267,14 +267,18 @@ export default function ReadPage() {
 
     const onNewPendingChapter = (payload: AdminSocketPayload) => {
       if ("mangaId" in payload && String(payload.mangaId) === String(mangaId)) {
-        toast.info("Manga này có chapter mới chờ duyệt");
+        toast.info(
+          `Có chương mới cần duyệt của truyện: ${mangaDetail?.manga?.title || "Không xác định"}`,
+        );
         refreshDetail();
       }
     };
 
     const onNewPendingManga = (payload: AdminSocketPayload) => {
       if ("mangaId" in payload && String(payload.mangaId) === String(mangaId)) {
-        toast.info("Manga này vừa chuyển sang trạng thái chờ duyệt");
+        toast.info(
+          `Có truyện mới cần duyệt: ${mangaDetail?.manga?.title || "Không xác định"}`,
+        );
         refreshDetail();
       }
     };
@@ -312,7 +316,7 @@ export default function ReadPage() {
       socket.off("admin:chapter-processing-failed", onChapterFailed);
       socket.off("admin:manga-processing-failed", onMangaFailed);
     };
-  }, [mangaId]);
+  }, [mangaId, mangaDetail?.manga?.title]);
 
   if (loading) {
     return (

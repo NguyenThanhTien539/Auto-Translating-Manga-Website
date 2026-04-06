@@ -91,7 +91,6 @@ export const uploadManga = (
   const files = (req.files || {}) as MulterFiles;
   const coverImage = files.cover_image?.[0];
   const chapterZip = files.chapter_zip?.[0];
-  console.log(chapterZip);
 
   if (!coverImage) {
     res.status(400).json({
