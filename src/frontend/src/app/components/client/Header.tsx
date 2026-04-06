@@ -48,7 +48,10 @@ export default function Header() {
         </span>
 
         <div className="flex h-6 w-6 items-center justify-center rounded-md border border-sky-300 bg-sky-50 text-[15px] text-sky-700">
-          <BookOpen className="w-4 h-4 cursor-pointer" onClick={() => router.push("/")} />
+          <BookOpen
+            className="w-4 h-4 cursor-pointer"
+            onClick={() => router.push("/")}
+          />
         </div>
       </div>
 
@@ -87,7 +90,7 @@ export default function Header() {
             <button
               type="button"
               className="cursor-pointer flex items-center justify-center w-6 h-6 rounded-full bg-amber-400 hover:bg-amber-500 transition-colors shadow-sm"
-              onClick={() => router.push("/order-coin/list")}
+              onClick={() => router.push("/coins")}
             >
               <Plus className="w-4 h-4 text-white" />
             </button>
@@ -132,4 +135,3 @@ export default function Header() {
     </header>
   );
 }
-

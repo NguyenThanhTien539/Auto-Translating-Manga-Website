@@ -10,11 +10,14 @@ import authorRoute from "./author.route";
 import readingHistoryRoute from "./reading_history.route";
 import orderChapterRoute from "./order-chapter.route";
 import genreRoute from "./genre.route";
+import coinRoute from "./coin-package.route";
 import * as authMiddleware from "../../middlewares/auth.middleware";
 
 const route = Router();
 
 route.use("/", homeRoute);
+
+route.use("/coins", coinRoute);
 
 route.use("/account", accountRoute);
 

@@ -4,10 +4,6 @@ import * as authMiddleware from "../../middlewares/auth.middleware";
 
 const route = Router();
 
-route.get("/list", orderController.list);
-
-route.get("/detail/:id", orderController.detail);
-
 route.get(
   "/payment-zalopay",
   authMiddleware.clientAuth,
