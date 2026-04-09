@@ -1,24 +1,10 @@
 import * as Manga from "../../models/manga.model";
-
-const slugify = (input: string = ""): string =>
-  input
-    .toString()
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/đ/g, "d")
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/[\s_-]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-+|-+$/g, "");
+import * as MangaSearch from "../../models/manga-search.model";
 
 export const getSearchResults = async (keyword: string): Promise<any[]> => {
   if (!keyword) return [];
 
-  const slug = slugify(keyword);
-
-  const mangas = await Manga.searchMangaBySlug({ slug });
+  const mangas = await MangaSearch.searchMangaByTitle({ keyword });
 
   const mangasWithRating = await Promise.all(
     (mangas || []).map(async (m) => {

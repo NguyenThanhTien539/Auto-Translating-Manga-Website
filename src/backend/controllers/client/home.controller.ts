@@ -1,9 +1,7 @@
 import { Request, Response } from "express";
 import * as homeControllerService from "../../services/client/home.service";
 
-export const home = async (req: Request, res: Response): Promise<void> => {
-  res.send("Thanh Tien ne");
-};
+
 
 export const getSearchResults = async (
   req: Request,
