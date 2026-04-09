@@ -161,7 +161,7 @@ export default function ProfilePage() {
                       <button
                         className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
                         onClick={() => {
-                          router.push(`/profile/detail`);
+                          router.push(`/profile/edit`);
                         }}
                         title="Chỉnh sửa"
                       >
@@ -213,7 +213,7 @@ export default function ProfilePage() {
                   ) : infoUser?.role === "Reader" ? (
                     <button
                       className=" cursor-pointer flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-lg font-medium text-sm shadow-md hover:shadow-lg transition-all"
-                      onClick={() => router.push("/profile/register-uploader")}
+                      onClick={() => router.push("/profile/uploader-request")}
                     >
                       <FileText size={16} />
                       Đăng ký trở thành Uploader

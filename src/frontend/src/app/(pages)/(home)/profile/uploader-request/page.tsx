@@ -106,20 +106,17 @@ export default function RegisterUploaderPage() {
           }
           const finalData = { reason: reason };
 
-          fetch(
-            `${process.env.NEXT_PUBLIC_API_BASE_URL}/user/register-uploader`,
-            {
-              method: "POST",
-              credentials: "include",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(finalData),
+          fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/uploader-requests`, {
+            method: "POST",
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
             },
-          )
+            body: JSON.stringify(finalData),
+          })
             .then((res) => res.json())
             .then((data) => {
-              if (data.code === "success") {
+              if (data.success) {
                 toast.success(
                   data.message ||
                     "Đăng ký thành công! Vui lòng chờ admin duyệt.",
@@ -333,7 +330,7 @@ export default function RegisterUploaderPage() {
                           đăng ký.
                           <button
                             type="button"
-                            onClick={() => router.push("/profile/detail")}
+                            onClick={() => router.push("/profile/edit")}
                             className="cursor-pointer underline font-semibold hover:text-yellow-900"
                           >
                             Cập nhật ngay

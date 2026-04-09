@@ -4,6 +4,7 @@ import cloudinary from "cloudinary";
 import streamifier from "streamifier";
 import crypto from "crypto";
 import * as Manga from "../../models/manga.model";
+import * as Favorite from "../../models/favorite.model";
 import * as Coin from "../../models/coin.model";
 import { AuthRequest } from "../../types";
 import * as MangaService from "../../services/client/manga.service";
@@ -508,68 +509,13 @@ export const filterMangas = async (
   }
 };
 
-export const favoriteManga = async (
-  req: AuthRequest,
-  res: Response,
-): Promise<void> => {
-  try {
-    const user_id = req.infoUser!.user_id;
-    const { manga_id } = req.body;
-    const { type } = req.body;
-    if (type === "add") {
-      await Manga.addFavoriteManga(user_id, manga_id);
-    } else if (type === "remove") {
-      await Manga.removeFavoriteManga(user_id, manga_id);
-    }
-    res.json({
-      code: "success",
-      message: "Cập nhật danh sách yêu thích thành công",
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ code: "error", message: "Lỗi server" });
-  }
-};
-
-export const getFavoriteMangaList = async (
-  req: AuthRequest,
-  res: Response,
-): Promise<void> => {
-  try {
-    const user_id = req.infoUser!.user_id;
-    const mangas = await Manga.getFavoriteMangasByUserId(user_id);
-    res.json({ code: "success", data: mangas });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ code: "error", message: "Lỗi server" });
-  }
-};
-
-export const checkFavoriteManga = async (
-  req: AuthRequest,
-  res: Response,
-): Promise<void> => {
-  try {
-    const user_id = req.infoUser!.user_id;
-    const manga_id = req.query.manga_id;
-    const isFavorite = await Manga.isMangaFavoritedByUser(
-      user_id,
-      Number(manga_id),
-    );
-    res.json({ code: "success", data: isFavorite });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ code: "error", message: "Lỗi server" });
-  }
-};
-
 export const getMangaStatistics = async (
   req: AuthRequest,
   res: Response,
 ): Promise<void> => {
   try {
     const user_id = req.infoUser!.user_id;
-    const favoriteCount = await Manga.countFavoriteMangasByUserId(user_id);
+    const favoriteCount = await Favorite.countFavoriteMangasByUserId(user_id);
     const { finished_count, reading_count } =
       await Manga.getFinishedAndReadingCount(user_id);
 

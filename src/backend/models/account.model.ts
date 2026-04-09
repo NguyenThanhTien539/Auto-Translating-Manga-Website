@@ -1,6 +1,6 @@
 import { Knex } from "knex";
 import db from "../config/database.config";
-import { UserInfo } from "../types";
+import { Manga, UserInfo } from "../types";
 
 interface UserData {
   email: string;
@@ -178,4 +178,13 @@ export const updateCoinById = async (
 export const existUserByEmail = async (email: string): Promise<boolean> => {
   const user = await db("users").select("*").where({ email }).first();
   return !!user;
+};
+
+export const getFavoriteMangaListByUserId = async (
+  userId: number,
+): Promise<Manga[]> => {
+  return db("favorites")
+    .join("mangas", "favorites.manga_id", "mangas.manga_id")
+    .where("favorites.user_id", userId)
+    .select("mangas.*");
 };

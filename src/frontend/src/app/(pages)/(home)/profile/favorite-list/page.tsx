@@ -22,7 +22,7 @@ export default function FavouriteList() {
   const router = useRouter();
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/favorite-list`, {
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/users/me/favorite-mangas`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -31,7 +31,7 @@ export default function FavouriteList() {
     })
       .then((response) => response.json())
       .then((data) => {
-        if (data.code === "success") {
+        if (data.success) {
           setItems(data.data);
         } else {
           setItems([]);

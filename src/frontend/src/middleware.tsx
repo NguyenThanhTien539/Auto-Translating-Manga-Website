@@ -96,7 +96,7 @@ export async function middleware(request: NextRequest) {
     return requireUser(request);
   }
 
-  if (pathname.startsWith("/favourite-list")) {
+  if (pathname.startsWith("/profile/favorite-list")) {
     return requireUser(request);
   }
 
@@ -113,7 +113,7 @@ export const config = {
     "/admin/:path*", // check admin
     "/profile/:path*", // check user
     "/order-coin/:path",
-    "/favourite-list/:path*",
+    "/profile/favorite-list/:path*",
     "/comment/:path*",
   ],
 };

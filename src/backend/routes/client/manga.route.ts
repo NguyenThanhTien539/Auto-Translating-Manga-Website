@@ -115,24 +115,6 @@ route.get(
   mangaController.getFilterPanelData,
 );
 
-route.post(
-  "/favorite",
-  authMiddleware.clientAuth,
-  mangaController.favoriteManga,
-);
-
-route.get(
-  "/favorite-list",
-  authMiddleware.clientAuth,
-  mangaController.getFavoriteMangaList,
-);
-
-route.get(
-  "/check-favorite",
-  authMiddleware.clientAuth,
-  mangaController.checkFavoriteManga,
-);
-
 route.get(
   "/statistics",
   authMiddleware.clientAuth,

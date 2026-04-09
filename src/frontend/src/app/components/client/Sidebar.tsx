@@ -13,7 +13,7 @@ const MAIN_MENU = [
 
 const SECOND_MENU = [
   { label: "Hồ sơ", href: "/profile", icon: User },
-  { label: "Danh sách của tôi", href: "/favourite-list", icon: Heart },
+  { label: "Danh sách của tôi", href: "/profile/favorite-list", icon: Heart },
 ];
 
 export default function Sidebar() {
@@ -25,8 +25,8 @@ export default function Sidebar() {
   const isExploreActive = pathname.startsWith("/explore");
   const isAuthorsActive = pathname.startsWith("/authors");
   const isNotificationsActive = pathname.startsWith("/notifications");
-  const isProfileActive = pathname.startsWith("/profile");
-  const isFavouriteActive = pathname.startsWith("/favourite-list");
+  const isFavouriteActive = pathname.startsWith("/profile/favorite-list");
+  const isProfileActive = pathname.startsWith("/profile") && !isFavouriteActive;
 
   return (
     <aside className="w-[210px] bg-sky-900 text-white flex-shrink-0">
@@ -74,14 +74,15 @@ export default function Sidebar() {
                   const Icon = item.icon;
                   const isActive =
                     (item.href === "/profile" && isProfileActive) ||
-                    (item.href === "/favourite-list" && isFavouriteActive);
+                    (item.href === "/profile/favorite-list" &&
+                      isFavouriteActive);
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
                       className={`flex items-center gap-2 px-3 py-2 rounded-md ${
                         isActive
-                          ? "bg-[#F4B333] text-black"
+                          ? "bg-[#F4B333] text-black font-semibold"
                           : "hover:text-blue-400"
                       }`}
                     >

@@ -7,6 +7,10 @@ import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useAuth } from "@/app/hooks/useAuth";
 import { toVietnameseMangaStatus } from "@/utils/manga-status";
+import {
+  addFavoriteManga,
+  removeFavoriteManga,
+} from "@/utils/favorite-manga-api";
 
 import { decodeHtml } from "@/utils/utils";
 
@@ -54,6 +58,7 @@ export default function ReadPage() {
     return tab === "chapters" ? "chapters" : "overview";
   });
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isFavoriteLoading, setIsFavoriteLoading] = useState(false);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -210,10 +215,13 @@ export default function ReadPage() {
 
   useEffect(() => {
     const mangaId = mangaDetail?.manga?.manga_id;
-    if (!mangaId) return;
+    if (!mangaId || !infoUser) {
+      setIsFavorite(false);
+      return;
+    }
 
     fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/check-favorite?manga_id=${mangaId}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/users/me/favorite-mangas/${mangaId}`,
       {
         method: "GET",
         headers: {
@@ -224,7 +232,7 @@ export default function ReadPage() {
     )
       .then((response) => response.json())
       .then((data) => {
-        if (data.code === "success") {
+        if (data.success) {
           setIsFavorite(data.data);
         } else {
           setIsFavorite(false);
@@ -233,7 +241,38 @@ export default function ReadPage() {
       .catch(() => {
         setIsFavorite(false);
       });
-  }, [mangaDetail?.manga?.manga_id]);
+  }, [mangaDetail?.manga?.manga_id, infoUser]);
+
+  const handleToggleFavorite = async () => {
+    if (!infoUser) {
+      toast.error("Vui lòng đăng nhập để yêu thích!");
+      return;
+    }
+
+    const mangaId = mangaDetail?.manga?.manga_id;
+    if (!mangaId || isFavoriteLoading) {
+      return;
+    }
+
+    setIsFavoriteLoading(true);
+    try {
+      if (isFavorite) {
+        const data = await removeFavoriteManga(mangaId);
+        setIsFavorite(false);
+        toast.success(data.message || "Đã xóa khỏi danh sách yêu thích");
+      } else {
+        const data = await addFavoriteManga(mangaId);
+        setIsFavorite(true);
+        toast.success(data.message || "Đã thêm vào danh sách yêu thích");
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Không thể thực hiện thao tác";
+      toast.error(message);
+    } finally {
+      setIsFavoriteLoading(false);
+    }
+  };
 
   const handleChapterClick = (chapter: Chapter, isOwned: boolean) => {
     const chapterPrice = parseFloat(chapter.price);
@@ -378,41 +417,8 @@ export default function ReadPage() {
                         />
                       </button>
                       <button
-                        onClick={() => {
-                          if (!infoUser) {
-                            toast.error("Vui lòng đăng nhập để yêu thích!");
-                            return;
-                          }
-                          const newFavoriteState = !isFavorite;
-                          fetch(
-                            `${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/favorite`,
-                            {
-                              method: "POST",
-                              headers: {
-                                "Content-Type": "application/json",
-                              },
-                              credentials: "include",
-                              body: JSON.stringify({
-                                manga_id: mangaDetail?.manga.manga_id,
-                                type: isFavorite ? "remove" : "add",
-                              }),
-                            },
-                          )
-                            .then((response) => response.json())
-                            .then((data) => {
-                              if (data.code === "success") {
-                                // Chỉ set state khi API thành công
-                                setIsFavorite(newFavoriteState);
-                                toast.success(data.message);
-                              } else {
-                                toast.error("Đã có lỗi xảy ra");
-                              }
-                            })
-                            .catch((error) => {
-                              console.error("Favorite error:", error);
-                              toast.error("Không thể thực hiện thao tác");
-                            });
-                        }}
+                        onClick={handleToggleFavorite}
+                        disabled={isFavoriteLoading}
                         className="group p-3 bg-slate-700/50 hover:bg-slate-700 rounded-xl border border-slate-600 hover:border-pink-500/50 transition-all duration-300 hover:scale-110"
                         title={
                           isFavorite
@@ -426,7 +432,7 @@ export default function ReadPage() {
                             isFavorite
                               ? "fill-pink-500 text-pink-500"
                               : "text-slate-400 group-hover:text-pink-400"
-                          }`}
+                          } ${isFavoriteLoading ? "opacity-60" : ""}`}
                         />
                       </button>
                     </div>

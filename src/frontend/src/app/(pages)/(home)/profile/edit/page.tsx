@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Image from "next/image";
 import {
@@ -69,9 +69,9 @@ export default function ProfileDetailPage() {
           { rule: "required", errorMessage: "Địa chỉ không được để trống" },
         ]);
     }
-  }, [infoUser]);
+  }, [infoUser, avatar.length]);
 
-  const handleSubmit = (event: any) => {
+  const handleSubmit = async (event: any) => {
     event.preventDefault();
     const username = event.target.username.value;
     const full_name = event.target.full_name.value;
@@ -97,21 +97,36 @@ export default function ProfileDetailPage() {
       console.log("Appending avatar to formData:", avt);
       formData.append("avatar", avt);
     }
+    console.log("FormData entries:");
+    for (const pair of formData.entries()) {
+      console.log(pair[0], pair[1]);
+    }
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/users/me`,
+        {
+          method: "PATCH",
+          credentials: "include",
+          body: formData,
+        },
+      );
 
-    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/profile`, {
-      method: "PATCH",
-      credentials: "include",
-      body: formData,
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.code === "success") {
-          toast.success(data.message || "Cập nhật thông tin thành công");
-          router.push("/profile");
-        } else {
-          toast.error(data.message || "Cập nhật thông tin thất bại");
-        }
-      });
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        toast.error(data?.message || "Cập nhật thông tin thất bại");
+        return;
+      }
+
+      if (data?.success) {
+        toast.success(data.message || "Cập nhật thông tin thành công");
+        router.push("/profile");
+      } else {
+        toast.error(data?.message || "Cập nhật thông tin thất bại");
+      }
+    } catch {
+      toast.error("Không thể kết nối đến máy chủ. Vui lòng thử lại.");
+    }
   };
 
   return (
