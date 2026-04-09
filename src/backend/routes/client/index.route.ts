@@ -5,7 +5,6 @@ import authRouter from "./auth.route";
 import userRouter from "./user.route";
 import mangaRouter from "./manga.route";
 import orderRouter from "./order.route";
-import commentRouter from "./comment.route";
 import authorRouter from "./author.route";
 import readingHistoryRouter from "./reading_history.route";
 import orderChapterRouter from "./order-chapter.route";
@@ -31,8 +30,6 @@ clientRouter.use("/order-coin", orderRouter);
 clientRouter.use("/order-chapter", orderChapterRouter);
 
 clientRouter.use("/mangas", mangaRouter);
-
-clientRouter.use("/comments", commentRouter);
 
 clientRouter.use("/authors", authorRouter);
 

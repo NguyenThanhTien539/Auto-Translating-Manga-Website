@@ -3,6 +3,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import * as mangaController from "../../controllers/client/manga.controller";
+import * as commentController from "../../controllers/client/comment.controller";
 import * as translateController from "../../controllers/client/request_translate_manga.controller";
 import * as authMiddleware from "../../middlewares/auth.middleware";
 import * as chapterMiddleware from "../../middlewares/chapter.middleware";
@@ -125,6 +126,17 @@ route.post(
   "/translate-page",
   rateLimit(10, 60000),
   translateController.translateSinglePage,
+);
+
+route.get(
+  "/:mangaId/chapters/:chapterId/comments",
+  commentController.listByMangaChapter,
+);
+
+route.post(
+  "/:mangaId/chapters/:chapterId/comments",
+  authMiddleware.clientAuth,
+  commentController.addByMangaChapter,
 );
 
 route.get(

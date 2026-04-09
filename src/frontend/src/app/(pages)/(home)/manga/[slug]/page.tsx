@@ -577,15 +577,9 @@ export default function ReadPage() {
                                   className="hover:text-blue-400 transition-colors"
                                   onClick={(e) => {
                                     e.stopPropagation();
-
-                                    const qs = new URLSearchParams({
-                                      manga_slug: String(
-                                        mangaDetail?.manga.slug || mangaParam,
-                                      ),
-                                      chapter_id: String(chapter.chapter_id),
-                                    });
-
-                                    router.push(`/comment?${qs.toString()}`);
+                                    router.push(
+                                      `/manga/${mangaParam}/chapters/${chapter.chapter_id}/comments`,
+                                    );
                                   }}
                                 >
                                   <MessageCircle size={18} />

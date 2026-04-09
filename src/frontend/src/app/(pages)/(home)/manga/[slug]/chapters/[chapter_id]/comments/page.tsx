@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Star, Send, ArrowLeft, MessageCircle } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
@@ -39,8 +39,10 @@ type Manga = {
 function CommentContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const manga_slug = searchParams.get("manga_slug");
-  const chapter_id = searchParams.get("chapter_id");
+  const params = useParams<{ slug?: string; chapter_id?: string }>();
+  const manga_slug = searchParams.get("manga_slug") || params.slug || null;
+  const chapter_id =
+    searchParams.get("chapter_id") || params.chapter_id || null;
   const { infoUser } = useAuth();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
@@ -89,8 +91,16 @@ function CommentContent() {
   }, [manga_slug, chapter_id]);
 
   useEffect(() => {
+    if (!manga_slug || !chapter_id) {
+      return;
+    }
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsLoading(true);
     fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/comments/list?chapter_id=${chapter_id}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/${encodeURIComponent(
+        manga_slug,
+      )}/chapters/${chapter_id}/comments`,
     )
       .then((response) => response.json())
       .then((data) => {
@@ -117,8 +127,17 @@ function CommentContent() {
     }
 
     setIsSubmitting(true);
+
+    if (!manga_slug || !chapter_id) {
+      toast.error("Thiếu thông tin manga hoặc chapter");
+      setIsSubmitting(false);
+      return;
+    }
+
     fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/comments/add?chapter_id=${chapter_id}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/mangas/${encodeURIComponent(
+        manga_slug,
+      )}/chapters/${chapter_id}/comments`,
       {
         method: "POST",
         headers: {
