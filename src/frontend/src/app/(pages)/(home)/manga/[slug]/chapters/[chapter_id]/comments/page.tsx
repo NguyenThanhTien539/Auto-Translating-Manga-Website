@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { Star, Send, ArrowLeft, MessageCircle } from "lucide-react";
+import { Star, Send, MessageCircle } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
 import { useAuth } from "@/app/hooks/useAuth";
@@ -104,7 +104,7 @@ function CommentContent() {
     )
       .then((response) => response.json())
       .then((data) => {
-        if (data.code === "success") {
+        if (data.success) {
           setComments(data.data);
         } else {
           setComments([]);
@@ -152,7 +152,7 @@ function CommentContent() {
     )
       .then((response) => response.json())
       .then((data) => {
-        if (data.code === "success") {
+        if (data.success) {
           toast.success(data.message);
 
           // Thêm comment mới vào danh sách ngay lập tức
@@ -237,33 +237,6 @@ function CommentContent() {
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-      </div>
-
-      {/* Header */}
-      <div className="sticky top-0 z-50 backdrop-blur-xl bg-slate-900/80 border-b border-slate-700/50 shadow-lg">
-        <div className="container mx-auto px-4 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => router.back()}
-                className="group p-2.5 hover:bg-slate-800 rounded-xl transition-all duration-300 hover:scale-110"
-              >
-                <ArrowLeft
-                  size={24}
-                  className="text-slate-400 group-hover:text-white transition-colors"
-                />
-              </button>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg">
-                  <MessageCircle size={24} className="text-white" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-white">Bình luận</h1>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
       <div className="container mx-auto px-4 lg:px-8 py-8 relative z-10">

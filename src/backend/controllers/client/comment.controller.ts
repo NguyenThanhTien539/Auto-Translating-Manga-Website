@@ -29,12 +29,15 @@ export const add = async (req: AuthRequest, res: Response): Promise<void> => {
       chapter_id,
       user_id,
     });
-    res.json({ code: "success", message: "Bạn đã thêm bình luận thành công" });
+    res.status(200).json({
+      success: true,
+      message: "Bạn đã thêm bình luận thành công",
+    });
   } catch (error) {
     console.error("Error adding comment:", error);
     res
       .status(500)
-      .json({ code: "error", message: "Đã xảy ra lỗi khi thêm bình luận" });
+      .json({ success: false, message: "Đã xảy ra lỗi khi thêm bình luận" });
   }
 };
 
@@ -42,12 +45,16 @@ export const list = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const chapter_id = req.query.chapter_id;
     const comments = await commentControllerService.list(Number(chapter_id));
-    res.json({ code: "success", data: comments });
+    res.status(200).json({
+      success: true,
+      message: "Lấy bình luận thành công",
+      data: comments,
+    });
   } catch (error) {
     console.error("Error fetching comments:", error);
     res
       .status(500)
-      .json({ code: "error", message: "Đã xảy ra lỗi khi lấy bình luận" });
+      .json({ success: false, message: "Đã xảy ra lỗi khi lấy bình luận" });
   }
 };
 
@@ -60,7 +67,7 @@ export const listByMangaChapter = async (
     const chapterId = Number(req.params.chapterId);
 
     if (!mangaParam || !Number.isFinite(chapterId) || chapterId <= 0) {
-      res.status(400).json({ code: "error", message: "Tham số không hợp lệ" });
+      res.status(400).json({ success: false, message: "Tham số không hợp lệ" });
       return;
     }
 
@@ -68,17 +75,24 @@ export const listByMangaChapter = async (
     if (!matched) {
       res
         .status(404)
-        .json({ code: "error", message: "Không tìm thấy chapter thuộc manga" });
+        .json({
+          success: false,
+          message: "Không tìm thấy chapter thuộc manga",
+        });
       return;
     }
 
     const comments = await commentControllerService.list(chapterId);
-    res.json({ code: "success", data: comments });
+    res.status(200).json({
+      success: true,
+      message: "Lấy bình luận thành công",
+      data: comments,
+    });
   } catch (error) {
     console.error("Error fetching comments by manga/chapter:", error);
     res
       .status(500)
-      .json({ code: "error", message: "Đã xảy ra lỗi khi lấy bình luận" });
+      .json({ success: false, message: "Đã xảy ra lỗi khi lấy bình luận" });
   }
 };
 
@@ -92,7 +106,7 @@ export const addByMangaChapter = async (
     const user_id = req.infoUser!.user_id;
 
     if (!mangaParam || !Number.isFinite(chapterId) || chapterId <= 0) {
-      res.status(400).json({ code: "error", message: "Tham số không hợp lệ" });
+      res.status(400).json({ success: false, message: "Tham số không hợp lệ" });
       return;
     }
 
@@ -100,7 +114,10 @@ export const addByMangaChapter = async (
     if (!matched) {
       res
         .status(404)
-        .json({ code: "error", message: "Không tìm thấy chapter thuộc manga" });
+        .json({
+          success: false,
+          message: "Không tìm thấy chapter thuộc manga",
+        });
       return;
     }
 
@@ -110,11 +127,14 @@ export const addByMangaChapter = async (
       user_id,
     });
 
-    res.json({ code: "success", message: "Bạn đã thêm bình luận thành công" });
+    res.status(200).json({
+      success: true,
+      message: "Bạn đã thêm bình luận thành công",
+    });
   } catch (error) {
     console.error("Error adding comment by manga/chapter:", error);
     res
       .status(500)
-      .json({ code: "error", message: "Đã xảy ra lỗi khi thêm bình luận" });
+      .json({ success: false, message: "Đã xảy ra lỗi khi thêm bình luận" });
   }
 };
